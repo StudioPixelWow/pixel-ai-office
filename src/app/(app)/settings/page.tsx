@@ -1,5 +1,6 @@
 import { safeList, me, rpc } from '@/lib/api';
 import { Packages } from './packages';
+import { PixiUpload } from './pixi-upload';
 import { Hero, Table } from '@/components/ui';
 import { ActionForm } from '@/components/client';
 import { AvatarToken } from './avatar-token';
@@ -11,6 +12,7 @@ export default async function Settings() {
   return <>
     <Hero title={<>הגדרות</>} sub={`${org?.name} · אזור זמן ${org?.timezone} · מטבע ${org?.currency}`} />
     <Packages items={packages as any} canEdit={m.role === 'owner'} />
+    {m.role === 'owner' && <div style={{ marginTop: 16 }}><PixiUpload current={(st as any)?.pixi_avatar ?? null} /></div>}
     {m.role === 'owner' && <div className="card" style={{ marginTop: 16 }}><h2>ביקורות בגוגל</h2>
       <p className="small muted">לקוח שמדרג 9–10 בפורטל מקבל מיד כפתור לכתיבת ביקורת. הדבק כאן את קישור &quot;כתיבת ביקורת&quot; מפרופיל העסק בגוגל.{(st as any)?.google_review_url ? ' ✓ מוגדר' : ' — עוד לא מוגדר'}</p>
       <ActionForm action="setting_set" extra={{ key: 'google_review_url' }} submit="שמירה" fields={[{ name: 'value', label: 'קישור לביקורת בגוגל', ltr: true, defaultValue: (st as any)?.google_review_url ?? '' }]} /></div>}
