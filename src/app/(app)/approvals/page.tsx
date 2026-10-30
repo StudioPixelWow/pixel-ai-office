@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { safeList, me } from '@/lib/api';
 import { Hero, Badge, Table, When, Contract, Empty } from '@/components/ui';
 import { DraftCard } from './draft-card';
+import { rpc } from '@/lib/api';
+import { buildQueue, QueueList } from '@/components/today-queue';
 
 export default async function Approvals({ searchParams }: { searchParams: Promise<{ client?: string; kind?: string }> }) {
   const sp = await searchParams; const m = await me();
@@ -10,8 +12,11 @@ export default async function Approvals({ searchParams }: { searchParams: Promis
     safeList('clients', {}), safeList('contacts', {}, 1000), safeList('connections', {}, 50)]);
   const cn = Object.fromEntries(clients.map((c: any) => [c.id, c.name])); const ct = Object.fromEntries(contacts.map((c: any) => [c.id, c]));
   const sn = Object.fromEntries(conns.map((c: any) => [c.id, c]));
+  const t = await rpc<any>('office_today').catch(() => null);
+  const q = t ? buildQueue({ ...t, blocked: [] }, []) : [];
   return <>
-    <Hero title={<>מרכז <span className="mark">האישורים</span></>} sub="כל הודעת WhatsApp נשלחת רק בלחיצה שלך על ״אשר ושלח״ להודעה המסוימת. אין ״אשר הכל״, ואין אישור קבוע." />
+    <Hero title={<>לטיפולי <span className="mark">היום</span></>} sub="כל הודעת WhatsApp נשלחת רק בלחיצה שלך על ״אשר ושלח״ להודעה המסוימת. אין ״אשר הכל״, ואין אישור קבוע." />
+    <section className="cc-card cc-queue" style={{ marginBottom: 20 }}><header><h2>כל מה שמחכה לך ({q.length + drafts.length})</h2><span className="muted small">תשלומים, פוסטים, תוצרי סוכנים, הצעות ותיקי לקוח — במקום אחד</span></header><QueueList q={q} /></section>
     <form className="row" style={{ marginBottom: 14 }}><select name="client" defaultValue={sp.client ?? ''} style={{ width: 220 }}><option value="">כל הלקוחות</option>{clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
       <select name="kind" defaultValue={sp.kind ?? ''} style={{ width: 200 }}><option value="">כל הסוגים</option>{['reply', 'followup', 'reminder', 'materials_request', 'idea', 'proposal', 'meeting_reminder'].map((k) => <option key={k} value={k}>{k}</option>)}</select>
       <button className="btn">סינון</button></form>

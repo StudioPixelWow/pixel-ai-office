@@ -18,10 +18,13 @@ export function Table({ head, rows, empty }: { head: ReactNode[]; rows: ReactNod
   return <div className="tablewrap"><table className="t"><thead><tr>{head.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
     <tbody>{rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tbody></table></div>;
 }
-export function Contract({ source, actions, perms, empty }: { source: string; actions: string; perms: string; empty: string }) {
+// Developer notes about each screen — hidden from the office UI (kept in code as documentation).
+export function Contract(_: { source: string; actions: string; perms: string; empty: string }) { return null; }
+function ContractDebug({ source, actions, perms, empty }: { source: string; actions: string; perms: string; empty: string }) {
   return <details className="small muted" style={{ marginTop: 18 }}><summary>חוזה המסך</summary>
     <dl className="kv" style={{ marginTop: 8 }}><dt>מקור הנתונים</dt><dd>{source}</dd><dt>פעולות</dt><dd>{actions}</dd><dt>הרשאות</dt><dd>{perms}</dd><dt>כשאין נתונים</dt><dd>{empty}</dd></dl></details>;
 }
+void ContractDebug;
 export const When = ({ d }: { d?: string | null }) => <span className="muted small">{fmtDateTime(d)}</span>;
 export function Tabs({ items, on }: { items: [string, string][]; on: string }) {
   return <div className="tabs">{items.map(([k, label]) => <Link key={k} href={k} className={on === k ? 'on' : ''}>{label}</Link>)}</div>;

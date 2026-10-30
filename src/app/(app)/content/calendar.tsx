@@ -128,6 +128,8 @@ function PostDrawer({ item, client, canEdit, onClose, run, busy }: { item: Item;
     {canEdit && <>
       <div className="row cg-actions">
         <button className="btn y sm" disabled={!!busy} onClick={() => creative({ mode: 'generate', prompt: f.creative_prompt })}>{busy === 'cr' ? 'יוצר קריאייטיב…' : item.creative ? 'צור קריאייטיב חדש' : 'צור קריאייטיב'}</button>
+        <a className="btn sm" target="_blank" rel="noreferrer" title="נפתח בכרום שלך על חשבון מנוי ChatGPT — שמור את התמונה והעלה אותה כאן"
+          href={`https://chatgpt.com/?q=${encodeURIComponent(`Create one ${/סטורי|רילס/.test(item.format ?? '') ? 'vertical 4:5' : 'square 1:1'} social media image for "${client.name}". ${f.creative_prompt || f.idea || f.topic}. Premium, scroll-stopping, no text, no letters, no logos, no watermark.`)}`}>צור ב-ChatGPT ↗</a>
         <button className="btn sm" disabled={!!busy} onClick={() => fileRef.current?.click()}>העלה תמונה/עיצוב</button>
         <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => upload(e.target.files?.[0])} />
       </div>
