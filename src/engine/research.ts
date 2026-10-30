@@ -1,3 +1,4 @@
+import { extractJson } from './schemas';
 import 'server-only';
 // Client research: site crawl, public social profiles, Claude web search and OpenAI web search.
 // Everything collected is public; each fact carries its source URL. Nothing here writes to client systems.
@@ -203,17 +204,17 @@ export async function classifyOwnImages(urls: string[], company: string, ownLogo
   if (!list.length || !process.env.ANTHROPIC_API_KEY) return { keep: list, dropped: [], checked: false };
   const keep: string[] = []; const dropped: string[] = []; let checked = false; const errors: string[] = [];
   const looksLogo = (u: string) => /logo|client|partner|brand|icon|badge/i.test(decodeURIComponent(u.split('/').pop() ?? ''));
-  for (let i = 0; i < list.length; i += 12) {
-    const batch = list.slice(i, i + 12);
+  for (let i = 0; i < list.length; i += 8) {
+    const batch = list.slice(i, i + 8);
     const content: any[] = [];
     batch.forEach((u, k) => { content.push({ type: 'text', text: `תמונה ${k}:` }); content.push({ type: 'image', source: { type: 'url', url: u } }); });
-    content.push({ type: 'text', text: `אלה תמונות שנאספו מאתר החברה "${company}". סווג כל תמונה: "own" — תוכן של החברה עצמה (תמונות עבודה, צוות, מוצרים/שירותים שלה, קריאייטיב ממותג שלה, אווירה); "third_party_logo" — לוגו של לקוח/שותף/מותג אחר; "icon" — אייקון/גרפיקה קטנה/רקע. החזר JSON בלבד: {"own":[מספרים],"drop":[מספרים]}` });
+    content.push({ type: 'text', text: `אלה תמונות שנאספו מאתר החברה "${company}". סווג כל תמונה: "own" — תוכן של החברה עצמה (תמונות עבודה, צוות, מוצרים/שירותים שלה, קריאייטיב ממותג שלה, אווירה); "third_party_logo" — לוגו של לקוח/שותף/מותג אחר; "icon" — אייקון/גרפיקה קטנה/רקע. החזר JSON בלבד, בלי הסברים: {"own":[מספרים],"drop":[מספרים]}` });
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal: AbortSignal.timeout(45000),
         headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: process.env.ANTHROPIC_VISION_MODEL || 'claude-haiku-5-5', max_tokens: 400, messages: [{ role: 'user', content }] }) });
+        body: JSON.stringify({ model: process.env.ANTHROPIC_VISION_MODEL || 'claude-haiku-5-5', max_tokens: 1500, messages: [{ role: 'user', content }] }) });
       const j: any = await r.json(); if (!r.ok) throw new Error(`${r.status} ${j?.error?.message ?? ''}`.slice(0, 160)); const t = (j.content ?? []).map((c: any) => c.text ?? '').join('');
-      const o = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
+      const o: any = extractJson(t);
       const own = new Set<number>((o.own ?? []).map(Number)); checked = true;
       batch.forEach((u, k) => (own.has(k) ? keep : dropped).push(u));
     } catch (e: any) { errors.push(String(e?.message ?? e).slice(0, 160)); batch.forEach((u) => (looksLogo(u) ? dropped : keep).push(u)); }
