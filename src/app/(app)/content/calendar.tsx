@@ -61,7 +61,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
     <div className="cg-head">
       <div className="cg-title"><small>גאנט תוכן סושיאל</small><h1>{client?.name ?? 'בחר לקוח'}</h1>
         <div className="cg-month"><a className="btn sm ghost" href={nav(prev)}>‹</a><b>{monthHe}</b><a className="btn sm ghost" href={nav(next)}>›</a></div></div>
-      <div className="cg-stats">{[['סה״כ', items.length, ''], ['ממתינים לאישור', stat('pending_approval'), 's-pending'], ['מאושרים', stat('approved') + stat('scheduled'), 's-approved'], ['עלו', stat('published'), 's-published'], ['לא עלו', stat('not_published'), 's-missed']].map(([l, n, c]) =>
+      <div className="cg-stats">{[['סה״כ', items.length, ''], ['ממתינים', stat('pending_approval'), 's-pending'], ['מאושרים', stat('approved') + stat('scheduled'), 's-approved'], ['עלו', stat('published'), 's-published'], ['לא עלו', stat('not_published'), 's-missed']].map(([l, n, c]) =>
         <div key={l as string} className={`cg-stat ${c}`}><b>{n as number}</b><span>{l as string}</span></div>)}</div>
     </div>
 
