@@ -123,11 +123,15 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
   }
   if (kind === 'tool:social_scan') {
     const crawl = depArt(c, 'crawl')?.data ?? {}; const socials = { ...(crawl.socials ?? {}), ...(P.socials ?? {}) };
-    if (!Object.keys(socials).length) return void await done(`רשתות חברתיות · ${company}`, { profiles: [] }, 'לא נמצאו קישורים לרשתות חברתיות באתר או בפרטי הלקוח.', [], 'לא נמצאו רשתות');
+    // samples the team already added (pasted links, collected via browser) are part of the voice calibration
+    const known: any[] = (c.client?.profile?.dossier_extra?.samples ?? []).filter((x: any) => x?.url);
+    if (!Object.keys(socials).length && !known.length) return void await done(`רשתות חברתיות · ${company}`, { profiles: [] }, 'לא נמצאו קישורים לרשתות חברתיות באתר או בפרטי הלקוח.', [], 'לא נמצאו רשתות');
     await hb('בודק פרופילים ברשתות', Object.keys(socials).join(', '));
     const prof = await socialScan(socials);
     await hb('אוסף דוגמאות תוכן', 'פוסטים, רילסים וסרטונים אחרונים');
-    const sm = await socialSamples(socials, 20);
+    const sm0 = await socialSamples(socials, 20); const seen = new Set<string>();
+    const sm = { notes: sm0.notes, samples: [...known, ...sm0.samples].filter((x: any) => !seen.has(x.url) && seen.add(x.url)).slice(0, 30) };
+    if (known.length) sm.notes.unshift(`${known.length} דוגמאות שנוספו ע״י הצוות נכללו בכיול השפה`);
     const body = `# רשתות חברתיות — ${company}\n${sm.notes.map((n) => `> ${n}`).join('\n')}\n\n## דוגמאות תוכן (${sm.samples.length})\n${sm.samples.map((x, i) => `${i + 1}. [${x.network} · ${x.type}] ${x.url}${x.likes != null ? ` · ${x.likes} לייקים` : ''}${x.views != null ? ` · ${x.views} צפיות` : ''}\n   ${String(x.text).replace(/\s+/g, ' ').slice(0, 500)}`).join('\n')}\n\n## פרופילים\n` + prof.map((p) => `- **${p.network}** ${p.url} — ${p.status === 'public' ? `${p.title ?? ''}${p.followers_text ? ` · ${p.followers_text} עוקבים` : ''}${p.description ? `\n  ${p.description}` : ''}` : p.status === 'requires_login' ? 'הרשת דורשת כניסה — לא נאספו נתונים (לא מנחשים)' : 'קישור'}`).join('\n');
     return void await done(`רשתות חברתיות · ${company}`, { profiles: prof, samples: sm.samples, notes: sm.notes, urls: prof.map((p) => p.url) }, body, [], `נבדקו ${prof.length} פרופילים · ${sm.samples.length} דוגמאות תוכן`);
   }

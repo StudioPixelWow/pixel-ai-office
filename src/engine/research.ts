@@ -161,3 +161,20 @@ export async function socialSamples(socials: Record<string, string>, limit = 20)
   for (const net of ['facebook', 'tiktok', 'linkedin'] as const) if (socials[net]) notes.push(`${net}: נדרשת כניסה לקריאת פוסטים — נוצרה משימת השלמה`);
   return { samples: samples.slice(0, limit), notes };
 }
+
+// Enrich a pasted post/reel/video link into a content sample. TikTok and YouTube expose public oEmbed (caption, thumbnail, author);
+// Instagram/Facebook oEmbed needs a Meta token, so those are kept as links with whatever OG data is public.
+export function netOf(u: string) { const h = (() => { try { return new URL(u).hostname.replace(/^www\.|^m\./, ''); } catch { return ''; } })();
+  return /tiktok/.test(h) ? 'tiktok' : /instagram/.test(h) ? 'instagram' : /facebook|fb\.watch/.test(h) ? 'facebook' : /youtu/.test(h) ? 'youtube' : /linkedin/.test(h) ? 'linkedin' : h || 'link'; }
+export async function enrichSample(url: string, extra: { views?: number | null } = {}) {
+  const network = netOf(url); const base: any = { network, url, type: network === 'tiktok' ? 'video' : /reel/.test(url) ? 'reel' : /shorts/.test(url) ? 'short' : 'post', text: '', thumb: null, views: extra.views ?? null, source: 'manual' };
+  const oembed = network === 'tiktok' ? `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}` : network === 'youtube' ? `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}` : null;
+  try {
+    if (oembed) { const r = await fetch(oembed, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0 PixelOffice' } });
+      if (r.ok) { const j: any = await r.json(); base.text = String(j.title ?? '').slice(0, 2000); base.thumb = j.thumbnail_url ?? null; base.author = j.author_name ?? null; base.enriched = true; } }
+    else { const r = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'facebookexternalhit/1.1' } }); const h = await r.text();
+      const m = (p: string) => h.match(new RegExp(`<meta[^>]+property=["']${p}["'][^>]+content=["']([^"']*)["']`, 'i'))?.[1];
+      const d = m('og:description') ?? m('og:title'); if (d) { base.text = decode(d).slice(0, 2000); base.enriched = true; } base.thumb = m('og:image') ? decode(m('og:image')!) : null; }
+  } catch { /* keep the link */ }
+  return base;
+}

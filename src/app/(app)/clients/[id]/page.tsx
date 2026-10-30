@@ -7,6 +7,7 @@ import { notFound } from 'next/navigation';
 import { OnboardForm } from '../onboard-form';
 import { ResearchPanel } from './research-panel';
 import { BrandBook, AssetBank } from './brand-book';
+import { SamplesForm } from './samples-form';
 import { KIND_HE, VAT_MODE_HE, PAY_STATUS_HE, serviceLabel } from '@/lib/services';
 import { fmtDate } from '@/lib/format';
 
@@ -62,7 +63,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       <div className="card"><h2>איש קשר</h2><ActionForm action="create_contact" extra={{ client_id: id }} fields={[{ name: 'name', label: 'שם', required: true }, { name: 'role_title', label: 'תפקיד' },
         { name: 'phone_e164', label: 'טלפון (בינלאומי)', ltr: true, hint: '‎+972501234567' }, { name: 'email', label: 'אימייל', type: 'email', ltr: true }, { name: 'approval_role', label: 'תפקיד אישור' }, { name: 'whatsapp_opt_in', label: 'הסכים לקבל הודעות WhatsApp', type: 'checkbox' }]} /></div></div>}
     {tab === 'assets' && <>
-      <AssetBank client={c} assets={assets} />
+      <AssetBank client={c} assets={assets} addForm={['owner', 'admin', 'manager'].includes(m.role) ? <SamplesForm clientId={id} /> : null} />
       <details className="card" style={{ marginTop: 16 }}><summary><b>כל הנכסים הרשומים ({assets.length}) · רישום נכס חדש</b></summary><div className="grid g2" style={{ marginTop: 12 }}>
         <Table head={['סוג', 'מזהה', 'סטטוס גישה']} rows={assets.map((x: any) => [x.kind, <span key="i" dir="ltr" style={{ wordBreak: 'break-all' }}>{x.identifier}</span>, x.access_status])} empty="אין נכסים רשומים" />
         <div><p className="small muted">רישום אינו מעניק הרשאת עריכה. החיבור נבדק בנפרד במסך החיבורים.</p>

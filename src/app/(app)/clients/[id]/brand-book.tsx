@@ -132,7 +132,7 @@ export function BrandBook({ client, actions }: { client: any; actions?: React.Re
   </div>;
 }
 
-export function AssetBank({ client, assets }: { client: any; assets: any[] }) {
+export function AssetBank({ client, assets, addForm }: { client: any; assets: any[]; addForm?: React.ReactNode }) {
   const x = client.profile?.dossier_extra ?? {};
   const imgs: string[] = [...new Set([x.og_image, ...arr(x.images), ...assets.filter((a) => a.kind === 'site_image').map((a) => a.identifier)].filter(Boolean))];
   const logos: string[] = [...new Set([client.profile?.dossier?.brand?.logo_url, x.logo, ...assets.filter((a) => a.kind === 'logo').map((a) => a.identifier)].filter(Boolean))];
@@ -157,9 +157,10 @@ export function AssetBank({ client, assets }: { client: any; assets: any[] }) {
         {(s.thumb || s.thumbnail || s.image) && <img src={s.thumb || s.thumbnail || s.image} alt="" loading="lazy" />}
         <div className="row"><span className="bb-tag">{netHe(s.network)}{s.type ? ` · ${s.type}` : ''}</span>{s.date && <small className="muted">{String(s.date).slice(0, 10)}</small>}</div>
         <p>{String(s.text ?? s.caption ?? '').slice(0, 220)}</p>
-        <small className="muted">{[s.likes != null && `${s.likes} לייקים`, s.views != null && `${s.views} צפיות`, s.comments != null && `${s.comments} תגובות`].filter(Boolean).join(' · ')}</small></a>)}</Grid>
-        : <div className="bb-empty"><b>עדיין אין דוגמאות תוכן</b><p>אינסטגרם, טיקטוק ופוסטים בפייסבוק דורשים התחברות. אפשר לחבר Meta (אינסטגרם עסקי) במסך החיבורים, או להוסיף קישורים ידנית למטה.</p></div>}
+        <small className="muted">{[s.author, s.likes != null && `${s.likes} לייקים`, s.views != null && `${Number(s.views).toLocaleString('he-IL')} צפיות`, s.comments != null && `${s.comments} תגובות`].filter(Boolean).join(' · ')}</small></a>)}</Grid>
+        : <div className="bb-empty"><b>עדיין אין דוגמאות תוכן</b><p>אינסטגרם, טיקטוק ופוסטים בפייסבוק דורשים התחברות לסריקה אוטומטית. הדביקו כאן קישורים — המערכת תמשוך טקסט, תמונה וצפיות.</p></div>}
       {gaps.length > 0 && samples.length > 0 && <p className="small muted" style={{ marginTop: 10 }}>חסר: {gaps.join(' · ')}</p>}
+      {addForm}
     </Section>
   </div>;
 }
