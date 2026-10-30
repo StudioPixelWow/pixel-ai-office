@@ -163,16 +163,23 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
       const days = (a: string, b: string) => Math.abs(+new Date(a) - +new Date(b)) / 864e5;
       const used = new Set<number>(); const missing: string[] = [];
       for (const sl of slots) { const k = plan.posts.findIndex((p: any, i: number) => !used.has(i) && days(p.date, sl) <= 3); if (k >= 0) used.add(k); else missing.push(sl); }
-      if (missing.length) {
-        await hb('משלים משבצות חסרות', `${missing.length} תאריכים: ${missing.join(', ')}`);
+      // fill gaps in small batches (a single long call gets cut off and returns only the first posts); recheck after each batch
+      const covered = () => { const u = new Set<number>(); return slots.filter((sl) => { const k = plan.posts.findIndex((p: any, i: number) => !u.has(i) && days(p.date, sl) <= 2); if (k >= 0) { u.add(k); return false; } return true; }); };
+      let gaps = covered();
+      for (let round = 0; gaps.length && round < 4; round++) {
+        const batch = gaps.slice(0, 3);
+        await hb('משלים משבצות חסרות', `${gaps.length} חסרים · כותב עכשיו: ${batch.join(', ')}`);
         try {
-          const fillCtx = { ...c, task: { ...c.task, inputs: { ...c.task.inputs, output_kind: 'content_plan', max_tokens: 7000,
-            instruction: `השלם פוסטים רק לתאריכים החסרים האלה: ${missing.join(', ')} — פוסט אחד בדיוק לכל תאריך (אפשר להזיז ליום חג קרוב מתוך allowed_dates). הפוסטים שכבר נכתבו מופיעים ב-dependencies — אל תחזור על נושאים, כותרות או הוקים שלהם. post_text מלא 250–700 תווים בשפת הלקוח (social_voice), creative_prompt באנגלית בלי טקסט בתמונה.` } }, agent_version: c.agent_version };
+          const have = plan.posts.map((p: any) => `${p.date}: ${p.title}`).join(' | ');
+          const fillCtx = { ...c, dependencies: [], task: { ...c.task, inputs: { ...c.task.inputs, output_kind: 'content_plan', max_tokens: 4000,
+            instruction: `כתוב בדיוק ${batch.length} פוסטים — אחד לכל אחד מהתאריכים: ${batch.join(', ')} (אפשר להזיז ביום אחד לתאריך מתוך allowed_dates). פוסטים שכבר קיימים בחודש — אל תחזור על הנושאים, הכותרות או ההוקים שלהם: ${have}. post_text מלא 250–600 תווים בשפת הלקוח (social_voice), creative_prompt באנגלית בלי טקסט בתמונה.` } }, agent_version: c.agent_version };
           const { data } = await runModel(fillCtx as any, 'content_plan');
-          plan.posts.push(...(data.posts ?? []).filter((p: any) => p?.date && (p.post_text || p.idea)));
+          plan.posts.push(...(data.posts ?? []).filter((p: any) => p?.date && (p.post_text || p.idea)).slice(0, batch.length));
           plan.posts.sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)));
         } catch (e: any) { await hb('השלמה נכשלה', String(e?.message ?? e).slice(0, 120)); }
+        gaps = covered();
       }
+      void missing;
     }
     if (!plan?.posts?.length) return void await w('office_worker_block', { p_task: id, p_lease: lease, p_status: 'waiting_input', p_blocker: 'אין תוכנית תוכן לשמירה', p_checkpoint: null });
     await hb('מציב פוסטים בגאנט', `${plan.posts.length} פוסטים`);

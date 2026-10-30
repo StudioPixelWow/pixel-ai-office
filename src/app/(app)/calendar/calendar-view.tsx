@@ -15,8 +15,8 @@ const DOW = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 function tzOff(date: string) { const p = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'shortOffset' }).formatToParts(new Date(`${date}T12:00:00Z`)).find((x) => x.type === 'timeZoneName')?.value ?? 'GMT+2'; const h = Number(p.match(/GMT([+-]\d+)/)?.[1] ?? 2); return `${h >= 0 ? '+' : '-'}${String(Math.abs(h)).padStart(2, '0')}:00`; }
 const iso = (date: string, t: string) => new Date(`${date}T${t}:00${tzOff(date)}`).toISOString();
 
-export function CalendarView({ anchor, view, items, google, gAccounts = [], gConfigured, gFlash, feed, clients, canConnect }:
-  { anchor: string; view: 'month' | 'week' | 'agenda'; items: any[]; google: any; gAccounts?: any[]; gConfigured: boolean; gFlash: string | null; feed: string | null; clients: { id: string; name: string }[]; canConnect: boolean }) {
+export function CalendarView({ anchor, view, items, google, gAccounts = [], gConfigured, gFlash, feed, clients, canConnect, leads = [] }:
+  { anchor: string; view: 'month' | 'week' | 'agenda'; items: any[]; google: any; gAccounts?: any[]; gConfigured: boolean; gFlash: string | null; feed: string | null; clients: { id: string; name: string }[]; canConnect: boolean; leads?: { id: string; name: string }[] }) {
   const r = useRouter(); const [show, setShow] = useState<Record<string, boolean>>({ holiday: true, meeting: true, loud: true, todo: true, milestone: true, post: false });
   const [edit, setEdit] = useState<any | null>(null); const [peek, setPeek] = useState<any | null>(null); const [gPanel, setGPanel] = useState(!!gFlash); const [copied, setCopied] = useState(false); const [syncing, setSyncing] = useState(false);
   const vis = items.filter((x) => show[x.type]);
@@ -51,7 +51,7 @@ export function CalendarView({ anchor, view, items, google, gAccounts = [], gCon
         return <div key={k} className={`cal-day${k === today ? ' today' : ''}${out ? ' out' : ''}${d.getUTCDay() === 6 ? ' sat' : ''}${hol ? (hol.no_marketing ? ' memorial' : ' hol') : ''}`} onDoubleClick={() => newItem(k)}>
           <header><span>{f(d, { day: 'numeric' })}</span><button className="cal-plus" onClick={() => newItem(k)} aria-label="הוספה">＋</button></header>
           {list.slice(0, max).map((x) => <button key={x.type + x.id} className={`cal-ev t-${x.type}${x.overdue ? ' late' : ''}${x.status === 'done' ? ' done' : ''}`} onClick={() => setPeek(x)} title={x.title}>
-            <i>{TYPE[x.type]?.[1]}</i>{!x.all_day && <em>{time(x.start)}</em>}<span>{x.title}</span></button>)}
+            <i>{TYPE[x.type]?.[1]}</i>{!x.all_day && <em>{time(x.start)}</em>}<span>{x.title}</span>{x.type === 'meeting' && !x.client_id && !x.lead_id && x.source === 'google' ? <b className="unl" title="לא משויך">•</b> : null}</button>)}
           {list.length > max && <button className="cal-more" onClick={() => go(d, 'week')}>+{list.length - max} נוספים</button>}
         </div>; })}
     </div> : <div className="cal-agenda">{[...byDay.entries()].filter(([k]) => k >= key(new Date(a.getTime() - 864e5 * 0))).sort().slice(0, 40).map(([k, list]) => <section key={k} className={k === today ? 'today' : ''}>
@@ -63,6 +63,8 @@ export function CalendarView({ anchor, view, items, google, gAccounts = [], gCon
       <h2 style={{ marginTop: 0 }}>{peek.title}</h2>
       <p className="muted">{peek.all_day ? f(peek.start, { weekday: 'long', day: 'numeric', month: 'long' }) : `${f(peek.start, { weekday: 'long', day: 'numeric', month: 'long' })} · ${time(peek.start)}${peek.end ? `–${time(peek.end)}` : ''}`}</p>
       {peek.client && <p>👤 {peek.client_id ? <Link href={`/clients/${peek.client_id}`}>{peek.client}</Link> : peek.client}</p>}
+      {peek.lead && <p>↗ ליד: <Link href={`/leads/${peek.lead_id}`}>{peek.lead}</Link></p>}
+      {(peek.type === 'meeting') && <LinkBox m={peek} clients={clients} leads={leads} onDone={() => setPeek(null)} />}
       {peek.location && <p>📍 {peek.location}</p>}{peek.service && <p>שירות: {peek.service}</p>}
       {(peek.description || peek.notes) && <p style={{ whiteSpace: 'pre-wrap' }}>{peek.description || peek.notes}</p>}
       {peek.type === 'holiday' && <>{peek.hebrew && <p>{peek.hebrew}</p>}{peek.no_marketing ? <p className="ldo-flash bad">יום זיכרון / יום ללא שיווק — לא מתזמנים פוסטים שיווקיים</p> : <p className="small muted">{peek.kind === 'marketing' ? 'יום שיווקי — הזדמנות לתוכן' : 'חג / מועד'}</p>}{peek.memo && <p>{peek.memo}</p>}</>}
@@ -131,3 +133,18 @@ function EditForm({ e, clients, onDone }: { e: any; clients: { id: string; name:
   </form>;
 }
 
+
+function LinkBox({ m, clients, leads, onDone }: { m: any; clients: { id: string; name: string }[]; leads: { id: string; name: string }[]; onDone: () => void }) {
+  const r = useRouter(); const [v, setV] = useState(m.client_id ? `c:${m.client_id}` : m.lead_id ? `l:${m.lead_id}` : ''); const [busy, setBusy] = useState(false); const [err, setErr] = useState('');
+  const linked = !!(m.client_id || m.lead_id);
+  async function save(val: string) { setBusy(true); setErr(''); try { await callAction('meeting_link', { id: m.id, client_id: val.startsWith('c:') ? val.slice(2) : null, lead_id: val.startsWith('l:') ? val.slice(2) : null }); r.refresh(); onDone(); } catch (e) { setErr(heError(e)); } finally { setBusy(false); } }
+  return <div className={`linkbox${linked ? '' : ' warn'}`}>
+    <b>{linked ? 'משויך' : 'הפגישה לא משויכת ללקוח או לליד'}</b>
+    <div className="row"><select value={v} onChange={(e) => setV(e.target.value)} disabled={busy}><option value="">— בחר לקוח או ליד —</option>
+      <optgroup label="לקוחות">{clients.map((c) => <option key={c.id} value={`c:${c.id}`}>{c.name}</option>)}</optgroup>
+      <optgroup label="לידים">{leads.map((l) => <option key={l.id} value={`l:${l.id}`}>{l.name}</option>)}</optgroup></select>
+      <button className="btn sm y" disabled={busy || v === (m.client_id ? `c:${m.client_id}` : m.lead_id ? `l:${m.lead_id}` : '')} onClick={() => save(v)}>{busy ? '…' : 'שייך'}</button></div>
+    <small className="muted">{m.reminder_sent_at ? `✓ נשלחה תזכורת במייל ל-${(m.reminder_to ?? []).join(', ')}` : linked || m.source === 'office' ? (m.remind ? '✉ תזכורת תישלח אוטומטית במייל יום לפני, למשתתפים / לאיש הקשר' : 'תזכורת במייל כבויה לפגישה הזו') : 'אחרי שיוך — תישלח תזכורת אוטומטית במייל יום לפני'}</small>
+    {(linked || m.source === 'office') && !m.reminder_sent_at && <button className="btn sm ghost" onClick={async () => { await callAction('meeting_remind', { id: m.id, remind: !m.remind }); r.refresh(); onDone(); }}>{m.remind ? 'כבה תזכורת לפגישה הזו' : 'הפעל תזכורת'}</button>}
+    {err && <span className="small" style={{ color: 'var(--bad)' }}>{err}</span>}</div>;
+}
