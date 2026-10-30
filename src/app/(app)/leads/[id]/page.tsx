@@ -10,7 +10,7 @@ import { rpc } from '@/lib/api';
 import { JourneyBar } from '@/components/journey';
 export default async function Lead({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; const l = await get<any>('leads', id); if (!l) notFound(); const m = await me();
-  const [journey, briefs, proposals, terms] = await Promise.all([rpc<any>('office_journey', { p_lead: id }).catch(() => null), safeList('briefs', { lead_id: id }), safeList('proposals', { lead_id: id }), safeList('terms_templates')]);
+  const [journey, briefs, proposals, terms, packages] = await Promise.all([rpc<any>('office_journey', { p_lead: id }).catch(() => null), safeList('briefs', { lead_id: id }), safeList('proposals', { lead_id: id }), safeList('terms_templates'), rpc<any[]>('office_packages').catch(() => [])]);
   return <>
     <div className="hero"><div className="row"><div className="sp"><h1>{l.company}</h1><p>{l.need ?? ''}</p></div><Badge s={l.stage} /></div></div>
     <JourneyBar j={journey} />
@@ -24,7 +24,7 @@ export default async function Lead({ params }: { params: Promise<{ id: string }>
       <div className="card" id="proposal"><h2>הצעות</h2>
         <Table head={['הצעה', 'סטטוס', 'מחיר נעול']} rows={proposals.map((p: any) => [<Link key="l" href={`/proposals/${p.id}`}>{p.title}</Link>, <Badge key="b" s={p.status} />, p.price_locked_at ? `${fmtMoney(p.locked_setup)} + ${fmtMoney(p.locked_monthly)}/ח׳` : 'טרם נקבע'])} empty="אין הצעה" />
         {m.role === 'owner' && <><h3 style={{ marginTop: 14 }}>הצעת מחיר ממותגת</h3>
-          <QuickProposal lead={l} terms={terms.map((t: any) => ({ id: t.id, name: `${t.name}${t.vat_rate != null ? ` · מע״מ ${t.vat_rate}%` : ''}` }))} /></>}
+          <QuickProposal lead={l} packages={packages as any} terms={terms.map((t: any) => ({ id: t.id, name: `${t.name}${t.vat_rate != null ? ` · מע״מ ${t.vat_rate}%` : ''}` }))} /></>}
         <details style={{ marginTop: 14 }}><summary className="small">פתיחת הצעה ריקה (מתקדם)</summary>
         <ActionForm action="create_proposal" extra={{ lead_id: id }} redirectTo="/proposals/{id}" fields={[{ name: 'title', label: 'כותרת', required: true, defaultValue: `הצעת מחיר — ${l.company}` },
           { name: 'terms_template_id', label: 'תבנית תנאים מאושרת', type: 'select', options: terms.map((t: any) => [t.id, t.name]) }]} /></details>

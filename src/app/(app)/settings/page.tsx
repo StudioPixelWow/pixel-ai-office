@@ -1,15 +1,17 @@
-import { safeList, me } from '@/lib/api';
+import { safeList, me, rpc } from '@/lib/api';
+import { Packages } from './packages';
 import { Hero, Table } from '@/components/ui';
 import { ActionForm } from '@/components/client';
 import { AvatarToken } from './avatar-token';
 import { AvatarSheetUpload } from './avatar-sheet';
 import { ROSTER } from '@/agents/roster';
 export default async function Settings() {
-  const m = await me(); const [members, terms] = await Promise.all([safeList('memberships'), safeList('terms_templates')]);
+  const m = await me(); const [members, terms, packages] = await Promise.all([safeList('memberships'), safeList('terms_templates'), rpc<any[]>('office_packages').catch(() => [])]);
   const org: any = m.org;
   return <>
     <Hero title={<>הגדרות</>} sub={`${org?.name} · אזור זמן ${org?.timezone} · מטבע ${org?.currency}`} />
-    <div className="grid g2">
+    <Packages items={packages as any} canEdit={m.role === 'owner'} />
+    <div className="grid g2" style={{ marginTop: 16 }}>
       <div className="card"><h2>משתמשים והרשאות</h2><Table head={['אימייל', 'תפקיד', 'פעיל']} rows={members.map((x: any) => [<span key="e" dir="ltr">{x.email}</span>, x.role, x.active ? 'כן' : 'לא'])} />
         {m.role === 'owner' && <ActionForm action="invite_member" submit="הוסף משתמש מורשה" fields={[{ name: 'email', label: 'אימייל', type: 'email', ltr: true, required: true },
           { name: 'role', label: 'תפקיד', type: 'select', required: true, options: [['admin', 'מנהל מערכת'], ['account_manager', 'מנהל לקוח'], ['employee', 'עובד'], ['viewer', 'צופה']] }]} />}
