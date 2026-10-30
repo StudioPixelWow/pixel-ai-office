@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { callAction } from '@/components/client';
 import { heError } from '@/lib/errors';
+import { TalkingReport } from '@/components/talking-report';
 
 const FIELDS: [string, string][] = [['spend', 'הוצאה על מדיה (₪)'], ['leads', 'לידים'], ['impressions', 'חשיפות'], ['clicks', 'קליקים'], ['site_visits', 'כניסות לאתר'], ['followers_gain', 'עוקבים חדשים']];
 const mLabel = (m: string) => new Intl.DateTimeFormat('he-IL', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${m.slice(0, 7)}-01T12:00:00Z`));
@@ -21,6 +22,9 @@ export function ReportsPanel({ clientId, data }: { clientId: string; data: any }
   const gen = async () => { setBusy('g'); setMsg(null);
     const j = await fetch(`/api/clients/${clientId}/report`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ month }) }).then((x) => x.json()).catch(() => ({ error: 'אין חיבור' }));
     setBusy(null); if (j.error) setMsg({ ok: false, t: j.error }); else { setMsg({ ok: true, t: 'הדוח מוכן — עבור עליו ושתף' }); r.refresh(); } };
+  const voice = async () => { setBusy('v'); setMsg(null);
+    const j = await fetch(`/api/clients/${clientId}/report/voice`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ month }) }).then((x) => x.json()).catch(() => ({ error: 'אין חיבור' }));
+    setBusy(null); if (j.error) setMsg({ ok: false, t: j.error }); else { setMsg({ ok: true, t: 'הגרסה המדברת מוכנה — היא תופיע ללקוח בפורטל יחד עם הדוח' }); r.refresh(); } };
   const share = async () => { setBusy('s'); setMsg(null); try { const d = await callAction('report_share', { client_id: clientId, month: `${month}-01` }); setMsg({ ok: true, t: d?.note ?? 'שותף' }); r.refresh(); } catch (e) { setMsg({ ok: false, t: heError(e) }); } finally { setBusy(null); } };
   const months = Array.from({ length: 4 }, (_, i) => new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)).toISOString().slice(0, 7));
   const s = rep?.summary;
@@ -33,6 +37,8 @@ export function ReportsPanel({ clientId, data }: { clientId: string; data: any }
         {(s.highlights ?? []).length > 0 && <><h3>הישגים</h3><ul>{s.highlights.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></>}
         {(s.insights ?? []).length > 0 && <><h3>תובנות</h3><ul>{s.insights.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></>}
         {(s.next_month ?? []).length > 0 && <><h3>בחודש הבא</h3><ul>{s.next_month.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></>}
+        {rep.voice?.audio_blob && <TalkingReport src={`/api/files/${rep.voice.audio_blob}`} slides={rep.voice.slides ?? []} />}
+        <div className="row"><button className="btn sm" disabled={!!busy} onClick={voice}>{busy === 'v' ? 'מקליט… (עד 2 דקות)' : rep.voice?.audio_blob ? '🎙 הקלט מחדש' : '🎙 צור דוח מדבר'}</button></div>
         <div className="row"><button className="btn y sm" disabled={!!busy} onClick={share}>{rep.status === 'shared' ? 'שלח שוב ללקוח' : 'שיתוף בפורטל + הודעה'}</button><button className="btn sm ghost" disabled={!!busy} onClick={gen}>{busy === 'g' ? 'כותב…' : 'כתוב מחדש'}</button>
           {rep.status === 'shared' && <span className="badge ok">בפורטל ✓</span>}</div>
       </div> : <div className="cc-empty"><b>עוד אין דוח ל{mLabel(month)}</b><p>המערכת אוספת לבד פוסטים שעלו, אבני דרך, פגישות ושביעות רצון. הוסף נתוני פרסום (או חבר Meta / Google) — וה-AI יכתוב דוח ברור ללקוח.</p>

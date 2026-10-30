@@ -1,4 +1,5 @@
 'use client';
+import { TalkingReport } from '@/components/talking-report';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SignPad } from './sign-pad';
@@ -88,6 +89,7 @@ export function Portal({ t, d }: { t: string; d: any }) {
       <h2>הדוחות החודשיים שלכם</h2>
       {(d.reports as any[]).map((x, i) => { const s = x.summary ?? {}; return <details key={x.month} className="pt-rep" open={i === 0}>
         <summary><b>{fd(x.month, { month: 'long', year: 'numeric' })}</b><span>{s.headline}</span></summary>
+        {x.voice?.audio_blob && <TalkingReport src={img(x.voice.audio_blob)} slides={x.voice.slides ?? []} label="הסיכום המדבר שלכם" />}
         {(s.numbers ?? []).length > 0 && <div className="pt-rep-n">{s.numbers.map((n: any, j: number) => <div key={j}><b>{n.value}</b><small>{n.label}</small></div>)}</div>}
         {(s.highlights ?? []).length > 0 && <><h3>מה השגנו</h3><ul>{s.highlights.map((h: string, j: number) => <li key={j}>{h}</li>)}</ul></>}
         {(s.insights ?? []).length > 0 && <><h3>מה למדנו</h3><ul>{s.insights.map((h: string, j: number) => <li key={j}>{h}</li>)}</ul></>}
