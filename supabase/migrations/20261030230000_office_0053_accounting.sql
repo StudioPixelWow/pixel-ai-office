@@ -1,0 +1,4 @@
+-- 0053 accounting (applied live via MCP as 0053_accounting + 0053b_payment_doc_state):
+-- office.payment_documents (305 tax invoice / 320 invoice-receipt / 400 receipt / 330 credit), payments.pay_reference,
+-- act_accounting (vat_set_default [owner], payment_document_record), payment_mark_paid stores reference,
+-- public.office_accounting(p_month) monthly ledger, public.office_payment_doc_state(p_payment).

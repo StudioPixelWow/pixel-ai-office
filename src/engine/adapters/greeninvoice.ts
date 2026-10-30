@@ -39,3 +39,23 @@ export async function giCreateInvoiceReceipt(o: { clientName: string; email?: st
   if (!r.ok || !j.id) return { ok: false as const, error: j?.errorMessage || `HTTP ${r.status}` };
   return { ok: true as const, id: String(j.id), number: j.number != null ? String(j.number) : null, url: j.url?.he ?? j.url?.origin ?? null };
 }
+
+// Document types (Green Invoice / Morning): 305 tax invoice, 320 tax invoice-receipt, 400 receipt, 330 credit invoice
+export const DOC_HE: Record<number, string> = { 305: 'חשבונית מס', 320: 'חשבונית מס קבלה', 400: 'קבלה', 330: 'חשבונית זיכוי' };
+export async function giCreateDocument(o: { type: 305 | 320 | 400; clientName: string; email?: string | null; phone?: string | null; description: string;
+  amount: number; vatMode: string; paid?: { amount: number; date: string; method: string; reference?: string | null } | null; linkedDocIds?: string[]; remarks?: string }) {
+  const token = await giToken();
+  const payType = o.paid ? (PAY[o.paid.method] ?? 11) : 11;
+  const payment = o.paid ? [{ type: payType, price: o.paid.amount, currency: 'ILS', date: o.paid.date }] : undefined;
+  const remarks = [o.remarks, o.paid?.reference ? `אסמכתא: ${o.paid.reference}` : ''].filter(Boolean).join(' · ') || undefined;
+  const body: any = { type: o.type, lang: 'he', currency: 'ILS', signed: true, rounding: false, description: o.description, remarks,
+    client: { name: o.clientName, emails: o.email ? [o.email] : undefined, phone: o.phone ?? undefined, add: true } };
+  if (o.type !== 400) body.income = [{ description: o.description, quantity: 1, price: o.amount, currency: 'ILS', vatType: VAT[o.vatMode] ?? 0 }];
+  if (o.type !== 305) body.payment = payment;
+  if (o.linkedDocIds?.length) body.linkedDocumentIds = o.linkedDocIds;
+  const r = await fetch(`${base()}/documents`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(body) });
+  const j: any = await r.json().catch(() => ({}));
+  if (!r.ok || !j.id) return { ok: false as const, error: j?.errorMessage || `HTTP ${r.status}` };
+  return { ok: true as const, id: String(j.id), number: j.number != null ? String(j.number) : null, url: j.url?.he ?? j.url?.origin ?? null };
+}
+export const giEnv = () => process.env.GREEN_INVOICE_ENV === 'sandbox' ? 'sandbox' : 'production';
