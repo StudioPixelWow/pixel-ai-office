@@ -6,7 +6,9 @@ import { redirectUri } from './gcal';
 export const P = 'google_marketing';
 export const MSCOPES = ['https://www.googleapis.com/auth/adwords', 'https://www.googleapis.com/auth/analytics.readonly', 'openid', 'email'];
 const ADS_V = process.env.GOOGLE_ADS_API_VERSION ?? 'v26';
-export const adsConfigured = () => !!(process.env.GOOGLE_ADS_DEVELOPER_TOKEN && process.env.GOOGLE_ADS_MCC_ID);
+// Developer tokens were sunset by Google on 2026-09-09: API access now follows the Google Cloud project that owns the OAuth client.
+// The header is optional (sent only if still configured). Only the MCC id (login-customer-id) is required.
+export const adsConfigured = () => !!process.env.GOOGLE_ADS_MCC_ID;
 export function marketingAuthUrl(origin: string, state: string) {
   const q = new URLSearchParams({ client_id: process.env.GOOGLE_CLIENT_ID!, redirect_uri: redirectUri(origin), response_type: 'code', scope: MSCOPES.join(' '), access_type: 'offline', prompt: 'consent select_account', state });
   return `https://accounts.google.com/o/oauth2/v2/auth?${q}`;
@@ -48,9 +50,9 @@ export async function ga4Month(property: string, start: string, end: string) {
 }
 // ── Google Ads
 async function gaql(customer: string, query: string) {
-  const t = await marketingToken(); if (!t) throw new Error('not_connected'); if (!adsConfigured()) throw new Error('developer_token_missing');
+  const t = await marketingToken(); if (!t) throw new Error('not_connected'); if (!adsConfigured()) throw new Error('mcc_id_missing');
   const r = await fetch(`https://googleads.googleapis.com/${ADS_V}/customers/${customer.replace(/-/g, '')}/googleAds:searchStream`, { method: 'POST',
-    headers: { authorization: `Bearer ${t}`, 'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN!, 'login-customer-id': process.env.GOOGLE_ADS_MCC_ID!.replace(/-/g, ''), 'content-type': 'application/json' }, body: JSON.stringify({ query }) });
+    headers: { authorization: `Bearer ${t}`, ...(process.env.GOOGLE_ADS_DEVELOPER_TOKEN ? { 'developer-token': process.env.GOOGLE_ADS_DEVELOPER_TOKEN } : {}), 'login-customer-id': process.env.GOOGLE_ADS_MCC_ID!.replace(/-/g, ''), 'content-type': 'application/json' }, body: JSON.stringify({ query }) });
   const j: any = await r.json().catch(() => ({})); if (!r.ok) throw new Error(`google ads ${r.status}: ${(Array.isArray(j) ? j[0] : j)?.error?.message ?? ''}`.slice(0, 260));
   return (Array.isArray(j) ? j : [j]).flatMap((b: any) => b.results ?? []);
 }

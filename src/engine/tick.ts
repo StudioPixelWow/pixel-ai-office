@@ -75,7 +75,7 @@ export async function selfChecks() {
   const mc = metaConfigured() ? await metaCheck() : null;
   const gt = await marketingToken().catch(() => null);
   const ads = !!(mc?.ok) || !!(gt && adsConfigured());
-  const missing = [!metaConfigured() && 'META_SYSTEM_TOKEN', mc && !mc.ok && `Meta: ${mc.error}`, !gt && 'חיבור Google בעמוד החיבורים', !adsConfigured() && 'GOOGLE_ADS_DEVELOPER_TOKEN / GOOGLE_ADS_MCC_ID'].filter(Boolean).join(' · ');
+  const missing = [!metaConfigured() && 'META_SYSTEM_TOKEN', mc && !mc.ok && `Meta: ${mc.error}`, !gt && 'חיבור Google בעמוד החיבורים', !adsConfigured() && 'GOOGLE_ADS_MCC_ID'].filter(Boolean).join(' · ');
   out.ads = await w('office_worker_connection_report', { p_provider: 'ads_read', p_label: 'קריאת נתוני קמפיינים (Meta / Google Ads)', p_secret_ref: 'META_SYSTEM_TOKEN',
     p_caps: [{ capability: 'read_ads', implemented: true, status: ads ? 'access_verified' : 'not_connected', check_method: 'GET /me (Meta) · OAuth token (Google)', account: mc?.ok ? (mc as any).name : null,
       details: ads ? [mc?.ok && 'Meta מאומת', gt && adsConfigured() && 'Google Ads מוגדר'].filter(Boolean).join(' · ') + (missing ? ` · עדיין חסר: ${missing}` : '') : `חסר: ${missing}` }] });

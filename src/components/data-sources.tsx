@@ -16,7 +16,7 @@ export function DataConnections() {
     {!d ? <p className="muted">בודק חיבורים…</p> : <ul className="ds-list">
       {row(d.meta?.configured ? (d.meta.check?.ok ?? false) : false, 'Meta Ads', d.meta?.configured ? (d.meta.check?.ok ? `מחובר · ${list(d.meta.accounts).length} חשבונות מודעות` : `הטוקן הוגדר אבל לא עובד: ${d.meta.check?.error ?? ''}`) : 'חסר META_SYSTEM_TOKEN ב-Vercel (System User עם ads_read)')}
       {row(!!d.google?.connected, 'Google (Ads + Analytics)', d.google?.connected ? 'ההרשאה אושרה' : 'צריך לאשר גישה לחשבון Google עם ה-MCC', <a className="btn sm y" href="/api/google/connect?for=marketing">{d.google?.connected ? 'חיבור מחדש' : 'חיבור Google'}</a>)}
-      {row(d.google?.connected ? !!d.google.ads_configured && !(d.google.ads as any)?.error : null, 'Google Ads דרך ה-MCC', !d.google?.ads_configured ? 'חסרים GOOGLE_ADS_DEVELOPER_TOKEN ו-GOOGLE_ADS_MCC_ID ב-Vercel' : (d.google.ads as any)?.error ? `שגיאה: ${(d.google.ads as any).error}` : `${list(d.google.ads).length} חשבונות לקוח תחת ה-MCC`)}
+      {row(d.google?.connected ? !!d.google.ads_configured && !(d.google.ads as any)?.error : null, 'Google Ads דרך ה-MCC', !d.google?.ads_configured ? 'חסר GOOGLE_ADS_MCC_ID ב-Vercel' : (d.google.ads as any)?.error ? `שגיאה: ${(d.google.ads as any).error}` : `${list(d.google.ads).length} חשבונות לקוח תחת ה-MCC`)}
       {row(d.google?.connected ? !(d.google.ga4 as any)?.error : null, 'Google Analytics 4', !d.google?.connected ? 'אחרי חיבור Google' : (d.google.ga4 as any)?.error ? `שגיאה: ${(d.google.ga4 as any).error}` : `${list(d.google.ga4).length} נכסי GA4 נגישים`)}
     </ul>}
   </div>;
