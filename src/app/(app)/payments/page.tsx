@@ -39,7 +39,7 @@ export default async function Payments({ searchParams }: { searchParams: Promise
       <span key="p" className="small">{p.paid_at ? `${fmtDate(p.paid_at)} · ${fmtMoney(p.paid_amount)} · ${METHOD_HE[p.method] ?? ''}` : '—'}</span>,
       <PaymentRowActions key="x" p={p} grow={grow} invoices={inv} />])} empty="אין תשלומים בתצוגה הזו" />
     <h2 style={{ marginTop: 24 }}>הסדרי תשלום</h2>
-    <Table head={['לקוח', 'סוג', 'כותרת', 'סכום', 'יום תשלום', 'תשלום הבא', 'סטטוס']} rows={plans.map((b) => [<Link key="c" href={`/clients/${b.client_id}?tab=billing`}>{b.client_name}</Link>,
+    <Table head={['לקוח', 'סוג', 'כותרת', 'סכום', 'יום תשלום', 'תשלום הבא', 'סטטוס']} rows={plans.filter((b) => b.status !== 'ended').map((b) => [<Link key="c" href={`/clients/${b.client_id}?tab=billing`}>{b.client_name}</Link>,
       KIND_HE[b.kind], b.title, `${fmtMoney(b.amount)} ${b.kind === 'retainer' ? 'לחודש' : ''}`, b.payment_day ?? (b.installments > 1 ? `${b.installments} תשלומים` : '—'), fmtDate(b.next_due), b.status === 'active' ? 'פעיל' : b.status === 'paused' ? 'מושהה' : 'הסתיים'])}
       empty={<>אין הסדרי תשלום. <Link href="/clients">הוסף לקוח</Link> עם סוג שירות וסכום.</>} />
     <Contract source="office.payments · office.billing_plans" actions="סימון תשלום, קישור תשלום (Grow), חשבונית (חשבונית ירוקה), עריכה, ויתור" perms="Owner ומנהלת משרד (admin) בלבד" empty="הנחיה להוספת לקוח" />
