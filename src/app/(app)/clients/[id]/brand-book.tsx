@@ -100,12 +100,12 @@ export function BrandBook({ client, actions }: { client: any; actions?: React.Re
           {sv.caption_length && <><dt>אורך טקסט</dt><dd>{sv.caption_length}</dd></>}{sv.emoji_use && <><dt>אימוג׳י</dt><dd>{sv.emoji_use}</dd></>}{sv.visual_style && <><dt>ויזואל</dt><dd>{sv.visual_style}</dd></>}</dl>
           {arr(sv.formats_that_work).length > 0 && <><h4>פורמטים שעובדים</h4><Chips items={arr(sv.formats_that_work)} tone="c" /></>}
           {arr(sv.hashtags).length > 0 && <><h4>האשטגים</h4><Chips items={arr(sv.hashtags)} /></>}</div>
-        <div className="bb-card"><h3>הוקים שעובדים</h3>{arr(sv.hooks).length ? arr(sv.hooks).map((h: string, i: number) => <div key={i} className="bb-hook">„{h}"</div>) : <p className="muted small">אין</p>}</div>
+        <div className="bb-card"><h3>הוקים שעובדים</h3>{arr(sv.hooks).length ? arr(sv.hooks).map((h: string, i: number) => <div key={i} className="bb-hook">„{h}"</div>) : <p className="muted small">יתווספו אחרי איסוף דוגמאות מהרשתות</p>}</div>
       </div>
-      <div className="bb-two" style={{ marginTop: 14 }}>
+      {(arr(sv.do).length > 0 || arr(sv.dont).length > 0) ? <div className="bb-two" style={{ marginTop: 14 }}>
         <div className="bb-card bb-do"><h3>✓ כן</h3><List items={arr(sv.do)} /></div>
         <div className="bb-card bb-dont"><h3>✕ לא</h3><List items={arr(sv.dont)} /></div>
-      </div>
+      </div> : <div className="bb-empty" style={{ marginTop: 14 }}><b>שפת הרשתות עוד לא כוילה</b><p>לא נאספו פוסטים מהרשתות של הלקוח (אינסטגרם, טיקטוק ופוסטים בפייסבוק דורשים התחברות). חיבור Meta במסך החיבורים, או הוספת קישורים לפוסטים בבנק הנכסים, ישלימו את הכיול.</p><a className="btn sm" href="?tab=assets">לבנק הנכסים</a></div>}
       {(rep.summary || arr(rep.themes_positive).length > 0) && <div className="bb-card" style={{ marginTop: 14 }}><h3>מוניטין {rep.rating && <span className="badge yellow">{rep.rating}</span>}</h3><p>{rep.summary}</p>
         <div className="bb-two"><div><h4>חיובי</h4><Chips items={arr(rep.themes_positive)} tone="ok" /></div><div><h4>לשיפור</h4><Chips items={arr(rep.themes_negative)} tone="bad" /></div></div></div>}
     </Section></div>
