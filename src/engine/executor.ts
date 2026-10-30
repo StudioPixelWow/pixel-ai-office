@@ -145,6 +145,21 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     return void await done(`מחקר רשת (Claude) · ${company}`, { urls: r.urls, model: r.model }, `${r.text}\n\n**מקורות:**\n${r.urls.map((u) => `- ${u}`).join('\n')}`,
       [{ provider: 'anthropic', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output, r.usage.searches), note: `tokens + ${r.usage.searches} web searches` }], `${r.urls.length} מקורות`);
   }
+  if (kind === 'tool:competitor_watch') {
+    await hb('בודק מה המתחרים מפרסמים', 'מבצעים, קמפיינים ותוכן מהשבוע האחרון');
+    const known = c.client?.profile?.dossier?.competitors ?? c.client?.profile?.competitors ?? [];
+    const names = (Array.isArray(known) ? known : []).map((x: any) => typeof x === 'string' ? x : x?.name).filter(Boolean).slice(0, 6);
+    const lib = (q: string) => `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=IL&q=${encodeURIComponent(q)}`;
+    const prompt = `אתה חוקר מתחרים במשרד פרסום. הלקוח: "${company}"${website ? ` (${website})` : ''}${c.client?.industry ? `, תחום: ${c.client.industry}` : ''}.
+${names.length ? `המתחרים המרכזיים: ${names.join(', ')}.` : 'זהה 3–5 מתחרים ישירים בישראל לפי האתר והתחום.'}
+חפש ברשת מה הם עשו ב-10 הימים האחרונים: מבצעים והטבות, מסרים בפרסום, השקות, תוכן ויראלי ברשתות, שינויים במחירים, אירועים.
+כתוב בעברית, בקצרה, רק עובדות שמצאת עם קישור מקור לכל פרט (בלי להמציא). אם לא מצאת משהו חדש אצל מתחרה — כתוב "לא נמצא שינוי".
+בסוף: "3 רעיונות תגובה ללקוח השבוע" — לכל רעיון: מה, למה עכשיו, פורמט (פוסט/רילס/קמפיין/מבצע).`;
+    const r = await claudeWebResearch(prompt, process.env.COMPETITOR_MODEL ?? 'claude-sonnet-5-5');
+    const links = (names.length ? names : [company]).map((n: string) => `- [${n} בספריית המודעות של מטא](${lib(n)})`).join('\n');
+    return void await done(`מעקב מתחרים · ${company}`, { urls: r.urls, model: r.model, competitors: names }, `${r.text}\n\n**לצפייה במודעות הפעילות שלהם עכשיו (ספריית המודעות של מטא):**\n${links}\n\n**מקורות:**\n${r.urls.map((u) => `- ${u}`).join('\n')}`,
+      [{ provider: 'anthropic', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output, r.usage.searches), note: `competitor watch · ${r.usage.searches} web searches` }], `${r.urls.length} מקורות`);
+  }
   if (kind === 'tool:openai_research') {
     if (!process.env.OPENAI_API_KEY) return void await done(`מחקר ChatGPT · ${company}`, { skipped: true }, 'OpenAI לא מחובר — דולג.', [], 'דולג');
     await hb('מריץ מחקר עומק ב-ChatGPT (API)', 'חיפוש ברשת והצלבה');
