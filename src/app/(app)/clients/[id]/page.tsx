@@ -12,6 +12,7 @@ import { KIND_HE, VAT_MODE_HE, PAY_STATUS_HE, serviceLabel } from '@/lib/service
 import { fmtDate } from '@/lib/format';
 import { JourneyBar } from '@/components/journey';
 import { Milestones } from './milestones';
+import { ProfileForm } from './profile-form';
 
 export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params; const { tab = 'overview' } = await searchParams; const m = await me();
@@ -28,11 +29,15 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
     <div className="hero"><div className="row"><div className="sp"><h1>{c.name}</h1><p>{DEPT_HE[c.department] ?? c.department} · {c.industry ?? 'תחום לא הוגדר'} {c.is_test && '· [בדיקה]'}</p></div><Badge s={c.status} /></div></div>
     <JourneyBar j={journey} />
     <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'milestones', 'אבני דרך'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
-    {tab === 'overview' && <div className="grid g2">
-      <div className="card"><h2>תיק לקוח</h2><dl className="kv">{['goals', 'audiences', 'differentiators', 'competitors', 'voice', 'constraints', 'references', 'need'].map((k) => <><dt key={k}>{({ goals: 'מטרות', audiences: 'קהלים', differentiators: 'בידולים', competitors: 'מתחרים', voice: 'שפה', constraints: 'אילוצים', references: 'רפרנסים', need: 'צורך' } as any)[k]}</dt><dd>{c.profile?.[k] ?? <span className="muted">חסר</span>}</dd></>)}</dl></div>
-      <div className="card"><h2>עדכון תיק</h2><ActionForm action="update_client" reset={false} extra={{ id, version: c.version }} fields={[
-        { name: 'status', label: 'סטטוס', type: 'select', options: [['onboarding', 'בהקמה'], ['active', 'פעיל'], ['paused', 'מושהה'], ['ended', 'הסתיים']], defaultValue: c.status },
-        { name: 'profile', label: 'פרטי תיק (JSON: goals, audiences, differentiators, competitors, voice, constraints)', type: 'textarea', json: true, ltr: true, defaultValue: JSON.stringify(c.profile ?? {}, null, 1) }]} /></div></div>}
+    {tab === 'overview' && <div className="grid g2 ov">
+      <ProfileForm c={c} />
+      <div className="grid" style={{ alignContent: 'start' }}>
+        <div className="card"><h2>אבני דרך קרובות</h2>{milestones.filter((x: any) => !['done', 'skipped'].includes(x.status)).slice(0, 6).map((x: any) => <div key={x.id} className="ov-ms"><span className={`dotx ${x.due_date && x.due_date < new Date().toISOString().slice(0, 10) ? 'late' : ''}`} /><div><b>{x.title}</b><small>{x.service} · {x.due_date ? new Date(x.due_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) : '—'}</small></div></div>)}
+          {!milestones.length && <p className="muted">אין עדיין אבני דרך — הן נוצרות כשנפתחת עסקה.</p>}<Link className="btn sm ghost" href={`${base}milestones`}>לכל אבני הדרך ←</Link></div>
+        <div className="card"><h2>קיצורי דרך</h2><div className="ov-links">
+          <Link href={`/content?client=${id}`}>▦ גאנט תוכן</Link><Link href={`${base}knowledge`}>⌕ תיק מותג ומחקר</Link><Link href={`${base}assets`}>◧ בנק נכסים</Link>
+          {fin ? <Link href={`${base}billing`}>₪ תשלומים</Link> : <Link href={`${base}contacts`}>☎ אנשי קשר</Link>}<Link href={`/talk?client=${id}`}>✦ משימה לסוכנים</Link><Link href={`/calendar`}>▣ פגישות ביומן</Link></div></div>
+      </div></div>}
     {tab === 'milestones' && <Milestones clientId={id} items={milestones} engagements={engagements} />}
     {tab === 'billing' && fin && <div className="grid g2">
       <div className="card"><h2>הסדרי תשלום</h2>{plans.length ? plans.map((b: any) => <div key={b.id} style={{ marginBottom: 14 }}>

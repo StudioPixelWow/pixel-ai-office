@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { safeList, rpc, me } from '@/lib/api';
-import { Hero, Table, Stat, Empty, Contract } from '@/components/ui';
+import { Hero, Table, Empty, Contract } from '@/components/ui';
 import { fmtMoney, fmtDate } from '@/lib/format';
 import { PAY_STATUS_HE, KIND_HE, VAT_MODE_HE, METHOD_HE } from '@/lib/services';
 import { PaymentRowActions } from './payment-row-actions';
@@ -21,13 +21,15 @@ export default async function Payments({ searchParams }: { searchParams: Promise
   const grow = growConfigured(); const inv = greenInvoiceConfigured();
   return <>
     <Hero title={<>מעקב <span className="mark">תשלומים</span></>} sub="כל התשלומים הצפויים מהלקוחות — ריטיינרים חודשיים ופרויקטים חד-פעמיים. שליטה ובקרה למנהלת המשרד." />
-    {sum && <div className="grid g4" style={{ marginBottom: 16 }}>
-      <Stat n={fmtMoney(sum.month_expected)} label="צפוי החודש" /><Stat n={fmtMoney(sum.month_collected)} label="נגבה החודש" tone="ok" />
-      <Stat n={`${sum.overdue_count} · ${fmtMoney(sum.overdue_sum)}`} label="באיחור" tone={sum.overdue_count ? 'bad' : undefined} href="/payments?f=overdue" />
-      <Stat n={`${sum.active_retainers} · ${fmtMoney(sum.mrr)}`} label="ריטיינרים פעילים · הכנסה חודשית" /></div>}
+    {sum && <div className="kpis">
+      <div className="kpi"><b>{fmtMoney(sum.month_expected)}</b><span>צפוי החודש</span></div>
+      <div className="kpi"><b style={{ color: 'var(--ok)' }}>{fmtMoney(sum.month_collected)}</b><span>נגבה החודש</span><div className="minibar"><i style={{ width: `${sum.month_expected ? Math.min(100, (Number(sum.month_collected) / Number(sum.month_expected)) * 100) : 0}%` }} /></div></div>
+      <Link href="/payments?f=overdue" className={`kpi${sum.overdue_count ? ' hot' : ''}`} style={{ textDecoration: 'none', color: 'inherit' }}><b>{sum.overdue_count}</b><span>באיחור · {fmtMoney(sum.overdue_sum)}</span></Link>
+      <div className="kpi"><b>{fmtMoney(sum.mrr)}</b><span>הכנסה חודשית קבועה</span></div>
+      <div className="kpi"><b>{sum.active_retainers}</b><span>ריטיינרים פעילים</span></div></div>}
     {sum?.gross_unknown > 0 && <p className="small muted">ל-{sum.gross_unknown} תשלומים אין סכום כולל מע״מ כי לא נבחרה תבנית מע״מ. אפשר לגבות ידנית; קישור תשלום דורש סכום סופי.</p>}
-    <div className="row" style={{ margin: '8px 0 12px' }}>{FILTERS.map(([k, l]) => <Link key={k} className={`btn sm ${k === f ? 'y' : ''}`} href={`/payments?f=${k}${client ? `&client=${client}` : ''}`}>{l}</Link>)}
-      <span className="sp" /><span className="small muted">Grow: {grow ? 'מוגדר' : 'לא מחובר'} · חשבונית ירוקה: {inv ? 'מוגדרת' : 'לא מחוברת'}</span></div>
+    <div className="row" style={{ margin: '8px 0 12px' }}><div className="tabs" style={{ margin: 0 }}>{FILTERS.map(([k, l]) => <Link key={k} className={k === f ? 'on' : ''} href={`/payments?f=${k}${client ? `&client=${client}` : ''}`}>{l}</Link>)}</div>
+      <span className="sp" /><span className={`badge ${grow ? 'ok' : 'muted'}`}>Grow {grow ? '✓' : '—'}</span><span className={`badge ${inv ? 'ok' : 'muted'}`}>חשבונית ירוקה {inv ? '✓' : '—'}</span></div>
     <Table head={['מועד', 'לקוח', 'הסדר', 'סכום', 'מע״מ', 'סטטוס', 'שולם', 'פעולות']} rows={shown.map((p) => [
       <b key="d">{fmtDate(p.due_date)}</b>, <Link key="c" href={`/clients/${p.client_id}?tab=billing`}>{p.client_name}</Link>,
       <span key="k" className="small">{p.plan_title}{p.period_month ? ` · ${p.period_month.slice(0, 7)}` : ''}</span>,

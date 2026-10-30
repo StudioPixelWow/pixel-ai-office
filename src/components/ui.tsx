@@ -11,12 +11,13 @@ export function Stat({ n, label, href, tone }: { n: ReactNode; label: string; hr
 }
 export function Empty({ children }: { children: ReactNode }) { return <div className="empty">{children}</div>; }
 export function Hero({ title, sub, children }: { title: ReactNode; sub?: ReactNode; children?: ReactNode }) {
-  return <div className="hero"><div className="row"><div className="sp"><h1>{title}</h1>{sub && <p>{sub}</p>}</div>{children}</div></div>;
+  return <section className="pg-head pg-hero"><div><h1>{title}</h1>{sub && <p>{sub}</p>}</div>{children && <div className="row">{children}</div>}</section>;
 }
 export function Table({ head, rows, empty }: { head: ReactNode[]; rows: ReactNode[][]; empty?: ReactNode }) {
   if (!rows.length) return <Empty>{empty ?? 'אין נתונים עדיין'}</Empty>;
+  const label = (h: ReactNode) => (typeof h === 'string' ? h : '');
   return <div className="tablewrap"><table className="t"><thead><tr>{head.map((h, i) => <th key={i}>{h}</th>)}</tr></thead>
-    <tbody>{rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j}>{c}</td>)}</tr>)}</tbody></table></div>;
+    <tbody>{rows.map((r, i) => <tr key={i}>{r.map((c, j) => <td key={j} data-label={label(head[j])}>{c}</td>)}</tr>)}</tbody></table></div>;
 }
 // Developer notes about each screen — hidden from the office UI (kept in code as documentation).
 export function Contract(_: { source: string; actions: string; perms: string; empty: string }) { return null; }
