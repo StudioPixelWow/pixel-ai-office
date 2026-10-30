@@ -1,6 +1,6 @@
 import 'server-only';
 import { w } from './db';
-import { metaConfigured, metaInsights, metaDaily } from './adapters/meta';
+import { metaConfigured, metaInsightsMany, metaDaily } from './adapters/meta';
 import { adsConfigured, adsMonth, adsDaily, ga4Month, marketingToken } from './adapters/gmarketing';
 const TZ = 'Asia/Jerusalem';
 const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(d);
@@ -18,11 +18,13 @@ export async function adsSync() {
   for (const c of list) {
     const s = c.sources ?? {}; out.clients++;
     for (const [a, b] of ranges) {
-      if (s.meta && hasM) await metaInsights(s.meta, a, b).then((d) => w('office_worker_metrics_save', { p_client: c.client_id, p_month: a, p_source: 'meta', p_data: d })).catch((e) => out.errors.push(`meta ${c.client}: ${e.message}`));
+      if (s.meta && hasM) await metaInsightsMany(s.meta, a, b).then((d) => w('office_worker_metrics_save', { p_client: c.client_id, p_month: a, p_source: 'meta', p_data: d })).catch((e) => out.errors.push(`meta ${c.client}: ${e.message}`));
       if (s.google_ads && hasG && adsConfigured()) await adsMonth(s.google_ads, a, b).then((d) => w('office_worker_metrics_save', { p_client: c.client_id, p_month: a, p_source: 'google_ads', p_data: d })).catch((e) => out.errors.push(`ads ${c.client}: ${e.message}`));
       if (s.ga4 && hasG) await ga4Month(s.ga4, a, b).then((d) => w('office_worker_metrics_save', { p_client: c.client_id, p_month: a, p_source: 'ga4', p_data: d })).catch((e) => out.errors.push(`ga4 ${c.client}: ${e.message}`));
     }
-    out.alerts += await budgetGuard(c, s, hasG, hasM).catch(() => 0);
+    const metas = String(s.meta ?? '').split(',').map((x: string) => x.trim()).filter(Boolean);
+    out.alerts += await budgetGuard(c, { ...s, meta: metas[0] }, hasG, hasM).catch(() => 0);
+    for (const mid of metas.slice(1)) out.alerts += await budgetGuard(c, { meta: mid }, false, hasM).catch(() => 0);
   }
   await w('office_worker_metrics_done', {});
   return out;

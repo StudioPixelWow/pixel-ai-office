@@ -31,12 +31,12 @@ export function ClientSources({ clientId, current }: { clientId: string; current
   const d = useSources(); const r = useRouter(); const [v, setV] = useState<any>({ meta: current?.meta ?? '', google_ads: current?.google_ads ?? '', ga4: current?.ga4 ?? '', cpl_target: current?.cpl_target ?? '', monthly_budget: current?.monthly_budget ?? '' });
   const [msg, setMsg] = useState<string | null>(null); const [busy, setBusy] = useState(false);
   const save = async () => { setBusy(true); setMsg(null); try { const x = await callAction('client_sources_set', { client_id: clientId, ...v }); setMsg(x?.note ?? 'נשמר'); r.refresh(); } catch (e) { setMsg(heError(e)); } finally { setBusy(false); } };
-  const sel = (k: string, label: string, opts: { id: string; name: string }[], ph: string) => <label>{label}{opts.length ? <select value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })}><option value="">— לא מחובר —</option>{opts.map((o) => <option key={o.id} value={o.id}>{o.name} · {o.id}</option>)}</select>
+  const sel = (k: string, label: string, opts: { id: string; name: string }[], ph: string) => <label>{label}{opts.length && !String(v[k] ?? '').includes(',') ? <select value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })}><option value="">— לא מחובר —</option>{opts.map((o) => <option key={o.id} value={o.id}>{o.name} · {o.id}</option>)}</select>
     : <input dir="ltr" value={v[k]} onChange={(e) => setV({ ...v, [k]: e.target.value })} placeholder={ph} />}</label>;
   return <div className="card"><h2>מקורות נתונים ללקוח</h2>
     <p className="small muted">שייך את חשבונות הפרסום וה-Analytics של הלקוח — הנתונים יימשכו כל בוקר לדוח ולשומר התקציב.</p>
     <div className="f">
-      {sel('meta', 'חשבון מודעות Meta', list(d?.meta?.accounts).map((a: any) => ({ id: a.id, name: a.name })), 'מזהה חשבון (מספרים)')}
+      {sel('meta', 'חשבון מודעות Meta (כמה חשבונות — מופרדים בפסיק)', list(d?.meta?.accounts).map((a: any) => ({ id: a.id, name: a.name })), 'מזהה חשבון (מספרים)')}
       {sel('google_ads', 'חשבון Google Ads', list(d?.google?.ads).map((a: any) => ({ id: a.id, name: a.name })), 'Customer ID (123-456-7890)')}
       {sel('ga4', 'נכס GA4', list(d?.google?.ga4).map((a: any) => ({ id: a.id, name: `${a.name} (${a.account})` })), 'Property ID')}
       <div className="grid g2"><label>יעד עלות לליד (₪)<input type="number" value={v.cpl_target} onChange={(e) => setV({ ...v, cpl_target: e.target.value })} /></label>

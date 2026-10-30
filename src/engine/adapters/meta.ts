@@ -51,6 +51,13 @@ export async function metaInsights(account: string, since: string, until: string
   const spend = Number(x.spend ?? 0);
   return { spend, impressions: Number(x.impressions ?? 0), clicks: Number(x.clicks ?? 0), reach: Number(x.reach ?? 0), ctr: Number(x.ctr ?? 0), leads, conversations: msgs, cpl: leads ? Math.round((spend / leads) * 100) / 100 : null };
 }
+/** Several ad accounts for one client (comma-separated ids) — sums the month. */
+export async function metaInsightsMany(ids: string, since: string, until: string) {
+  const list = String(ids).split(',').map((x) => x.trim()).filter(Boolean); const parts = await Promise.all(list.map((id) => metaInsights(id, since, until)));
+  const sum = (k: string) => parts.reduce((a, p: any) => a + (Number(p[k]) || 0), 0);
+  const spend = sum('spend'), leads = sum('leads'), clicks = sum('clicks'), impressions = sum('impressions');
+  return { spend, impressions, clicks, reach: sum('reach'), ctr: impressions ? Math.round((clicks / impressions) * 10000) / 100 : 0, leads, conversations: sum('conversations'), cpl: leads ? Math.round((spend / leads) * 100) / 100 : null, accounts: list.length };
+}
 export async function metaDaily(account: string, days = 8) {
   const until = new Date(); const since = new Date(Date.now() - days * 864e5); const f = (d: Date) => d.toISOString().slice(0, 10);
   const j = await g(`act_${account.replace(/^act_/, '')}/insights`, { fields: 'spend,actions', time_range: JSON.stringify({ since: f(since), until: f(until) }), time_increment: '1', level: 'account' });
