@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
-import { growConfigured, growCreatePaymentLink } from '@/engine/adapters/grow';
+import { growConfigured } from '@/engine/adapters/grow';
+import { payUrl } from '@/lib/paytoken';
 import { heError } from '@/lib/errors';
 // Owner/admin: create a Grow payment link for one scheduled payment. Requires a final amount (VAT resolved). Not sent automatically.
 export async function POST(req: NextRequest) {
@@ -11,9 +12,8 @@ export async function POST(req: NextRequest) {
   if (error || !p) return NextResponse.json({ error: heError(error?.message ?? 'not_found') }, { status: 400 });
   if (p.amount_gross == null) return NextResponse.json({ error: 'אין סכום סופי כולל מע״מ — בחר תבנית מע״מ בהסדר' }, { status: 400 });
   if (['paid', 'waived', 'cancelled'].includes(p.status)) return NextResponse.json({ error: 'התשלום כבר סגור' }, { status: 400 });
-  const r = await growCreatePaymentLink({ title: `${p.client_name} ${p.plan_title}`, productName: `${p.plan_title}${p.period_month ? ' ' + String(p.period_month).slice(0, 7) : ''}`,
-    amount: Number(p.amount_gross), fullName: p.contact_name || p.client_name, phone: p.contact_phone, email: p.contact_email, ref: p.id });
-  if (!r.ok) return NextResponse.json({ error: `Grow: ${r.error}` }, { status: 502 });
+  // Branded Pixel payment page; the Grow session itself is opened only when the payer clicks (it expires after a few minutes).
+  const r = { url: payUrl(req.nextUrl.origin, { k: 'pmt', id: p.id }), ref: 'pixel-pay-page' };
   const rec = await sb.rpc('office_action', { p_action: 'payment_record_link', p_payload: { id: p.id, url: r.url, provider: 'grow', ref: r.ref } });
   if (rec.error) return NextResponse.json({ error: heError(rec.error.message) }, { status: 400 });
   return NextResponse.json({ ok: true, url: r.url });

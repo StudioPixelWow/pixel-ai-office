@@ -233,3 +233,18 @@ pre.out{white-space:pre-wrap;background:var(--bg-2);border:1px solid var(--line)
 .room-ghost{color:#fff!important;border-color:rgba(255,255,255,.35)!important}
 .room-done{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;background:linear-gradient(90deg,#FCFFD6,#E6FAFF);border:1px solid #DDEFB0;border-radius:18px;padding:14px 18px;margin:12px 0}
 .room-done b{font-size:16px} .room-done span{flex:1;min-width:220px;color:#334155}
+
+/* ── Public payment page ───────────────────────────── */
+.pay{min-height:100vh;display:grid;place-items:center;padding:24px;background:radial-gradient(120% 90% at 100% 0%,#0E2A3B 0%,#0B1622 60%,#070E16 100%)}
+.pay-card{width:100%;max-width:460px;background:#fff;border-radius:28px;padding:30px 28px;box-shadow:0 30px 80px rgba(0,0,0,.35);position:relative;overflow:hidden}
+.pay-card:before{content:'';position:absolute;inset:0 0 auto 0;height:6px;background:linear-gradient(90deg,var(--cyan),var(--cyan-deep))}
+.pay-brand{display:flex;align-items:center;gap:6px;margin-bottom:18px;font-size:18px} .pay-brand i{width:22px;height:22px;border-radius:6px;background:conic-gradient(var(--cyan) 0 25%,var(--yellow) 0 50%,var(--cyan-deep) 0 75%,var(--ink) 0)} .pay-brand b{font-weight:900} .pay-brand span{color:var(--muted);font-weight:700}
+.pay-kicker{color:var(--cyan-deep);font-weight:900;letter-spacing:.3px} .pay h1{margin:4px 0 4px;font-size:26px} .pay-sub{color:var(--muted);margin:0 0 16px}
+.pay-amount{display:flex;justify-content:space-between;align-items:baseline;background:#F4FBFE;border:1px solid #D6F1FB;border-radius:18px;padding:16px 18px;margin-bottom:14px}
+.pay-amount span{font-weight:800;color:#335} .pay-amount b{font-size:30px;font-weight:900}
+.pay-test{background:var(--yellow);border-radius:12px;padding:8px 12px;font-weight:800;font-size:13px;margin-bottom:14px;text-align:center}
+.pay-form{display:flex;flex-direction:column;gap:10px} .pay-form label{display:flex;flex-direction:column;gap:5px;font-weight:800;font-size:13.5px}
+.pay-btn{margin-top:6px;border:0;border-radius:999px;padding:15px 18px;font:900 17px Assistant,sans-serif;background:var(--yellow);color:var(--ink);cursor:pointer;box-shadow:var(--glow);text-align:center;text-decoration:none}
+.pay-btn:disabled{opacity:.5;cursor:wait} .pay-btn.ghost{background:#fff;border:1.5px solid var(--line);box-shadow:none;display:inline-block}
+.pay-err{color:var(--bad);font-weight:800;margin:0} .pay-methods{text-align:center;color:var(--muted);font-size:12.5px;margin:2px 0 0}
+.pay-ok{text-align:center;padding:10px 0} .pay-ok b{font-size:22px} .pay-foot{color:var(--muted);font-size:12px;text-align:center;margin:18px 0 0}

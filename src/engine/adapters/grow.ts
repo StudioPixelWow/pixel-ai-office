@@ -24,8 +24,9 @@ export async function growCreatePaymentLink(o: { title: string; productName: str
   try {
     const r = await fetch(`${base()}/createPaymentProcess`, { method: 'POST', body: f, signal: ctrl.signal });
     const j: any = await r.json().catch(() => ({}));
-    const url = j?.data?.url;
-    if (r.ok && String(j?.status) === '1' && url) return { ok: true as const, url: String(url), ref: String(j.data.processId ?? ''), sandbox: growIsSandbox() };
+    const url = j?.data?.url; const authCode = j?.data?.authCode;
+    // Hosted page codes return a URL; wallet (SDK) page codes return an authCode that opens the wallet on our own page (valid ~4 min).
+    if (r.ok && String(j?.status) === '1' && (url || authCode)) return { ok: true as const, url: url ? String(url) : null, authCode: authCode ? String(authCode) : null, ref: String(j.data.processId ?? ''), sandbox: growIsSandbox() };
     const err = typeof j?.err === 'object' ? (j.err?.message ?? JSON.stringify(j.err)) : j?.err;
     return { ok: false as const, error: err || `HTTP ${r.status} · ${JSON.stringify(j).slice(0, 220)}` };
   } catch (e: any) { return { ok: false as const, error: e?.name === 'AbortError' ? 'Grow לא הגיב בזמן' : String(e?.message ?? e) }; }
