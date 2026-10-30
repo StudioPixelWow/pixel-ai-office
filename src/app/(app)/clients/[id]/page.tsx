@@ -33,7 +33,11 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const base = `/clients/${id}?tab=`; const fin = ['owner', 'admin'].includes(m.role);
   const [plans, pays, terms] = fin && tab === 'billing' ? await Promise.all([safeList<any>('billing_plans', { client_id: id }), safeList<any>('payments', { client_id: id }, 500), safeList<any>('terms_templates')]) : [[], [], []];
   return <>
-    <div className="hero"><div className="row"><div className="sp"><h1>{c.name}</h1><p>{DEPT_HE[c.department] ?? c.department} · {c.industry ?? 'תחום לא הוגדר'} {c.is_test && '· [בדיקה]'}</p></div><Badge s={c.status} /></div></div>
+    <div className="hero"><div className="row"><div className="sp"><h1>{c.name}</h1><p>{DEPT_HE[c.department] ?? c.department} · {c.industry ?? 'תחום לא הוגדר'} {c.is_test && '· [בדיקה]'}</p>
+      {(() => { const web: string | undefined = c.profile?.website; const so: Record<string, string> = c.profile?.socials ?? {}; const other: string[] = c.profile?.other_sites ?? [];
+        const L: [string, string][] = [['facebook', 'פייסבוק'], ['instagram', 'אינסטגרם'], ['linkedin', 'לינקדאין'], ['tiktok', 'טיקטוק'], ['youtube', 'יוטיוב']];
+        const links = [...(web ? [['🌐 ' + web.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), web]] : []), ...other.map((u) => ['🌐 ' + u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), u]), ...L.filter(([k]) => so[k]).map(([k, l]) => [l, so[k]])];
+        return links.length ? <div className="cl-links">{links.map(([l, u]) => <a key={u} href={u} target="_blank" rel="noreferrer">{l}</a>)}</div> : <div className="cl-links muted">אין עדיין אתר ורשתות בכרטיס</div>; })()}</div><Badge s={c.status} /></div></div>
     <JourneyBar j={journey} />
     <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'milestones', 'אבני דרך'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'docs', 'מסמכים וחוזים'], [base + 'reports', 'דוחות'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
     {tab === 'overview' && <div className="grid g2 ov">
