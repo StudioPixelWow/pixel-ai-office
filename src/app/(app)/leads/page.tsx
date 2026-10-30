@@ -8,14 +8,14 @@ import { fmtMoney } from '@/lib/format';
 const COLS: [string, string, string[]][] = [['חדש', 'לחזור ללקוח', ['new']], ['בירור צורך', 'בריף ושאלות', ['scoping']], ['הצעה בהכנה', 'סוכנים + מחיר שלך', ['proposal_drafting', 'pending_approval']],
   ['מוכן לשליחה', 'לשלוח ללקוח', ['ready_to_send']], ['אצל הלקוח', 'נשלחה / מו״מ', ['sent', 'negotiation']], ['נסגר 🎉', 'עסקה נפתחה', ['engaged']]];
 const ago = (d: string) => { const h = (Date.now() - +new Date(d)) / 36e5; return h < 1 ? 'עכשיו' : h < 24 ? `לפני ${Math.round(h)} שע׳` : `לפני ${Math.round(h / 24)} ימים`; };
-export default async function Leads({ searchParams }: { searchParams: Promise<{ lost?: string }> }) {
+export default async function Leads({ searchParams }: { searchParams: Promise<{ lost?: string; new?: string }> }) {
   const sp = await searchParams; const leads = await safeList<any>('leads', { _active: true }, 500);
   const open = leads.filter((l) => !['lost', 'archived'].includes(l.stage)); const lost = leads.filter((l) => l.stage === 'lost');
   const won = leads.filter((l) => l.stage === 'engaged').length; const rate = leads.length ? Math.round((won / Math.max(1, won + lost.length)) * 100) : 0;
   const stale = open.filter((l) => l.stage === 'new' && Date.now() - +new Date(l.updated_at ?? l.created_at) > 2 * 864e5).length;
   return <div className="pipe">
     <section className="pg-head"><div><h1>לידים <span className="mark">ומכירות</span></h1><p>ליד ← בריף ← הצעה ← חתימה ← עסקה. לחיצה על כרטיס פותחת אותו כאן, בלי לעזוב את הלוח.</p></div>
-      <SheetButton label="＋ ליד חדש" title="ליד חדש"><LeadForm /></SheetButton></section>
+      <SheetButton label="＋ ליד חדש" title="ליד חדש" defaultOpen={!!sp.new}><LeadForm /></SheetButton></section>
     <div className="kpis">
       <div className="kpi"><b>{open.filter((l) => l.stage !== 'engaged').length}</b><span>לידים פתוחים</span></div>
       <div className={`kpi${stale ? ' hot' : ''}`}><b>{stale}</b><span>חדשים בלי מענה 48+ שע׳</span></div>

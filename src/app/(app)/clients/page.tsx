@@ -7,8 +7,8 @@ import { OnboardForm } from './onboard-form';
 import { KIND_HE, serviceLabel } from '@/lib/services';
 const DEPTS = Object.entries(DEPT_HE) as [string, string][];
 const ST: Record<string, [string, string]> = { onboarding: ['בהקמה', 'warn'], active: ['פעיל', 'ok'], paused: ['מושהה', 'muted'], ended: ['הסתיים', 'muted'] };
-export default async function Clients({ searchParams }: { searchParams: Promise<{ q?: string; s?: string; d?: string }> }) {
-  const { q, s, d } = await searchParams; const m = await me(); const fin = ['owner', 'admin'].includes(m.role);
+export default async function Clients({ searchParams }: { searchParams: Promise<{ q?: string; s?: string; d?: string; new?: string }> }) {
+  const { q, s, d, new: isNew } = await searchParams; const m = await me(); const fin = ['owner', 'admin'].includes(m.role);
   const [all, plans, terms] = await Promise.all([safeList<any>('clients', q ? { _search: q, _active: true } : { _active: true }, 500), fin ? safeList<any>('billing_plans', {}, 1000) : Promise.resolve([]), safeList<any>('terms_templates')]);
   const clients = all.filter((c) => (!s || c.status === s) && (!d || c.department === d));
   const planOf = (id: string) => plans.filter((b: any) => b.client_id === id && b.status === 'active');
@@ -17,7 +17,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
   const termsOpts = terms.map((t: any) => ({ id: t.id, name: `${t.name}${t.vat_rate != null ? ` · מע״מ ${t.vat_rate}%` : ''}` }));
   return <>
     <section className="pg-head"><div><h1>לקוחות</h1><p>כל לקוח: תיק מותג, אבני דרך, תוכן, תשלומים וסוכנים — במקום אחד.</p></div>
-      <div className="row"><SheetButton label="＋ לקוח חדש" title="לקוח חדש">{fin ? <OnboardForm terms={termsOpts} /> : <ActionForm action="create_client" redirectTo="/clients/{id}" fields={[{ name: 'name', label: 'שם הלקוח', required: true }, { name: 'industry', label: 'תחום' }, { name: 'department', label: 'מחלקה', type: 'select', options: DEPTS, defaultValue: 'pixel_digital' }]} />}</SheetButton>
+      <div className="row"><SheetButton label="＋ לקוח חדש" title="לקוח חדש" defaultOpen={!!isNew}>{fin ? <OnboardForm terms={termsOpts} /> : <ActionForm action="create_client" redirectTo="/clients/{id}" fields={[{ name: 'name', label: 'שם הלקוח', required: true }, { name: 'industry', label: 'תחום' }, { name: 'department', label: 'מחלקה', type: 'select', options: DEPTS, defaultValue: 'pixel_digital' }]} />}</SheetButton>
         <SheetButton className="btn ghost" label="יבוא" title="יבוא לקוחות קיימים"><ActionForm action="import_clients" submit="תצוגה מקדימה ויבוא" fields={[{ name: 'rows', label: 'JSON: [{"name":"…","industry":"…","department":"pixel_nadlan"}]', type: 'textarea', json: true, ltr: true, required: true }]} extra={{ source: 'manual_import' }} /><p className="small muted">שמות קיימים מדולגים — לא נוצרות כפילויות.</p></SheetButton></div></section>
     <div className="kpis">
       <div className="kpi"><b>{all.filter((c) => c.status === 'active').length}</b><span>לקוחות פעילים</span></div>

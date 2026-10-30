@@ -8,7 +8,7 @@ export function Sheet({ title, children, onClose }: { title?: string; children: 
 }
 
 /** A button that opens its content in a sheet — forms open in place instead of being stacked at the bottom of a page. */
-export function SheetButton({ label, title, className = 'btn y', children }: { label: React.ReactNode; title: string; className?: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function SheetButton({ label, title, className = 'btn y', children, defaultOpen = false }: { label: React.ReactNode; title: string; className?: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   return <><button type="button" className={className} onClick={() => setOpen(true)}>{label}</button>{open && <Sheet title={title} onClose={() => setOpen(false)}>{children}</Sheet>}</>;
 }

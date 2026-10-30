@@ -661,3 +661,28 @@ pre.out{white-space:pre-wrap;background:var(--bg-2);border:1px solid var(--line)
 .g-accs{display:grid;gap:8px} .g-acc{border:1px solid var(--line);border-radius:16px;padding:10px 12px;display:grid;gap:4px} .g-acc small{color:var(--muted)}
 .linkbox{border:1px solid var(--line);border-radius:16px;padding:10px 12px;display:grid;gap:8px;background:var(--bg-2)} .linkbox.warn{border-color:#F2D58A;background:#FFF9E8} .linkbox select{flex:1}
 .cal-ev .unl{color:var(--warn);flex:none}
+/* ---------- mobile: groups are one scrollable row (never 2+1) ---------- */
+@media (max-width:760px){
+  .cc-markers,.cal-filters,.chips,.cc-quick,.ldo-hero-act,.cal-head-a,.bc-tags{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch;padding-bottom:2px}
+  .cc-markers::-webkit-scrollbar,.cal-filters::-webkit-scrollbar,.chips::-webkit-scrollbar,.cc-quick::-webkit-scrollbar,.kpis::-webkit-scrollbar,.ldo-kpis::-webkit-scrollbar,.cc-kpis::-webkit-scrollbar{display:none}
+  .cc-markers span,.cal-f,.chips a,.cc-quick .btn{flex:none;white-space:nowrap}
+  .kpis,.ldo-kpis,.cc-kpis{display:flex!important;overflow-x:auto;gap:10px;scroll-snap-type:x mandatory;margin-inline:-12px;padding:0 12px 4px}
+  .kpi,.ldo-kpi,.cc-kpi{flex:0 0 46%;scroll-snap-align:start;padding:12px 14px} .kpi b,.ldo-kpi b,.cc-kpi b{font-size:22px}
+  .cc-hero{padding:20px} .cc-hero h1{font-size:26px} .cc-quick{width:100%}
+  .cal-bar{gap:8px} .cal-bar .ldo-tabs{width:100%} .cal-bar .ldo-tabs button{flex:1}
+  .pg-head{align-items:stretch} .pg-head>.row,.pg-head>button{width:100%} .pg-head .btn{flex:1}
+  .board{grid-template-columns:repeat(6,84vw)}
+  .ldo-pipe{grid-template-columns:repeat(6,84vw)}
+}
+/* ---------- mobile: centered layout (owner preference) ---------- */
+@media (max-width:760px){
+  .page h1,.page h2,.page h3,.page p,.pg-head,.pg-head>div,.hero,.hero .row,.cc-hero,.cc-hero>div,.cal-head,.cal-head>div,.ldo-hero-in,.ldo-hero-txt,.ldo-bhead,.ldo-bhead-in,.onb,.ldo-onb,.empty,.err-page,
+  .kpi,.ldo-kpi,.cc-kpi,.card>h2,.card>h3,.ms-head,.jr-next>div,.ldo-next-act>div:first-child,.cc-sec-h,.sheet header,.sheet-b>h2,.sheet-b>h3{text-align:center}
+  .pg-head,.cal-head,.ldo-hero-in,.ldo-bhead-in,.cc-hero,.jr-next,.ldo-next-act,.ms-head{justify-content:center;align-items:center;flex-direction:column}
+  .kpi,.ldo-kpi,.cc-kpi{align-items:center;justify-items:center}
+  .row,.cc-quick,.cc-markers,.cal-filters,.chips,.ldo-hero-act,.cal-head-a,.cal-nav,.ldo-tabs,.tabs,.ldo-bhead-a,.ldo-na-a,.bc-tags,.ldo-bk-m{justify-content:safe center}
+  .ldo-logo,.ld-logo{margin-inline:auto} .ldo-tabs,.tabs{margin-inline:auto}
+  .search{margin-inline:auto;width:100%}
+  .jr-steps li>a,.jr-steps li>div{justify-items:center}
+  .board-col header,.ldo-col header{text-align:center}
+}
