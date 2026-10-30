@@ -24,7 +24,7 @@ export default async function Proposal({ params }: { params: Promise<{ id: strin
             { name: 'note', label: 'הערה' }, { name: 'reason', label: 'סיבת שינוי' }]} /></details> : <p className="small muted">רק ה-Owner קובע מחיר.</p>}
         <h3 style={{ marginTop: 16 }}>הכנת ההצעה ע״י הצוות</h3>
         <ActionForm action="create_request" submit="הפעל תהליך הצעה" extra={{ scope: 'pixel', plan: { proposal_id: id, lead_id: p.lead_id }, mode: 'work', idempotency_key: `proposal:${id}:${p.current_version}` }}
-          fields={[{ name: 'text', label: 'הנחיה לבונה ההצעות', type: 'textarea', required: true, defaultValue: 'הכן הצעה ממותגת לפי הבריף והמחיר הנעול' }]} redirectTo={(d) => `/talk?r=${d.request_id}`} /></div>
+          fields={[{ name: 'text', label: 'הנחיה לבונה ההצעות', type: 'textarea', required: true, defaultValue: 'הכן הצעה ממותגת לפי הבריף והמחיר הנעול' }]} redirectTo="/talk?r={request_id}" /></div>
       <div className="card"><h2>גרסה {cur?.version_no ?? '—'}</h2>{cur ? <>
         <Badge s={cur.review_status} /> <span className="small muted">{cur.change_summary}</span>
         <pre className="out">{[cur.content?.need && `צורך: ${cur.content.need}`, (cur.content?.services ?? []).length && `שירותים: ${cur.content.services.join(', ')}`, (cur.content?.deliverables ?? []).length && `תוצרים: ${cur.content.deliverables.join(', ')}`, cur.content?.timeline && `לו״ז: ${cur.content.timeline}`].filter(Boolean).join('\n')}</pre>

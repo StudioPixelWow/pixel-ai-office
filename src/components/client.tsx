@@ -36,7 +36,7 @@ export type Field = { name: string; label: string; type?: 'text' | 'number' | 't
 
 /** Generic form bound to an office action. Values are coerced per field type. */
 export function ActionForm({ action, fields, extra = {}, submit = 'שמירה', onDone, reset = true, redirectTo }:
-  { action: string; fields: Field[]; extra?: Record<string, unknown>; submit?: string; onDone?: (d: any) => void; reset?: boolean; redirectTo?: (d: any) => string | null }) {
+  { action: string; fields: Field[]; extra?: Record<string, unknown>; submit?: string; onDone?: (d: any) => void; reset?: boolean; redirectTo?: string }) {
   const router = useRouter(); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); const fd = new FormData(e.currentTarget); const p: Record<string, unknown> = { ...extra };
@@ -53,7 +53,7 @@ export function ActionForm({ action, fields, extra = {}, submit = 'שמירה', 
     try {
       const d = await callAction(action, p); setMsg({ ok: true, t: d?.note ?? (d?.duplicate ? 'כבר קיים — לא נוצרה כפילות' : 'נשמר') });
       if (reset) e.currentTarget?.reset?.(); onDone?.(d);
-      const to = redirectTo?.(d); if (to) router.push(to); else router.refresh();
+      const to = redirectTo ? redirectTo.replace(/\{(\w+)\}/g, (_, k) => encodeURIComponent(String(d?.[k] ?? ''))) : null; if (to) router.push(to); else router.refresh();
     } catch (err) { setMsg({ ok: false, t: heError(err) }); } finally { setBusy(false); }
   }
   return <form className="f" onSubmit={onSubmit}>

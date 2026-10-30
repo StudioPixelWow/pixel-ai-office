@@ -19,7 +19,7 @@ export default async function Lead({ params }: { params: Promise<{ id: string }>
       <div className="card"><h2>הצעות</h2>
         <Table head={['הצעה', 'סטטוס', 'מחיר נעול']} rows={proposals.map((p: any) => [<Link key="l" href={`/proposals/${p.id}`}>{p.title}</Link>, <Badge key="b" s={p.status} />, p.price_locked_at ? `${fmtMoney(p.locked_setup)} + ${fmtMoney(p.locked_monthly)}/ח׳` : 'טרם נקבע'])} empty="אין הצעה" />
         <h3 style={{ marginTop: 14 }}>פתיחת הצעה</h3>
-        <ActionForm action="create_proposal" extra={{ lead_id: id }} redirectTo={(d) => `/proposals/${d.id}`} fields={[{ name: 'title', label: 'כותרת', required: true, defaultValue: `הצעת מחיר — ${l.company}` },
+        <ActionForm action="create_proposal" extra={{ lead_id: id }} redirectTo="/proposals/{id}" fields={[{ name: 'title', label: 'כותרת', required: true, defaultValue: `הצעת מחיר — ${l.company}` },
           { name: 'terms_template_id', label: 'תבנית תנאים מאושרת', type: 'select', options: terms.map((t: any) => [t.id, t.name]) }]} />
         {m.role === 'owner' && !terms.length && <p className="small muted">אין עדיין תבנית תנאים (מע״מ ותנאי תשלום). הגדר בהגדרות — המערכת לא מנחשת שיעורי מס.</p>}</div></div>
   </>;

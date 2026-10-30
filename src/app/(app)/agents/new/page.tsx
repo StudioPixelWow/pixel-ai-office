@@ -9,7 +9,7 @@ export default async function Studio({ searchParams }: { searchParams: Promise<{
   return <>
     <Hero title={<>סטודיו <span className="mark">סוכנים</span></>} sub="תאר תפקיד, הגדר כלים, הרשאות ומגבלות. כל שמירה יוצרת גרסה חדשה; סוכן חדש מתחיל במצב ניסיון עד שתפעיל אותו." />
     <div className="card"><ActionForm action="agent_save_version" submit={base ? 'שמור כגרסה חדשה' : 'צור סוכן (מצב ניסיון)'} reset={false}
-      extra={base ? { agent_id: base.id } : {}} redirectTo={(d) => `/agents/${d.agent_id}`}
+      extra={base ? { agent_id: base.id } : {}} redirectTo="/agents/{agent_id}"
       fields={[
         { name: 'name', label: 'שם', required: true, defaultValue: base?.name }, { name: 'role_title', label: 'תפקיד', required: true, defaultValue: base?.role_title },
         { name: 'department', label: 'מחלקה', type: 'select', options: Object.entries(DEPARTMENTS), defaultValue: base?.department },
