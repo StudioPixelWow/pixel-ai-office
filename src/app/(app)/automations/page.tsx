@@ -1,10 +1,13 @@
-import { safeList, rpc } from '@/lib/api';
+import { safeList, rpc, me } from '@/lib/api';
+import { CarePanel } from './care';
 import { Hero, Table, Badge, When, Contract } from '@/components/ui';
 import { ActionButton, ActionForm } from '@/components/client';
 export default async function Automations() {
-  const [autos, tpls] = await Promise.all([safeList('automations'), rpc<any[]>('office_workflow_templates')]);
+  const [autos, tpls, care, m] = await Promise.all([safeList('automations'), rpc<any[]>('office_workflow_templates'), rpc<any>('office_care_rules').catch(() => ({ rules: {}, stats: {} })), me()]);
   return <>
     <Hero title={<>אוטומציות</>} sub="פקודה ידנית, אירוע עסקי ותזמון משתמשים באותם תהליכים, הרשאות ומגבלות. הפעלה כפולה לא יוצרת עבודה כפולה. כל הודעת WhatsApp נשארת לאישורך." />
+    <CarePanel rules={care?.rules ?? {}} stats={care?.stats ?? {}} canEdit={['owner', 'admin'].includes((m as any)?.role)} />
+    <h2 style={{ marginTop: 26 }}>תהליכי סוכנים מתוזמנים</h2>
     <Table head={['שם', 'טריגר', 'לקוחות', 'תהליך', 'תזמון', 'מגבלות', 'ריצה אחרונה', 'הבאה', 'מצב', '']} rows={autos.map((a: any) => [a.name, a.trigger_type === 'schedule' ? 'תזמון' : `אירוע: ${a.event_key}`, a.client_scope,
       a.workflow_key, a.trigger_type === 'schedule' ? `${a.schedule_kind} ${a.schedule_day ?? a.schedule_weekday ?? ''} ${a.schedule_time ?? ''} (${a.timezone})` : '—', JSON.stringify(a.limits),
       <When key="l" d={a.last_run_at} />, <When key="n" d={a.next_run_at} />, <Badge key="b" s={a.status} />,
