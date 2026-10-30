@@ -37,6 +37,9 @@ export const OUTPUT = {
       post_ideas: z.array(z.object({ title: z.string(), format: z.string().default(''), pillar: z.string().default(''), hook: z.string().default('') })).max(40).default([]),
       seo_keywords: z.array(z.string()).default([]), aeo_questions: z.array(z.string()).default([]) }).default({} as any),
     opportunities: z.array(z.string()).default([]), open_questions: z.array(z.string()).default([]), sources: z.array(z.string()).default([]) }),
+  content_plan: z.object({ summary: z.string().default(''), posts: z.array(z.object({ date: z.string(), title: z.string(), slot_kind: z.string().default('regular'), marker: z.string().nullable().optional(),
+    rtm_id: z.string().nullable().optional(), pillar: z.string().default(''), format: z.string().default('פוסט'), platforms: z.array(z.string()).default([]), idea: z.string().default(''), hook: z.string().default(''),
+    post_text: z.string(), hashtags: z.array(z.string()).default([]), cta: z.string().default(''), creative_prompt: z.string().default(''), why: z.string().default(''), time: z.string().optional() })).min(1) }),
 } as const;
 export type OutputKind = keyof typeof OUTPUT;
 
@@ -52,6 +55,7 @@ export const SHAPE_HINT: Record<OutputKind, string> = {
   storyboard: '{"shots":[{"n","seconds","kling_prompt (English)","caption"}],"music_note"}',
   article: '{"title","slug","excerpt","body_markdown","sources":[...],"faq":[{"q","a"}]}',
   client_dossier: '{"summary","brand":{"voice","tone_words":[],"values":[],"differentiators":[],"messages":[],"colors":[{"hex","role"}],"fonts":[],"logo_url"},"business":{"about","services":[{"name","description"}],"faq":[{"q","a"}],"locations":[],"contact":{"phones":[],"emails":[],"address"}},"audiences":[{"name","pains":[],"motivations":[],"channels":[]}],"competitors":[{"name","url","strengths","gap"}],"digital_presence":[{"network","url","status","notes","recommendation"}],"social_voice":{"style","caption_length","emoji_use","hashtags":[],"hooks":[],"formats_that_work":[],"visual_style","do":[],"dont":[],"top_examples":[{"url","why"}]},"reputation":{"summary","rating","themes_positive":[],"themes_negative":[]},"content_library":{"pillars":[{"name","description"}],"post_ideas":[{"title","format","pillar","hook"}] (30),"seo_keywords":[],"aeo_questions":[]},"opportunities":[],"open_questions":[],"sources":[]}',
+  content_plan: '{"summary","posts":[{"date":"YYYY-MM-DD מתוך allowed_dates","title":"כותרת קצרה לפוסט","slot_kind":"regular|holiday|rtm","marker":"שם החג/האירוע או null","rtm_id","pillar","format":"רילס|קרוסלה|פוסט תמונה|סטורי","platforms":["facebook","instagram"],"idea":"רעיון בשורה-שתיים","hook":"משפט פתיחה","post_text":"טקסט מלא מוכן לפרסום בשפת הלקוח","hashtags":[],"cta","creative_prompt":"English visual description, no text in image","why":"למה זה מתאים"}]} — פוסט אחד לכל משבצת',
   proposal_doc: '{"need","services":[],"deliverables":[],"phases":[{"title","detail"}],"timeline","assumptions":[],"items":[{"kind":"setup|retainer|addon|media","title","quantity","unit_price?","description"}],"html?"}',
 };
 
@@ -77,6 +81,7 @@ export function toMarkdown(kind: OutputKind, d: any): string {
     case 'article': return `# ${d.title}\n\n${d.body_markdown}\n\n**מקורות:**\n${d.sources.map((s: string) => `- ${s}`).join('\n')}`;
     case 'proposal_doc': return `## הבנת הצורך\n${d.need}\n\n## שירותים\n${d.services.map((s: string) => `- ${s}`).join('\n')}\n\n## תוצרים\n${d.deliverables.map((s: string) => `- ${s}`).join('\n')}\n\n## שלבים\n${d.phases.map((p: any) => `- **${p.title}:** ${p.detail}`).join('\n')}\n\n## לוח זמנים\n${d.timeline}\n\n## הנחות יסוד\n${d.assumptions.map((s: string) => `- ${s}`).join('\n')}`;
     case 'client_dossier': return dossierMarkdown(d);
+    case 'content_plan': return `${d.summary}\n\n${d.posts.map((x: any) => `### ${x.date} · ${x.title}${x.marker ? ` · ${x.marker}` : ''}\n_${x.format} · ${(x.platforms ?? []).join(', ')}_\n\n${x.post_text}\n\n${(x.hashtags ?? []).join(' ')}`).join('\n\n')}`;
     case 'plan': return `${d.answer ?? d.summary ?? ''}\n\n${(d.tasks ?? []).map((t: any) => `- ${t.title} → ${t.agent_id}`).join('\n')}`;
   }
 }

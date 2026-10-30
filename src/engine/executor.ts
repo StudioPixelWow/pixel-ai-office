@@ -151,6 +151,13 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
         [{ provider: 'openai', model: r.model, cost_kind: 'computed', input_units: r.usage.input, output_units: r.usage.output, cost_usd: null, note: 'tokens + web search' }], `${r.urls.length} מקורות`);
     } catch (e: any) { return void await done(`מחקר ChatGPT · ${company}`, { skipped: true, error: String(e.message) }, `המחקר ב-ChatGPT לא הושלם: ${e.message}. התיק נבנה משאר המקורות.`, [], 'דולג — שגיאת ספק'); }
   }
+  if (kind === 'tool:save_content_plan') {
+    const plan = (c.dependencies ?? []).flatMap((d: any) => d.artifacts ?? []).find((a: any) => a.kind === 'content_plan')?.data;
+    if (!plan?.posts?.length) return void await w('office_worker_block', { p_task: id, p_lease: lease, p_status: 'waiting_input', p_blocker: 'אין תוכנית תוכן לשמירה', p_checkpoint: null });
+    await hb('מציב פוסטים בגאנט', `${plan.posts.length} פוסטים`);
+    const r = await w('office_worker_save_content_plan', { p_task: id, p_lease: lease, p_plan: plan });
+    return void await w('office_worker_complete', { p_task: id, p_lease: lease, p_result: { outputs: r, summary: `${r.posts} פוסטים הוצבו בגאנט לאישורך` } });
+  }
   if (kind === 'tool:save_dossier') {
     const partA = depArt(c, 'dossier')?.data; const partB = depArt(c, 'library')?.data;
     const anyD = (c.dependencies ?? []).flatMap((d: any) => d.artifacts ?? []).find((a: any) => a.kind === 'client_dossier')?.data;

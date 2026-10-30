@@ -7,8 +7,8 @@ export async function checkImageModel() {
   const r = await fetch(`${BASE}/models/${imageModel()}`, { headers: H() });
   return { ok: r.ok, status: r.status };
 }
-export async function generateImage(prompt: string, size: '1024x1024' | '1024x1536' | '1536x1024' = '1024x1024') {
-  const r = await fetch(`${BASE}/images/generations`, { method: 'POST', headers: H(), body: JSON.stringify({ model: imageModel(), prompt, size, n: 1 }) });
+export async function generateImage(prompt: string, size: '1024x1024' | '1024x1536' | '1536x1024' = '1024x1024', format?: 'webp' | 'jpeg') {
+  const r = await fetch(`${BASE}/images/generations`, { method: 'POST', headers: H(), body: JSON.stringify({ model: imageModel(), prompt, size, n: 1, ...(format ? { output_format: format, output_compression: 82 } : {}) }) });
   const j = await r.json().catch(() => ({}));
   if (!r.ok) { const e: any = new Error(`openai images ${r.status}: ${j?.error?.message ?? ''}`); e.status = r.status; e.retryable = r.status === 429 || r.status >= 500;
     e.noBalance = /billing|quota|insufficient/i.test(j?.error?.message ?? ''); throw e; }
