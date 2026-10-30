@@ -11,7 +11,8 @@ const ago = (d: string) => { const s = Math.max(0, (Date.now() - +new Date(d)) /
 const ST: Record<string, string> = { pending_approval: 'ממתין לאישור', approved: 'מאושר', scheduled: 'מתוזמן', design: 'בעיצוב', writing: 'בכתיבה', idea: 'רעיון', not_published: 'לא עלה', published: 'עלה' };
 
 export default async function CommandCenter() {
-  const [m, t, conns] = await Promise.all([me(), today(), safeList<any>('connections', {}, 50)]);
+  const [m, t0, conns, msDue] = await Promise.all([me(), today(), safeList<any>('connections', {}, 50), rpc<any[]>('office_milestones_due').catch(() => [])]);
+  const t = t0 ? { ...t0, milestones_due: msDue } : t0;
   if (!t) return <div className="card">לא ניתן לטעון את מרכז הבקרה כרגע.</div>;
   const hour = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }).format(new Date()));
   const hello = hour < 12 ? 'בוקר טוב' : hour < 17 ? 'צהריים טובים' : hour < 21 ? 'ערב טוב' : 'לילה טוב';

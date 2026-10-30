@@ -23,7 +23,7 @@ function contextBlock(c: Ctx) {
     proposal: c.proposal, contacts: c.contacts, knowledge: c.knowledge, dependencies: deps,
     agents_available: kindOf(c) === 'ai_plan' ? ROSTER.map((a) => ({ id: a.id, role: a.role_title, does: a.spec.task_types })) : undefined,
     now_jerusalem: new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' }),
-  }, null, 1);
+  }); // compact: indentation alone was ~15% of every prompt
 }
 
 async function runModel(c: Ctx, kind: OutputKind) {
