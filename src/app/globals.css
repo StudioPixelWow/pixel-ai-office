@@ -1069,3 +1069,8 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .ds-list li{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:var(--bg-2);border:1px solid var(--line)} .ds-list li>div{flex:1;min-width:0;display:grid} .ds-list small{color:var(--muted)}
 .ds-list i{font-style:normal;width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-weight:900;background:#E6EEF4;flex:none} .ds-list li.ok i{background:#0E9F6E;color:#fff} .ds-list li.bad i{background:#FFF1D6;color:#8A5A00}
 @media (max-width:760px){.ds-list li{flex-wrap:wrap}.ds-list li .btn{width:100%}}
+.px-fab{padding:6px 18px 6px 6px} .px-fab img{width:46px;height:46px;border-radius:50%;display:block}
+.px-panel header{justify-content:flex-start} .px-panel header>div:first-of-type{flex:1} .px-av{width:44px;height:44px;border-radius:50%;flex:none}
+.px-hero{width:96px;height:96px;border-radius:50%;display:block;margin:6px auto 0;box-shadow:0 10px 26px rgba(0,148,189,.3)}
+@media (max-width:760px){.px-fab{padding:3px;border-radius:50%} .px-fab img{width:52px;height:52px}}
+.px-panel header>div:first-of-type{display:grid;min-width:0}

@@ -39,13 +39,13 @@ export function Assistant() {
   };
 
   return <>
-    <button className={`px-fab ${open ? 'on' : ''}`} onClick={() => setOpen(!open)} aria-label="פיקסי — העוזר החכם" title="פיקסי (Ctrl/⌘ J)"><span>✦</span><b>פיקסי</b></button>
+    <button className={`px-fab ${open ? 'on' : ''}`} onClick={() => setOpen(!open)} aria-label="פיקסי — העוזר החכם" title="פיקסי (Ctrl/⌘ J)"><img src="/brand/pixi.svg" alt="" /><b>פיקסי</b></button>
     {open && <div className="px-scrim" onClick={() => setOpen(false)} />}
     <aside className={`px-panel ${open ? 'open' : ''}`} aria-hidden={!open} role="dialog" aria-label="פיקסי">
-      <header><div><b>✦ פיקסי</b><small>שואלים, מנווטים, או שולחים משימה לסוכנים — בטקסט חופשי</small></div>
+      <header><img className="px-av" src="/brand/pixi.svg" alt="" /><div><b>פיקסי</b><small>שואלים, מנווטים, או שולחים משימה לסוכנים — בטקסט חופשי</small></div>
         <div className="px-h-a">{msgs.length > 0 && <button onClick={() => setMsgs([])} title="שיחה חדשה">↺</button>}<button onClick={() => setOpen(false)} aria-label="סגירה">✕</button></div></header>
       <div className="px-body">
-        {!msgs.length && <div className="px-hello"><p>היי טל 👋 מה צריך?</p><div className="px-sug">{SUGGEST.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}</div></div>}
+        {!msgs.length && <div className="px-hello"><img src="/brand/pixi.svg" alt="" className="px-hero" /><p>היי טל 👋 מה צריך?</p><div className="px-sug">{SUGGEST.map((s) => <button key={s} onClick={() => send(s)}>{s}</button>)}</div></div>}
         {msgs.map((m, i) => <div key={i} className={`px-m ${m.role}`}>
           {m.text && <p>{m.text}</p>}
           {m.href && <a className="px-link" href={m.href} onClick={(e) => { e.preventDefault(); r.push(m.href!); setOpen(false); }}>פתיחה ←</a>}

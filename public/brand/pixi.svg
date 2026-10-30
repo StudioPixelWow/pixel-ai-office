@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="פיקסי">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4BE7FF"/><stop offset=".5" stop-color="#00CFFF"/><stop offset="1" stop-color="#0094BD"/></linearGradient>
+    <radialGradient id="marble" cx=".42" cy=".35" r=".75"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#EEF2F6"/><stop offset="1" stop-color="#C9D3DD"/></radialGradient>
+    <linearGradient id="drape" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F7FAFC"/><stop offset="1" stop-color="#B9C6D2"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F2FB4D"/><stop offset="1" stop-color="#C9D400"/></linearGradient>
+    <clipPath id="c"><circle cx="100" cy="100" r="96"/></clipPath>
+  </defs>
+  <circle cx="100" cy="100" r="98" fill="#0B1320"/>
+  <g clip-path="url(#c)">
+    <circle cx="100" cy="100" r="96" fill="url(#bg)"/>
+    <circle cx="150" cy="40" r="46" fill="#E8F401" opacity=".18"/>
+    <circle cx="40" cy="170" r="60" fill="#0B1320" opacity=".12"/>
+    <!-- shoulders & drape -->
+    <path d="M28 205 C34 160 62 146 100 146 C138 146 166 160 172 205 Z" fill="url(#drape)"/>
+    <path d="M62 152 C84 172 92 196 90 205 L72 205 C72 186 66 168 58 156 Z" fill="#AEBBC8" opacity=".8"/>
+    <path d="M138 151 C122 166 116 186 118 205 L104 205 C104 182 114 164 128 150 Z" fill="#D7DFE7"/>
+    <circle cx="70" cy="160" r="6" fill="url(#gold)"/>
+    <!-- neck -->
+    <path d="M84 118 L84 150 C90 156 110 156 116 150 L116 118 Z" fill="url(#marble)"/>
+    <!-- wings (messenger) -->
+    <path d="M52 78 C34 70 24 56 22 44 C34 50 44 50 54 58 C46 46 46 36 50 28 C58 40 62 52 64 66 Z" fill="#FFFFFF" opacity=".95"/>
+    <path d="M148 78 C166 70 176 56 178 44 C166 50 156 50 146 58 C154 46 154 36 150 28 C142 40 138 52 136 66 Z" fill="#FFFFFF" opacity=".95"/>
+    <path d="M56 70 C44 64 36 56 32 50" stroke="#B9C6D2" stroke-width="2" fill="none"/>
+    <path d="M144 70 C156 64 164 56 168 50" stroke="#B9C6D2" stroke-width="2" fill="none"/>
+    <!-- head -->
+    <ellipse cx="100" cy="88" rx="34" ry="40" fill="url(#marble)"/>
+    <!-- curls -->
+    <g fill="#E3E9EF" stroke="#C3CDD7" stroke-width="1.5">
+      <circle cx="72" cy="66" r="9"/><circle cx="82" cy="55" r="10"/><circle cx="95" cy="50" r="10"/><circle cx="108" cy="50" r="10"/><circle cx="121" cy="55" r="10"/><circle cx="129" cy="66" r="9"/>
+      <circle cx="67" cy="80" r="7"/><circle cx="133" cy="80" r="7"/>
+    </g>
+    <!-- laurel wreath -->
+    <g fill="url(#gold)">
+      <path d="M66 74 c4-6 10-7 14-4 c-4 5-9 7-14 4z"/><path d="M74 64 c3-7 9-9 14-7 c-3 6-8 9-14 7z"/><path d="M85 57 c2-7 8-10 13-9 c-2 7-7 10-13 9z"/>
+      <path d="M134 74 c-4-6-10-7-14-4 c4 5 9 7 14 4z"/><path d="M126 64 c-3-7-9-9-14-7 c3 6 8 9 14 7z"/><path d="M115 57 c-2-7-8-10-13-9 c2 7 7 10 13 9z"/>
+      <circle cx="100" cy="52" r="4"/>
+    </g>
+    <!-- face -->
+    <path d="M86 86 q6-4 12 0" stroke="#9AA8B6" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M102 86 q6-4 12 0" stroke="#9AA8B6" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <path d="M86 93 q6 3 11 0" stroke="#7D8B99" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M103 93 q6 3 11 0" stroke="#7D8B99" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <path d="M100 92 L97 106 Q100 109 103 106" stroke="#B4C0CC" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M91 114 Q100 120 109 114" stroke="#8C9AA8" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+    <ellipse cx="84" cy="104" rx="5" ry="3" fill="#00CFFF" opacity=".18"/><ellipse cx="116" cy="104" rx="5" ry="3" fill="#00CFFF" opacity=".18"/>
+    <!-- spark -->
+    <path d="M154 120 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z" fill="#E8F401"/>
+  </g>
+  <circle cx="100" cy="100" r="96" fill="none" stroke="#E8F401" stroke-width="4"/>
+</svg>
