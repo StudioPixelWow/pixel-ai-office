@@ -120,7 +120,8 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   try { report.milestones = await w('office_worker_roll_milestones', {}); } catch (e: any) { report.errors.push(e.message); }
   try { report.calendar = await gcalSync(); } catch (e: any) { report.errors.push(e.message); }
   try { report.reminders = await meetingReminders(); } catch (e: any) { report.errors.push(e.message); }
-  if (new Date().getUTCMinutes() % 5 === 1) { try { report.care = await w('office_worker_care_tick', {}); } catch (e: any) { report.errors.push(e.message); } }
+  if (new Date().getUTCMinutes() % 5 === 1) { try { report.care = await w('office_worker_care_tick', {}); } catch (e: any) { report.errors.push(e.message); }
+    try { report.referrals = await w('office_worker_referrals', {}); } catch (e: any) { report.errors.push(e.message); } }
   const mi = new Date().getUTCMinutes();
   if (mi % 20 === 13) { try { report.sites = await siteChecks(); } catch (e: any) { report.errors.push(e.message); } }
   // autopilot (owner switches in settings): research new clients, monthly gantts, RTM — every 20 minutes (each step is idempotent)

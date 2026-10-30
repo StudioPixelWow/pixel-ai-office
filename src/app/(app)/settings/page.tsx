@@ -16,6 +16,9 @@ export default async function Settings() {
     {m.role === 'owner' && <div className="card" style={{ marginTop: 16 }}><h2>ביקורות בגוגל</h2>
       <p className="small muted">לקוח שמדרג 9–10 בפורטל מקבל מיד כפתור לכתיבת ביקורת. הדבק כאן את קישור &quot;כתיבת ביקורת&quot; מפרופיל העסק בגוגל.{(st as any)?.google_review_url ? ' ✓ מוגדר' : ' — עוד לא מוגדר'}</p>
       <ActionForm action="setting_set" extra={{ key: 'google_review_url' }} submit="שמירה" fields={[{ name: 'value', label: 'קישור לביקורת בגוגל', ltr: true, defaultValue: (st as any)?.google_review_url ?? '' }]} /></div>}
+    {m.role === 'owner' && <div className="card" style={{ marginTop: 16 }}><h2>בקשת המלצה</h2>
+      <p className="small muted">לקוח שמדרג 9–10 מקבל (אחרי אישור שלך) גם בקשה להמליץ על חבר, עם קישור אישי להשארת פרטים. כל המלצה נכנסת ללידים עם שם הלקוח הממליץ. אפשר להוסיף הטבה שתופיע בהודעה.</p>
+      <ActionForm action="setting_set" extra={{ key: 'referral_offer' }} submit="שמירה" fields={[{ name: 'value', label: 'הטבה (לא חובה)', defaultValue: (st as any)?.referral_offer ?? '', hint: 'למשל: על כל המלצה שהופכת ללקוח — חודש ניהול סושיאל במתנה' }]} /></div>}
     <div className="grid g2" style={{ marginTop: 16 }}>
       <div className="card"><h2>משתמשים והרשאות</h2><Table head={['אימייל', 'תפקיד', 'פעיל']} rows={members.map((x: any) => [<span key="e" dir="ltr">{x.email}</span>, x.role, x.active ? 'כן' : 'לא'])} />
         {m.role === 'owner' && <ActionForm action="invite_member" submit="הוסף משתמש מורשה" fields={[{ name: 'email', label: 'אימייל', type: 'email', ltr: true, required: true },

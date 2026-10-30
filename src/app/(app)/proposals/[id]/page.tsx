@@ -6,6 +6,7 @@ import { ActionForm, ActionButton } from '@/components/client';
 import { fmtMoney, fmtDateTime, he } from '@/lib/format';
 import { notFound } from 'next/navigation';
 import { rpc } from '@/lib/api';
+import { ago } from '@/lib/format';
 import { ProposalDoc } from '@/components/proposal-doc';
 import { ShareBox } from './share-box';
 import { gmailConfigured } from '@/engine/adapters/gmail';
@@ -17,8 +18,10 @@ export default async function Proposal({ params }: { params: Promise<{ id: strin
   const t = cur?.totals ?? {};
   const branded = !!cur?.content?.blocks; const cl = cur?.content?.client ?? {};
   const [sig, journey] = await Promise.all([['owner', 'admin'].includes(m.role) ? rpc<any>('office_proposal_signature', { p_proposal: id }).catch(() => null) : null, rpc<any>('office_journey', { p_lead: p.lead_id, p_client: p.client_id }).catch(() => null)]);
+  const views = await rpc<any>('office_proposal_views', { p_proposal: id }).catch(() => null);
   return <>
-    <div className="hero"><div className="row"><div className="sp"><h1>{p.title}</h1><p>גרסה נוכחית: {p.current_version || '—'}</p></div><Badge s={p.status} />
+    <div className="hero"><div className="row"><div className="sp"><h1>{p.title}</h1><p>גרסה נוכחית: {p.current_version || '—'}</p>
+      {views?.count > 0 ? <p className="prop-views">👁 נצפתה {views.count} פעמים · לאחרונה {ago(views.last)} · זמן קריאה כולל {Math.round(views.seconds / 60)} דק׳</p> : p.share_token_hash ? <p className="prop-views muted">👁 הלקוח עוד לא פתח את ההצעה</p> : null}</div><Badge s={p.status} />
       {cur && <Link className="btn" href={`/proposals/${id}/print`}>תצוגת הדפסה / PDF</Link>}</div></div>
     <JourneyBar j={journey} />
     {!['accepted', 'declined', 'archived'].includes(p.status) && <Critique id={p.id} initial={p.critique ?? null} />}

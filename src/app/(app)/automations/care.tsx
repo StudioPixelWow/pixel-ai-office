@@ -15,6 +15,7 @@ export const CARE_RULES: { key: string; icon: string; title: string; when: strin
   { key: 'holiday_greeting', icon: '🌟', title: 'ברכה לחגים', when: 'יומיים לפני חג מרכזי, לכל לקוח פעיל', group: 'relation' },
   { key: 'anniversary', icon: '🎂', title: 'שנה של עבודה משותפת', when: 'ביום השנה לתחילת העבודה', group: 'relation' },
   { key: 'nps', icon: '💬', title: 'בדיקת שביעות רצון 1–10', when: 'כל 90 יום לכל ריטיינר', group: 'relation' },
+  { key: 'referral_ask', icon: '🤝', title: 'בקשת המלצה', when: 'לקוח שדירג 9–10 בפורטל — בקשה להמליץ על חבר עם קישור אישי (+ ההטבה מההגדרות)', group: 'relation' },
   { key: 'churn_alert', icon: '⚠️', title: 'לקוח בסיכון', when: 'תשלום באיחור 14+ יום או 30 יום בלי פעילות — התראה אליך', group: 'internal' },
 ];
 const GROUPS: Record<string, string> = { sales: 'מכירות', service: 'שירות שוטף', relation: 'קשר ואהבה', internal: 'התראות פנימיות' };
