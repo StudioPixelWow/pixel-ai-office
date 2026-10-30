@@ -8,16 +8,18 @@ import { rpc } from '@/lib/api';
 import { ProposalDoc } from '@/components/proposal-doc';
 import { ShareBox } from './share-box';
 import { gmailConfigured } from '@/engine/adapters/gmail';
+import { JourneyBar } from '@/components/journey';
 export default async function Proposal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; const p = await get<any>('proposals', id); if (!p) notFound(); const m = await me();
   const [versions, terms, reqs] = await Promise.all([list('proposal_versions', { proposal_id: id }), safeList('terms_templates'), safeList('requests', {}, 50)]);
   const cur = versions.find((v: any) => v.version_no === p.current_version); const items = cur ? await list('proposal_items', { proposal_version_id: cur.id }) : [];
   const t = cur?.totals ?? {};
   const branded = !!cur?.content?.blocks; const cl = cur?.content?.client ?? {};
-  const sig = ['owner', 'admin'].includes(m.role) ? await rpc<any>('office_proposal_signature', { p_proposal: id }).catch(() => null) : null;
+  const [sig, journey] = await Promise.all([['owner', 'admin'].includes(m.role) ? rpc<any>('office_proposal_signature', { p_proposal: id }).catch(() => null) : null, rpc<any>('office_journey', { p_lead: p.lead_id, p_client: p.client_id }).catch(() => null)]);
   return <>
     <div className="hero"><div className="row"><div className="sp"><h1>{p.title}</h1><p>גרסה נוכחית: {p.current_version || '—'}</p></div><Badge s={p.status} />
       {cur && <Link className="btn" href={`/proposals/${id}/print`}>תצוגת הדפסה / PDF</Link>}</div></div>
+    <JourneyBar j={journey} />
     {branded && <div className="grid g2" style={{ marginBottom: 16 }}>
       <div className="card"><h2>שליחה לחתימה</h2>
         {sig ? <><p><span className="badge ok">נחתם</span> על ידי <b>{sig.signer_name}</b>{sig.signer_title ? ` (${sig.signer_title})` : ''} · {fmtDateTime(sig.signed_at)}</p>
@@ -54,10 +56,9 @@ export default async function Proposal({ params }: { params: Promise<{ id: strin
         <div className="row" style={{ marginTop: 12 }}>
           {m.role === 'owner' && cur.review_status !== 'approved' && <ActionButton className="btn y" action="approve_proposal" payload={{ version_id: cur.id }}>אשר הצעה לשליחה</ActionButton>}
           {m.role === 'owner' && p.status === 'ready_to_send' && <ActionButton className="btn" action="mark_proposal_sent" payload={{ proposal_id: id }}>סמן שנשלחה</ActionButton>}</div>
-        {m.role === 'owner' && cur.review_status === 'approved' && p.status !== 'accepted' && <details style={{ marginTop: 14 }}><summary><b>תיעוד התקשרות מאושרת</b> (רק כשהלקוח אישר בפועל)</summary>
-          <ActionForm action="confirm_engagement" extra={{ version_id: cur.id }} submit="תעד התקשרות ופתח תיק לקוח" fields={[{ name: 'start_date', label: 'תאריך התחלה', type: 'date' },
-            { name: 'entitlements', label: 'שירותים ומכסות (JSON) — שאתה מאשר', type: 'textarea', json: true, ltr: true, required: true, defaultValue: '[{"service_key":"social_post","title":"פוסט סושיאל","unit":"post","quantity":8},{"service_key":"reel_video","title":"סרטון קצר","unit":"video","quantity":2}]' },
-            { name: 'start_conditions', label: 'תנאי התחלה (JSON)', type: 'textarea', json: true, ltr: true, defaultValue: '["תשלום דמי הקמה","קבלת חומרים וגישות"]' }]} /></details>}
+        {['owner', 'admin'].includes(m.role) && cur.review_status === 'approved' && !journey?.engagement && <div className="jr-next" style={{ marginTop: 14 }}><div><small>הלקוח אישר בטלפון / על נייר?</small><b>פתיחת עסקה ידנית</b>
+          <span>חתימה דיגיטלית פותחת עסקה אוטומטית. כאן אפשר לפתוח אותה ידנית: נוצרים תיק לקוח, אבני דרך לכל שירות, ומחקר לקוח מתחיל (אם יש אתר).</span></div>
+          <ActionForm action="open_deal" extra={{ version_id: cur.id }} submit="פתח עסקה ←" fields={[{ name: 'start_date', label: 'תאריך התחלה', type: 'date' }]} redirectTo="/clients/{client_id}?tab=milestones" /></div>}
       </> : <Empty>טרם נוצרה גרסה — הפעל את תהליך ההצעה או צור גרסה ידנית.</Empty>}
         {versions.length > 1 && <><h3 style={{ marginTop: 14 }}>היסטוריית גרסאות</h3><Table head={['גרסה', 'סטטוס', 'סיכום']} rows={versions.map((v: any) => [`v${v.version_no}`, he(v.review_status), v.change_summary ?? ''])} /></>}</div></div></details>
   </>;
