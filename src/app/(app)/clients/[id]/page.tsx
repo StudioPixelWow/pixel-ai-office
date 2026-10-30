@@ -20,6 +20,7 @@ import { ClientSources } from '@/components/data-sources';
 import { Opportunities } from '@/components/opportunities';
 
 
+const ONB_Q: Record<string, string> = { unique: 'מה מייחד', audience: 'קהל', competitors: 'מתחרים', goals: 'מטרות ל-3 חודשים', tone: 'טון', avoid: 'להימנע', dates: 'תאריכים חשובים' };
 export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params; const { tab = 'overview' } = await searchParams; const m = await me();
   const c = await get<any>('clients', id); if (!c) notFound();
@@ -30,6 +31,8 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const ents = engagements.length ? await safeList('service_entitlements', { engagement_id: engagements.map((e: any) => e.id) }) : [];
   const quota = periods[0] ? await rpc<any[]>('office_quota', { p_period: periods[0].id }).catch(() => []) : [];
   const [portal, opps, site] = await Promise.all([rpc<string>('office_portal_link', { p_client: id }).catch(() => ''), tab === 'overview' ? rpc<any[]>('office_opportunities', { p_client: id }).catch(() => []) : Promise.resolve([] as any[]), tab === 'overview' ? rpc<any>('office_site_check', { p_client: id }).catch(() => null) : Promise.resolve(null)]);
+  const [steps, onb] = await Promise.all([rpc<Record<string, any>>('office_next_steps').catch(() => ({} as any)), tab === 'overview' ? rpc<any>('office_client_onboarding', { p_client: id }).catch(() => null) : Promise.resolve(null)]);
+  const ns = steps?.[id];
   const base = `/clients/${id}?tab=`; const fin = ['owner', 'admin'].includes(m.role);
   const [plans, pays, terms] = fin && tab === 'billing' ? await Promise.all([safeList<any>('billing_plans', { client_id: id }), safeList<any>('payments', { client_id: id }, 500), safeList<any>('terms_templates')]) : [[], [], []];
   return <>
@@ -38,11 +41,17 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
         const L: [string, string][] = [['facebook', 'פייסבוק'], ['instagram', 'אינסטגרם'], ['linkedin', 'לינקדאין'], ['tiktok', 'טיקטוק'], ['youtube', 'יוטיוב']];
         const links = [...(web ? [['🌐 ' + web.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), web]] : []), ...other.map((u) => ['🌐 ' + u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), u]), ...L.filter(([k]) => so[k]).map(([k, l]) => [l, so[k]])];
         return links.length ? <div className="cl-links">{links.map(([l, u]) => <a key={u} href={u} target="_blank" rel="noreferrer">{l}</a>)}</div> : <div className="cl-links muted">אין עדיין אתר ורשתות בכרטיס</div>; })()}</div><Badge s={c.status} /></div></div>
+    {ns && <div className={`next-step big ${ns.tone}`}><i>➜</i><span className="sp"><small>הצעד הבא</small>{ns.text}</span>{ns.link && <Link className="btn sm" href={ns.link}>לטיפול</Link>}</div>}
     <JourneyBar j={journey} />
     <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'milestones', 'אבני דרך'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'docs', 'מסמכים וחוזים'], [base + 'reports', 'דוחות'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
     {tab === 'overview' && <div className="grid g2 ov">
       <ProfileForm c={c} />
       <div className="grid" style={{ alignContent: 'start' }}>
+        {onb?.started && <div className="card onb-card"><div className="row"><h2 className="sp">קליטה בפורטל</h2><b>{onb.pct}%</b></div>
+          <div className="pt-onb-bar"><i style={{ width: `${onb.pct}%` }} /></div>
+          <ul className="onb-steps">{(onb.steps ?? []).map((x: any) => <li key={x.key} className={x.done ? 'ok' : ''}>{x.done ? '✓' : '○'} {x.label}{x.note ? <small> · {x.note}</small> : null}
+            {(x.files ?? []).map((f: any) => <a key={f.blob} href={`/api/files/${f.blob}?download=${encodeURIComponent(f.name ?? 'file')}`}> 📎 {f.name}</a>)}</li>)}</ul>
+          {onb.answers && Object.keys(onb.answers).length > 0 && <details><summary className="small"><b>תשובות השאלון</b></summary><dl className="onb-ans">{Object.entries(onb.answers).map(([k, v]) => <><dt key={k + 'k'}>{ONB_Q[k] ?? k}</dt><dd key={k + 'v'}>{String(v)}</dd></>)}</dl></details>}</div>}
         {portal && <PortalCard clientId={id} url={portal} />}
         {site && <div className="card sc"><h2>{site.ok ? '✅' : '🔧'} בריאות האתר</h2><p className="small muted">בדיקה אחרונה {fmtDateTime(site.at)} · {site.result?.ms ? `${Math.round(site.result.ms / 100) / 10} שנ׳` : ''}{site.result?.https ? ' · HTTPS ✓' : ''}{site.result?.form ? ' · טופס ✓' : ''}</p>
           {(site.result?.pixels ?? []).length > 0 && <p className="small">מדידה: {site.result.pixels.join(' · ')}</p>}

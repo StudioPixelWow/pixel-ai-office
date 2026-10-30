@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { safeList, me } from '@/lib/api';
+import { safeList, me, rpc } from '@/lib/api';
 import { ActionForm } from '@/components/client';
 import { SheetButton } from '@/components/sheet';
 import { DEPT_HE, fmtMoney } from '@/lib/format';
@@ -15,6 +15,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
   const mrr = plans.filter((b: any) => b.status === 'active' && b.kind === 'retainer').reduce((a: number, b: any) => a + Number(b.amount ?? 0), 0);
   const href = (k: Record<string, string | undefined>) => { const u = new URLSearchParams(Object.entries({ q, s, d, ...k }).filter(([, v]) => v) as any); return `/clients${u.size ? `?${u}` : ''}`; };
   const termsOpts = terms.map((t: any) => ({ id: t.id, name: `${t.name}${t.vat_rate != null ? ` · מע״מ ${t.vat_rate}%` : ''}` }));
+  const steps = await rpc<Record<string, any>>('office_next_steps').catch(() => ({} as Record<string, any>));
   return <>
     <section className="pg-head"><div><h1>לקוחות</h1><p>כל לקוח: תיק מותג, אבני דרך, תוכן, תשלומים וסוכנים — במקום אחד.</p></div>
       <div className="row"><SheetButton label="＋ לקוח חדש" title="לקוח חדש" defaultOpen={!!isNew}>{fin ? <OnboardForm terms={termsOpts} /> : <ActionForm action="create_client" redirectTo="/clients/{id}" fields={[{ name: 'name', label: 'שם הלקוח', required: true }, { name: 'industry', label: 'תחום' }, { name: 'department', label: 'מחלקה', type: 'select', options: DEPTS, defaultValue: 'pixel_digital' }]} />}</SheetButton>
@@ -36,8 +37,9 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
       return <Link key={c.id} href={`/clients/${c.id}`} className="ccard">
         <div className="bc-h"><span className="av">{logo ? <img src={logo} alt="" /> : (c.name ?? '?').slice(0, 1)}</span><div><b>{c.name}</b><small>{DEPT_HE[c.department] ?? c.department}{c.industry ? ` · ${c.industry}` : ''}</small></div></div>
         {svc.length > 0 && <div className="bc-tags">{svc.slice(0, 4).map((x) => <span key={x}>{x}</span>)}</div>}
-        <div className="cc-meta"><span className={`badge ${st[1]}`}>{st[0]}</span>{c.profile?.dossier ? <span>✓ תיק מותג</span> : <span>ללא מחקר</span>}
+        <div className="cc-meta"><span className={`badge ${st[1]}`}>{st[0]}</span>
           {fin && ps.length > 0 && <span>{ps.map((b: any) => `${fmtMoney(b.amount)}${b.kind === 'retainer' ? '/ח׳' : ''}`).join(' + ')}</span>}</div>
+        {steps[c.id] && <div className={`next-step ${steps[c.id].tone}`}><i>➜</i>{steps[c.id].text}</div>}
       </Link>; })}</div> : <div className="onb"><h2>{q || s || d ? 'אין תוצאות לסינון הזה' : 'אין לקוחות עדיין'}</h2><p>לקוחות נפתחים אוטומטית כשליד חותם על הצעה — או ידנית מהכפתור למעלה.</p></div>}
   </>;
 }

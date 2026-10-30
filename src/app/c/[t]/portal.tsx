@@ -3,6 +3,7 @@ import { TalkingReport } from '@/components/talking-report';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SignPad } from './sign-pad';
+import { PortalOnboarding } from './onboarding';
 
 const TZ = 'Asia/Jerusalem';
 const fd = (d: string | null | undefined, o: Intl.DateTimeFormatOptions) => d ? new Intl.DateTimeFormat('he-IL', { timeZone: TZ, ...o }).format(new Date(d.length === 10 ? `${d}T12:00:00Z` : d)) : '';
@@ -57,6 +58,7 @@ export function Portal({ t, d }: { t: string; d: any }) {
     </header>
 
     {msg && <div className={`pt-toast ${msg.ok ? 'ok' : 'bad'}`} role="status">{msg.t}</div>}
+    <PortalOnboarding t={t} />
 
     <section id="approve" className="pt-sec">
       <h2>מחכה לאישור שלכם</h2>
