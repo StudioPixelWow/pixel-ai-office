@@ -1,0 +1,2 @@
+-- applied via MCP as 0033_client_portal + 0034_portal_share (see DB): clients.portal_rev, portal_feedback,
+-- office_worker_portal / _portal_act / _portal_blob, act_care: portal_rotate + portal_share.

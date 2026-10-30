@@ -13,6 +13,9 @@ import { fmtDate } from '@/lib/format';
 import { JourneyBar } from '@/components/journey';
 import { Milestones } from './milestones';
 import { ProfileForm } from './profile-form';
+import { PortalCard } from './portal-card';
+import { portalUrl } from '@/lib/paytoken';
+import { headers } from 'next/headers';
 
 export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params; const { tab = 'overview' } = await searchParams; const m = await me();
@@ -23,6 +26,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const [journey, milestones] = await Promise.all([rpc<any>('office_journey', { p_client: id }).catch(() => null), tab === 'milestones' || tab === 'overview' ? rpc<any[]>('office_client_milestones', { p_client: id }).catch(() => []) : Promise.resolve([])]);
   const ents = engagements.length ? await safeList('service_entitlements', { engagement_id: engagements.map((e: any) => e.id) }) : [];
   const quota = periods[0] ? await rpc<any[]>('office_quota', { p_period: periods[0].id }).catch(() => []) : [];
+  const hh = await headers(); const portal = portalUrl(`${hh.get('x-forwarded-proto') ?? 'https'}://${hh.get('host')}`, id, Number(c.portal_rev ?? 1));
   const base = `/clients/${id}?tab=`; const fin = ['owner', 'admin'].includes(m.role);
   const [plans, pays, terms] = fin && tab === 'billing' ? await Promise.all([safeList<any>('billing_plans', { client_id: id }), safeList<any>('payments', { client_id: id }, 500), safeList<any>('terms_templates')]) : [[], [], []];
   return <>
@@ -32,6 +36,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
     {tab === 'overview' && <div className="grid g2 ov">
       <ProfileForm c={c} />
       <div className="grid" style={{ alignContent: 'start' }}>
+        <PortalCard clientId={id} url={portal} />
         <div className="card"><h2>אבני דרך קרובות</h2>{milestones.filter((x: any) => !['done', 'skipped'].includes(x.status)).slice(0, 6).map((x: any) => <div key={x.id} className="ov-ms"><span className={`dotx ${x.due_date && x.due_date < new Date().toISOString().slice(0, 10) ? 'late' : ''}`} /><div><b>{x.title}</b><small>{x.service} · {x.due_date ? new Date(x.due_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) : '—'}</small></div></div>)}
           {!milestones.length && <p className="muted">אין עדיין אבני דרך — הן נוצרות כשנפתחת עסקה.</p>}<Link className="btn sm ghost" href={`${base}milestones`}>לכל אבני הדרך ←</Link></div>
         <div className="card"><h2>קיצורי דרך</h2><div className="ov-links">
