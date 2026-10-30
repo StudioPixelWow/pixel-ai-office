@@ -152,7 +152,10 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     } catch (e: any) { return void await done(`מחקר ChatGPT · ${company}`, { skipped: true, error: String(e.message) }, `המחקר ב-ChatGPT לא הושלם: ${e.message}. התיק נבנה משאר המקורות.`, [], 'דולג — שגיאת ספק'); }
   }
   if (kind === 'tool:save_content_plan') {
-    const plan = (c.dependencies ?? []).flatMap((d: any) => d.artifacts ?? []).find((a: any) => a.kind === 'content_plan')?.data;
+    const parts = (c.dependencies ?? []).flatMap((d: any) => d.artifacts ?? []).filter((a: any) => a.kind === 'content_plan').map((a: any) => a.data);
+    const seenD = new Set<string>(); const plan = parts.length ? { summary: parts.map((x: any) => x.summary).filter(Boolean).join(' '),
+      posts: parts.flatMap((x: any) => x.posts ?? []).filter((p: any) => p?.date && (p.post_text || p.idea)).sort((a: any, b: any) => String(a.date).localeCompare(String(b.date))) } : null;
+    void seenD;
     if (!plan?.posts?.length) return void await w('office_worker_block', { p_task: id, p_lease: lease, p_status: 'waiting_input', p_blocker: 'אין תוכנית תוכן לשמירה', p_checkpoint: null });
     await hb('מציב פוסטים בגאנט', `${plan.posts.length} פוסטים`);
     const r = await w('office_worker_save_content_plan', { p_task: id, p_lease: lease, p_plan: plan });

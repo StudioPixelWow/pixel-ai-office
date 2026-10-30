@@ -39,7 +39,7 @@ export const OUTPUT = {
     opportunities: z.array(z.string()).default([]), open_questions: z.array(z.string()).default([]), sources: z.array(z.string()).default([]) }),
   content_plan: z.object({ summary: z.string().default(''), posts: z.array(z.object({ date: z.string(), title: z.string(), slot_kind: z.string().default('regular'), marker: z.string().nullable().optional(),
     rtm_id: z.string().nullable().optional(), pillar: z.string().default(''), format: z.string().default('פוסט'), platforms: z.array(z.string()).default([]), idea: z.string().default(''), hook: z.string().default(''),
-    post_text: z.string(), hashtags: z.array(z.string()).default([]), cta: z.string().default(''), creative_prompt: z.string().default(''), why: z.string().default(''), time: z.string().optional() })).min(1) }),
+    post_text: z.string().default(''), hashtags: z.array(z.string()).default([]), cta: z.string().default(''), creative_prompt: z.string().default(''), why: z.string().default(''), time: z.string().optional() })).min(1) }),
 } as const;
 export type OutputKind = keyof typeof OUTPUT;
 
