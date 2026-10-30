@@ -6,9 +6,9 @@ let cached: { token: string; exp: number } | null = null;
 export async function giToken(): Promise<string> {
   if (cached && cached.exp > Date.now() + 60_000) return cached.token;
   const r = await fetch(`${base()}/account/token`, { method: 'POST', headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ id: process.env.GREEN_INVOICE_API_ID, secret: process.env.GREEN_INVOICE_API_SECRET }) });
+    body: JSON.stringify({ id: (process.env.GREEN_INVOICE_API_ID ?? '').trim(), secret: (process.env.GREEN_INVOICE_API_SECRET ?? '').trim() }) });
   const j: any = await r.json().catch(() => ({}));
-  if (!r.ok || !j.token) { const e: any = new Error(j?.errorMessage || `HTTP ${r.status}`); e.status = r.status; throw e; }
+  if (!r.ok || !j.token) { const detail = j?.errorMessage || j?.message || j?.error || (j?.errorCode ? `errorCode ${j.errorCode}` : ''); const e: any = new Error(`HTTP ${r.status}${detail ? ` · ${detail}` : ''}`); e.status = r.status; throw e; }
   cached = { token: j.token, exp: (j.expires ? j.expires * 1000 : Date.now() + 50 * 60_000) }; return j.token;
 }
 export async function giCheck() { try { await giToken(); return { ok: true as const }; } catch (e: any) { return { ok: false as const, status: e.status ?? 0, error: e.message }; } }
