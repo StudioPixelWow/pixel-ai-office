@@ -198,10 +198,11 @@ export async function enrichSample(url: string, extra: { views?: number | null }
 }
 
 // Vision pass: keep only the company's own visual content. Drops third-party/client logos, partner badges, icons and UI screenshots of other brands.
-export async function classifyOwnImages(urls: string[], company: string, ownLogo?: string | null): Promise<{ keep: string[]; dropped: string[]; checked: boolean }> {
+export async function classifyOwnImages(urls: string[], company: string, ownLogo?: string | null): Promise<{ keep: string[]; dropped: string[]; checked: boolean; errors?: string[] }> {
   const list = [...new Set(urls)].filter((u) => /^https:\/\//.test(u) && u !== ownLogo).slice(0, 40);
   if (!list.length || !process.env.ANTHROPIC_API_KEY) return { keep: list, dropped: [], checked: false };
-  const keep: string[] = []; const dropped: string[] = []; let checked = false;
+  const keep: string[] = []; const dropped: string[] = []; let checked = false; const errors: string[] = [];
+  const looksLogo = (u: string) => /logo|client|partner|brand|icon|badge/i.test(decodeURIComponent(u.split('/').pop() ?? ''));
   for (let i = 0; i < list.length; i += 12) {
     const batch = list.slice(i, i + 12);
     const content: any[] = [];
@@ -211,11 +212,11 @@ export async function classifyOwnImages(urls: string[], company: string, ownLogo
       const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal: AbortSignal.timeout(45000),
         headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
         body: JSON.stringify({ model: process.env.ANTHROPIC_VISION_MODEL || 'claude-haiku-5-5', max_tokens: 400, messages: [{ role: 'user', content }] }) });
-      const j: any = await r.json(); const t = (j.content ?? []).map((c: any) => c.text ?? '').join('');
+      const j: any = await r.json(); if (!r.ok) throw new Error(`${r.status} ${j?.error?.message ?? ''}`.slice(0, 160)); const t = (j.content ?? []).map((c: any) => c.text ?? '').join('');
       const o = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
       const own = new Set<number>((o.own ?? []).map(Number)); checked = true;
       batch.forEach((u, k) => (own.has(k) ? keep : dropped).push(u));
-    } catch { keep.push(...batch); }
+    } catch (e: any) { errors.push(String(e?.message ?? e).slice(0, 160)); batch.forEach((u) => (looksLogo(u) ? dropped : keep).push(u)); }
   }
-  return { keep, dropped, checked };
+  return { keep, dropped, checked, errors };
 }

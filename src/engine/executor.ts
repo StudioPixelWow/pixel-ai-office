@@ -172,7 +172,7 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     const own = await classifyOwnImages(crawl.images ?? [], company, crawl.logo);
     const r = await w('office_worker_save_dossier', { p_task: id, p_lease: lease, p_dossier: dos.data,
       p_extra: { website: crawl.url ?? website, socials: (social.profiles ?? []).map((p: any) => ({ network: p.network, url: p.url, status: p.status, followers: p.followers_text })),
-        logo: crawl.logo, og_image: crawl.og_image, images: own.keep.slice(0, 30), images_dropped: own.dropped, images_checked: own.checked, colors: crawl.colors, fonts: crawl.fonts,
+        logo: crawl.logo, og_image: crawl.og_image, images: own.keep.slice(0, 30), images_dropped: own.dropped, images_checked: true, images_vision: own.checked, images_vision_errors: own.errors ?? [], colors: crawl.colors, fonts: crawl.fonts,
         samples: social.samples ?? [], sample_gaps: (social.notes ?? []).filter((n: string) => /נדרשת כניסה|דורש חיבור/.test(n)) } });
     return void await w('office_worker_complete', { p_task: id, p_lease: lease, p_result: { outputs: r, summary: `נשמרו ${r.knowledge} פריטי ידע לאישורך` } });
   }
