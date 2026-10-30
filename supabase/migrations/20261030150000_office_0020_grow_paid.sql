@@ -1,0 +1,1 @@
+-- applied via MCP: payment_events table + office_worker_payment_paid (Grow notify → payment paid, idempotent per transaction)

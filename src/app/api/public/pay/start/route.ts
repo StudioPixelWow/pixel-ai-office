@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { payContext } from '@/lib/pay-context';
+import { signPay } from '@/lib/paytoken';
 import { growConfigured, growCreatePaymentLink, growIsSandbox, toLocalMobile } from '@/engine/adapters/grow';
 // Payer clicked "pay": open a fresh Grow session (wallet authCode or hosted URL). Amount is taken from the server only.
 export async function POST(req: NextRequest) {
@@ -12,7 +13,8 @@ export async function POST(req: NextRequest) {
   if (!toLocalMobile(phone)) return NextResponse.json({ error: 'נא להזין טלפון נייד תקין (05XXXXXXXX)' }, { status: 400 });
   const origin = req.nextUrl.origin;
   const r = await growCreatePaymentLink({ title: c.client, productName: c.description, amount: c.amount, fullName: full, phone, email: email || c.email, ref: c.ref,
-    successUrl: `${origin}/pay/thanks`, cancelUrl: `${origin}/pay/thanks?cancel=1` });
+    successUrl: `${origin}/pay/thanks`, cancelUrl: `${origin}/pay/thanks?cancel=1`,
+    notifyUrl: `${origin}/api/webhooks/grow?r=${encodeURIComponent(signPay({ k: 'pmt', id: c.ref }))}` });
   if (!r.ok) return NextResponse.json({ error: `לא ניתן לפתוח תשלום כרגע (${r.error})` }, { status: 502 });
   return NextResponse.json({ authCode: r.authCode, url: r.url, env: growIsSandbox() ? 'DEV' : 'PRODUCTION' });
 }

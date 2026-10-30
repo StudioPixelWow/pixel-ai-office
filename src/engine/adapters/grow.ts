@@ -8,7 +8,7 @@ const clean = (s: string) => s.replace(/[^\p{L}\p{N} .,\-]/gu, ' ').replace(/\s+
 const site = () => (process.env.NEXT_PUBLIC_SITE_URL || 'https://pixel-ai-office-iota.vercel.app').replace(/\/$/, '');
 export const toLocalMobile = (p?: string | null) => { const d = (p ?? '').replace(/^\+972/, '0').replace(/\D/g, ''); return /^05\d{8}$/.test(d) ? d : null; };
 
-export async function growCreatePaymentLink(o: { title: string; productName: string; amount: number; fullName: string; phone?: string | null; email?: string | null; ref: string; successUrl?: string; cancelUrl?: string }) {
+export async function growCreatePaymentLink(o: { title: string; productName: string; amount: number; fullName: string; phone?: string | null; email?: string | null; ref: string; successUrl?: string; cancelUrl?: string; notifyUrl?: string }) {
   const phone = toLocalMobile(o.phone);
   if (!phone) return { ok: false as const, error: 'Grow דורש טלפון נייד ישראלי תקין (05XXXXXXXX) של המשלם' };
   const f = new FormData();
@@ -20,6 +20,7 @@ export async function growCreatePaymentLink(o: { title: string; productName: str
   if (o.email) f.set('pageField[email]', o.email);
   f.set('successUrl', o.successUrl || `${site()}/pay/thanks`); f.set('cancelUrl', o.cancelUrl || `${site()}/pay/thanks?cancel=1`);
   f.set('cField1', o.ref);
+  if (o.notifyUrl) f.set('notifyUrl', o.notifyUrl);
   const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 20000);
   try {
     const r = await fetch(`${base()}/createPaymentProcess`, { method: 'POST', body: f, signal: ctrl.signal });
@@ -37,4 +38,12 @@ export async function growCreatePaymentLink(o: { title: string; productName: str
 export async function growCheck() {
   const r = await growCreatePaymentLink({ title: 'בדיקת חיבור', productName: 'PIXEL AI OFFICE', amount: 1, fullName: 'בדיקה מערכת', phone: '0500000000', ref: 'connection-check' });
   return r.ok ? { ok: true as const, sandbox: growIsSandbox() } : { ok: false as const, error: r.error };
+}
+
+// Grow requires an approveTransaction call after each server notification; we echo back the transaction fields it sent.
+export async function growApprove(data: Record<string, string>) {
+  const f = new FormData(); f.set('pageCode', process.env.GROW_PAGE_CODE!.trim());
+  for (const [k, v] of Object.entries(data)) if (v != null && typeof v !== 'object') f.set(k, String(v));
+  const r = await fetch(`${base()}/approveTransaction`, { method: 'POST', body: f, signal: AbortSignal.timeout(15000) });
+  const j: any = await r.json().catch(() => ({})); return { ok: r.ok && String(j?.status) === '1', body: j };
 }
