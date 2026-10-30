@@ -16,7 +16,7 @@ export function OfficeFloor({ board, avatars, clients, readyCaps }: { board: A[]
       <p>מצב כל סוכן נגזר ממנוע המשימות — לא מאנימציה. {board.filter((a) => state(a) === 'running').length} עובדים עכשיו · {board.filter((a) => state(a) === 'waiting_approval').length} ממתינים לך</p></div>
       <select aria-label="מחלקה" value={dept} onChange={(e) => setDept(e.target.value)} style={{ width: 180 }}><option value="">כל המחלקות</option>{Object.entries(DEPARTMENTS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
       <select aria-label="לקוח" value={client} onChange={(e) => setClient(e.target.value)} style={{ width: 180 }}><option value="">כל הלקוחות</option>{clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}</select>
-      <button className="btn k" onClick={() => setView(view === 'floor' ? 'list' : 'floor')}>{view === 'floor' ? 'מבט רשימה נגיש' : 'מבט משרד'}</button></div></div>
+      <Link className="btn y" href="/room">חדר ישיבות</Link><button className="btn k" onClick={() => setView(view === 'floor' ? 'list' : 'floor')}>{view === 'floor' ? 'מבט רשימה נגיש' : 'מבט משרד'}</button></div></div>
     {view === 'list' ? <div className="tablewrap"><table className="t"><thead><tr><th>#</th><th>סוכן</th><th>תפקיד</th><th>מצב</th><th>משימה נוכחית</th><th>לקוח</th><th>עדכון</th></tr></thead>
       <tbody>{shown.map((a) => <tr key={a.id}><td>{a.number}</td><td><button className="btn ghost sm" onClick={() => setSel(a)}>{a.name}</button></td><td>{a.role_title}</td>
         <td><span className="badge">{he(state(a))}</span>{unwired(a) && <span className="badge muted">לא חובר</span>}</td><td>{a.current?.title ?? '—'}</td><td>{a.current?.client ?? '—'}</td><td>{ago(a.current?.updated_at)}</td></tr>)}</tbody></table></div>

@@ -13,6 +13,8 @@ import { waConfigured, waCheck, waSendText } from './adapters/whatsapp';
 import { growCheck, growIsSandbox, growConfigured } from './adapters/grow';
 import { greenInvoiceConfigured, giCheck } from './adapters/greeninvoice';
 import { gmailConfigured, gmailCheck, gmailSend } from './adapters/gmail';
+import { metaConfigured, metaCheck } from './adapters/meta';
+import { marketingToken, adsConfigured } from './adapters/gmarketing';
 
 export async function selfChecks() {
   const out: any = {};
@@ -50,6 +52,33 @@ export async function selfChecks() {
   out.gmail = await w('office_worker_connection_report', { p_provider: 'gmail', p_label: `Gmail — ${process.env.GMAIL_USER ?? 'office@'}`, p_secret_ref: 'GMAIL_APP_PASSWORD',
     p_caps: [{ capability: 'send_email', implemented: true, status: !gm ? 'not_connected' : gm.ok ? 'access_verified' : 'expired', check_method: 'SMTP verify',
       details: !gm ? 'GMAIL_APP_PASSWORD לא הוגדר' : gm.ok ? 'החיבור אומת — שליחה רק בלחיצה עם תצוגה מקדימה' : (gm as any).error }] });
+  // built-in server capability: outbound HTTP (site checker) — real request, not an assumption
+  const hc = await fetch('https://s-pixel.co.il/', { method: 'HEAD', redirect: 'follow', signal: AbortSignal.timeout(8000) }).then((r) => ({ ok: r.status < 500, status: r.status })).catch((e) => ({ ok: false, status: 0, error: String(e?.message ?? e) }));
+  out.http = await w('office_worker_connection_report', { p_provider: 'server_http', p_label: 'בדיקות HTTP מהשרת (בודק אתרים)', p_secret_ref: null,
+    p_caps: [{ capability: 'http_check', implemented: true, status: hc.ok ? 'access_verified' : 'requires_user', check_method: 'HEAD https://s-pixel.co.il', details: hc.ok ? `השרת מבצע בקשות HTTP (HTTP ${hc.status})` : `בקשת בדיקה נכשלה: ${(hc as any).error ?? hc.status}` }] });
+  // web research = Claude's server-side web search tool; probed with one real minimal search
+  let ws: { ok: boolean; status?: number; error?: string; n?: number } | null = null;
+  if (anthropicConfigured()) {
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal: AbortSignal.timeout(45000),
+        headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 60, tools: [{ type: process.env.ANTHROPIC_WEB_SEARCH_TOOL || 'web_search_20250305', name: 'web_search', max_uses: 1 }],
+          messages: [{ role: 'user', content: 'Search the web for "Pixel Digital Israel" and reply with one word: ok' }] }) });
+      const j: any = await r.json().catch(() => ({}));
+      ws = r.ok ? { ok: (j.usage?.server_tool_use?.web_search_requests ?? 0) > 0, n: j.usage?.server_tool_use?.web_search_requests ?? 0, status: r.status } : { ok: false, status: r.status, error: j?.error?.message };
+    } catch (e: any) { ws = { ok: false, error: String(e?.message ?? e) }; }
+  }
+  out.web = await w('office_worker_connection_report', { p_provider: 'anthropic_web_search', p_label: 'חיפוש ברשת (Claude web search)', p_secret_ref: 'ANTHROPIC_API_KEY',
+    p_caps: [{ capability: 'web_research', implemented: true, status: !ws ? 'not_connected' : ws.ok ? 'access_verified' : ws.status === 401 ? 'expired' : 'missing_permissions', check_method: 'POST /v1/messages + web_search (1 חיפוש)',
+      details: !ws ? 'ANTHROPIC_API_KEY לא הוגדר' : ws.ok ? 'בוצע חיפוש בדיקה אמיתי ברשת' : `חיפוש הבדיקה לא בוצע: ${ws.error ?? ws.status ?? 'לא הופעל חיפוש'}` }] });
+  // ad accounts: Meta system user token and/or Google Ads (OAuth + developer token)
+  const mc = metaConfigured() ? await metaCheck() : null;
+  const gt = await marketingToken().catch(() => null);
+  const ads = !!(mc?.ok) || !!(gt && adsConfigured());
+  const missing = [!metaConfigured() && 'META_SYSTEM_TOKEN', mc && !mc.ok && `Meta: ${mc.error}`, !gt && 'חיבור Google בעמוד החיבורים', !adsConfigured() && 'GOOGLE_ADS_DEVELOPER_TOKEN / GOOGLE_ADS_MCC_ID'].filter(Boolean).join(' · ');
+  out.ads = await w('office_worker_connection_report', { p_provider: 'ads_read', p_label: 'קריאת נתוני קמפיינים (Meta / Google Ads)', p_secret_ref: 'META_SYSTEM_TOKEN',
+    p_caps: [{ capability: 'read_ads', implemented: true, status: ads ? 'access_verified' : 'not_connected', check_method: 'GET /me (Meta) · OAuth token (Google)', account: mc?.ok ? (mc as any).name : null,
+      details: ads ? [mc?.ok && 'Meta מאומת', gt && adsConfigured() && 'Google Ads מוגדר'].filter(Boolean).join(' · ') + (missing ? ` · עדיין חסר: ${missing}` : '') : `חסר: ${missing}` }] });
   out.sandbox = await w('office_worker_connection_report', { p_provider: 'whatsapp_sandbox', p_label: 'WhatsApp — סביבת בדיקה (לא שולח לאף טלפון)', p_secret_ref: null,
     p_caps: [{ capability: 'send_message', implemented: true, status: 'action_tested', check_method: 'office.sandbox_outbox', details: 'רושם הודעות לטבלת בדיקה בלבד; מותר רק למספרי בדיקה שאישרת' }] });
   return out;
