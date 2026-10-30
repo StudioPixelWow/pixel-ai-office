@@ -155,7 +155,8 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     const partA = depArt(c, 'dossier')?.data; const partB = depArt(c, 'library')?.data;
     const anyD = (c.dependencies ?? []).flatMap((d: any) => d.artifacts ?? []).find((a: any) => a.kind === 'client_dossier')?.data;
     const base = partA ?? anyD;
-    const dos = base ? { data: partB ? { ...base, content_library: partB.content_library ?? base.content_library,
+    const svFilled = (v: any) => v && (v.style || (v.hooks ?? []).length || (v.do ?? []).length);
+    const dos = base ? { data: partB ? { ...base, content_library: partB.content_library ?? base.content_library, social_voice: svFilled(partB.social_voice) ? partB.social_voice : base.social_voice,
       opportunities: [...(base.opportunities ?? []), ...(partB.opportunities ?? [])], open_questions: [...(base.open_questions ?? []), ...(partB.open_questions ?? [])],
       sources: Array.from(new Set([...(base.sources ?? []), ...(partB.sources ?? [])])) } : base } : null;
     if (!dos?.data) return void await w('office_worker_block', { p_task: id, p_lease: lease, p_status: 'waiting_input', p_blocker: 'אין תיק מחקר לשמירה', p_checkpoint: null });
