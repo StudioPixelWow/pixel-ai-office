@@ -20,6 +20,8 @@ export const SERVICES: Service[] = [
     bullets: ['הגדרת GA4, Search Console ומעקב המרות', 'דוח חודשי מסכם על כל הערוצים', 'ניתוח תוצאות והמלצות לחודש הבא', 'שקיפות מלאה על התקציב והביצועים'] },
   { key: 'reputation', label: 'ניהול מוניטין', kind: 'retainer', tag: 'REPUTATION', title: 'ניהול מוניטין',
     bullets: ['ניטור אזכורים וביקורות', 'מענה מקצועי לביקורות', 'חיזוק נוכחות חיובית ברשת'] },
+  { key: 'graphics', label: 'שירותי גרפיקה', kind: 'retainer', tag: 'DESIGN', title: 'שירותי גרפיקה',
+    bullets: ['עיצוב גרפי שוטף לפי צורך', 'מודעות, הזמנות, באנרים וחומרים לדפוס', 'התאמה לשפת המותג בכל תוצר'] },
   { key: 'branding', label: 'מיתוג', kind: 'one_time', tag: 'BRANDING', title: 'מיתוג',
     bullets: ['אפיון מותג, ערכים ובידול', 'לוגו ושפה גרפית', 'פלטת צבעים, טיפוגרפיה וחוברת מותג'] },
   { key: 'website', label: 'בניית אתר', kind: 'one_time', tag: 'WEBSITE', title: 'בניית אתר',
