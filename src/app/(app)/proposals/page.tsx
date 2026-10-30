@@ -5,7 +5,8 @@ import { fmtMoney } from '@/lib/format';
 // Proposals board: every proposal with its client/lead, price and where it stands. Opens in a sheet.
 const GROUPS: [string, string[]][] = [['בהכנה', ['draft', 'drafting', 'pending_approval']], ['מוכנות לשליחה', ['approved', 'ready_to_send']], ['אצל הלקוח', ['sent', 'viewed', 'negotiation']], ['נחתמו', ['accepted']], ['נסגרו בלי עסקה', ['rejected', 'expired', 'lost']]];
 export default async function Proposals() {
-  const [ps, leads, clients] = await Promise.all([safeList<any>('proposals', {}, 300), safeList<any>('leads', {}, 500), safeList<any>('clients', {}, 500)]);
+  const [ps0, leads, clients] = await Promise.all([safeList<any>('proposals', {}, 300), safeList<any>('leads', {}, 500), safeList<any>('clients', {}, 500)]);
+  const ps = ps0.filter((p: any) => !p.archived_at);
   const ln = Object.fromEntries(leads.map((l) => [l.id, l.company])); const cn = Object.fromEntries(clients.map((c) => [c.id, c.name]));
   const known = new Set(GROUPS.flatMap(([, s]) => s)); const other = ps.filter((p) => !known.has(p.status));
   const won = ps.filter((p) => p.status === 'accepted');
