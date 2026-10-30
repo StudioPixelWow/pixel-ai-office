@@ -2,6 +2,7 @@ import { gcalSync } from './adapters/gcal';
 import { meetingReminders } from './reminders';
 import { morningDigest, weeklyPlan } from './digest';
 import { siteChecks, meetingPrep, retentionReview } from './smart-agents';
+import { adsSync } from './ads-sync';
 import 'server-only';
 import { w } from './db';
 import { execute } from './executor';
@@ -94,6 +95,7 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   const mi = new Date().getUTCMinutes();
   if (mi % 20 === 13) { try { report.sites = await siteChecks(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi % 15 === 7) { try { report.prep = await meetingPrep(); } catch (e: any) { report.errors.push(e.message); } }
+  if (mi % 10 === 3) { try { report.ads = await adsSync(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi === 29) { try { report.retention = await retentionReview(); } catch (e: any) { report.errors.push(e.message); } }
   try { report.week = await weeklyPlan(); } catch (e: any) { report.errors.push(e.message); }
   try { report.digest = await morningDigest(); } catch (e: any) { report.errors.push(e.message); }

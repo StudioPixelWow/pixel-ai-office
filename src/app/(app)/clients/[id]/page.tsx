@@ -16,6 +16,7 @@ import { ProfileForm } from './profile-form';
 import { PortalCard } from './portal-card';
 import { DocsPanel } from './docs-panel';
 import { ReportsPanel } from './reports-panel';
+import { ClientSources } from '@/components/data-sources';
 import { Opportunities } from '@/components/opportunities';
 
 
@@ -49,7 +50,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
           <Link href={`/content?client=${id}`}>▦ גאנט תוכן</Link><Link href={`${base}knowledge`}>⌕ תיק מותג ומחקר</Link><Link href={`${base}assets`}>◧ בנק נכסים</Link>
           {fin ? <Link href={`${base}billing`}>₪ תשלומים</Link> : <Link href={`${base}contacts`}>☎ אנשי קשר</Link>}<Link href={`/talk?client=${id}`}>✦ משימה לסוכנים</Link><Link href={`/calendar`}>▣ פגישות ביומן</Link></div></div>
       </div></div>}
-    {tab === 'reports' && <ReportsPanel clientId={id} data={await rpc<any>('office_client_reports', { p_client: id }).catch(() => ({}))} />}
+    {tab === 'reports' && <><ReportsPanel clientId={id} data={await rpc<any>('office_client_reports', { p_client: id }).catch(() => ({}))} /><div style={{ marginTop: 16 }}><ClientSources clientId={id} current={c.profile?.sources ?? {}} /></div></>}
     {tab === 'docs' && <DocsPanel clientId={id} docs={await rpc<any[]>('office_client_documents', { p_client: id }).catch(() => [])} />}
     {tab === 'milestones' && <Milestones clientId={id} items={milestones} engagements={engagements} />}
     {tab === 'billing' && fin && <div className="grid g2">

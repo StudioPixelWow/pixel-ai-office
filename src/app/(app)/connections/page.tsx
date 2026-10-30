@@ -1,3 +1,4 @@
+import { DataConnections } from '@/components/data-sources';
 import { safeList, me } from '@/lib/api';
 import { Hero, Table, Badge, When, Contract } from '@/components/ui';
 import { ActionButton, ActionForm } from '@/components/client';
@@ -13,6 +14,7 @@ export default async function Connections() {
   const cn = Object.fromEntries(clients.map((c: any) => [c.id, c.name]));
   return <>
     <Hero title={<>חיבורים, <span className="mark">הרשאות ותקינות</span></>} sub="חיבור מסומן פעיל רק אחרי בדיקה אמיתית. שמירת כתובת או מפתח אינה הוכחת יכולת. ChatGPT בדפדפן ו-OpenAI API הם חיבורים נפרדים.">{['owner', 'admin'].includes(m.role) && <CheckNow />}</Hero>
+    <DataConnections />
     {conns.map((c: any) => <div key={c.id} className="card" style={{ marginBottom: 12 }}>
       <div className="row"><h3 className="sp">{c.label} <span className="small muted">({c.provider} · {c.access_method})</span></h3><Badge s={c.status} />
         {!c.disconnected_at && c.access_method !== 'builtin' && <ActionButton className="btn danger sm" action="disconnect_connection" payload={{ id: c.id }} confirm="לנתק? משימות תלויות יעברו להמתנה.">נתק</ActionButton>}</div>
