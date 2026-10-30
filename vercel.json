@@ -1,0 +1,4 @@
+{
+  "crons": [{ "path": "/api/worker/tick", "schedule": "* * * * *" }],
+  "functions": { "src/app/api/worker/tick/route.ts": { "maxDuration": 300 } }
+}

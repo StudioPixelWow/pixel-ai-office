@@ -1,0 +1,57 @@
+import Link from 'next/link';
+import { get, safeList, rpc, me } from '@/lib/api';
+import { Badge, Table, Tabs, Empty, When } from '@/components/ui';
+import { ActionForm, ActionButton } from '@/components/client';
+import { DEPT_HE, fmtMoney, fmtDateTime } from '@/lib/format';
+import { notFound } from 'next/navigation';
+
+export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
+  const { id } = await params; const { tab = 'overview' } = await searchParams; const m = await me();
+  const c = await get<any>('clients', id); if (!c) notFound();
+  const [projects, contacts, assets, engagements, periods, knowledge, tasks, arts, items] = await Promise.all([
+    safeList('projects', { client_id: id }), safeList('contacts', { client_id: id }), safeList('client_assets', { client_id: id }), safeList('engagements', { client_id: id }),
+    safeList('service_periods', { client_id: id }), safeList('knowledge_items', { client_id: id }), safeList('task_runs', { client_id: id }, 50), safeList('artifacts', { client_id: id }, 50), safeList('content_items', { client_id: id }, 100)]);
+  const ents = engagements.length ? await safeList('service_entitlements', { engagement_id: engagements.map((e: any) => e.id) }) : [];
+  const quota = periods[0] ? await rpc<any[]>('office_quota', { p_period: periods[0].id }).catch(() => []) : [];
+  const base = `/clients/${id}?tab=`;
+  return <>
+    <div className="hero"><div className="row"><div className="sp"><h1>{c.name}</h1><p>{DEPT_HE[c.department] ?? c.department} · {c.industry ?? 'תחום לא הוגדר'} {c.is_test && '· [בדיקה]'}</p></div><Badge s={c.status} /></div></div>
+    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'assets', 'נכסים'], [base + 'knowledge', 'ידע'], [base + 'work', 'משימות ותוצרים']]} />
+    {tab === 'overview' && <div className="grid g2">
+      <div className="card"><h2>תיק לקוח</h2><dl className="kv">{['goals', 'audiences', 'differentiators', 'competitors', 'voice', 'constraints', 'references', 'need'].map((k) => <><dt key={k}>{({ goals: 'מטרות', audiences: 'קהלים', differentiators: 'בידולים', competitors: 'מתחרים', voice: 'שפה', constraints: 'אילוצים', references: 'רפרנסים', need: 'צורך' } as any)[k]}</dt><dd>{c.profile?.[k] ?? <span className="muted">חסר</span>}</dd></>)}</dl></div>
+      <div className="card"><h2>עדכון תיק</h2><ActionForm action="update_client" reset={false} extra={{ id, version: c.version }} fields={[
+        { name: 'status', label: 'סטטוס', type: 'select', options: [['onboarding', 'בהקמה'], ['active', 'פעיל'], ['paused', 'מושהה'], ['ended', 'הסתיים']], defaultValue: c.status },
+        { name: 'profile', label: 'פרטי תיק (JSON: goals, audiences, differentiators, competitors, voice, constraints)', type: 'textarea', json: true, ltr: true, defaultValue: JSON.stringify(c.profile ?? {}, null, 1) }]} /></div></div>}
+    {tab === 'services' && <div className="grid g2">
+      <div className="card"><h2>התקשרויות</h2>{engagements.length ? engagements.map((e: any) => <div key={e.id} style={{ marginBottom: 12 }}>
+        <div className="row"><Badge s={e.status} /><span className="sp">הקמה {fmtMoney(e.setup_fee)} · חודשי {fmtMoney(e.monthly_fee)} · מדיה (נפרד) {fmtMoney(e.media_budget)}</span>
+          {e.status === 'pending_start' && m.role === 'owner' && <ActionButton className="btn y sm" action="activate_engagement" payload={{ engagement_id: e.id }} confirm="תנאי ההתחלה התקיימו?">הפעל התקשרות</ActionButton>}</div>
+        <div className="small muted">תנאי התחלה: {(e.start_conditions ?? []).join(' · ')} {(!e.rollover_policy || !e.partial_month_policy) && '· כללי גלגול/חודש חלקי: טרם נקבעו (להחלטתך)'}</div>
+        <Table head={['שירות', 'יחידה', 'כמות לתקופה', 'סבבי תיקון']} rows={ents.filter((x: any) => x.engagement_id === e.id).map((x: any) => [x.title, x.unit, x.quantity_per_period, x.revision_rounds])} empty="לא הוגדרו שירותים" />
+        {m.role === 'owner' && <details><summary className="small">הוסף/עדכן שירות</summary><ActionForm action="add_entitlement" extra={{ engagement_id: e.id }} fields={[{ name: 'service_key', label: 'מפתח', required: true, ltr: true }, { name: 'title', label: 'שם', required: true },
+          { name: 'unit', label: 'יחידה', type: 'select', options: [['post', 'פוסט'], ['video', 'סרטון'], ['article', 'כתבה'], ['story', 'סטורי'], ['month', 'חודש'], ['page', 'עמוד']], required: true }, { name: 'quantity', label: 'כמות לתקופה', type: 'number', required: true }]} /></details>}
+        {e.status === 'active' && <ActionForm action="open_service_period" extra={{ engagement_id: e.id }} submit="פתח תקופת שירות" fields={[{ name: 'month', label: 'חודש', type: 'date', required: true }]} />}
+      </div>) : <Empty>אין התקשרות. שירותים נפתחים רק מהצעה מאושרת והתקשרות מתועדת.</Empty>}</div>
+      <div className="card"><h2>מכסות התקופה {periods[0] ? `(${periods[0].period_start})` : ''}</h2>
+        <Table head={['שירות', 'התחייבות', 'מוקצה', 'בתהליך', 'נמסר', 'יתרה']} rows={quota.map((q: any) => [q.title, q.committed, q.allocated, q.in_progress, q.delivered, <b key="a">{q.available}</b>])} empty="אין תקופה פתוחה" />
+        <p className="small muted">{quota[0]?.rule}</p></div></div>}
+    {tab === 'projects' && <div className="grid g2"><Table head={['שם', 'סוג', 'אתר']} rows={projects.map((p: any) => [p.name, p.kind, p.site_url ?? '—'])} empty="אין פרויקטים" />
+      <div className="card"><h2>פרויקט / מותג חדש</h2><ActionForm action="create_project" extra={{ client_id: id }} fields={[{ name: 'name', label: 'שם', required: true },
+        { name: 'kind', label: 'סוג', type: 'select', options: [['project', 'פרויקט'], ['brand', 'מותג'], ['real_estate_project', 'פרויקט נדל״ן'], ['campaign', 'קמפיין']] }, { name: 'site_url', label: 'אתר', ltr: true },
+        { name: 'details', label: 'פרטים (JSON: קהל, מסרים, עובדות מאומתות)', type: 'textarea', json: true, ltr: true }]} /></div></div>}
+    {tab === 'contacts' && <div className="grid g2"><Table head={['שם', 'תפקיד', 'טלפון', 'אומת', '']} rows={contacts.map((x: any) => [x.name, x.role_title ?? '—', <span key="p" dir="ltr">{x.phone_e164 ?? '—'}</span>, x.phone_verified ? '✓' : '—',
+      !x.phone_verified && x.phone_e164 && ['owner', 'admin'].includes(m.role) ? <ActionButton key="v" className="btn sm" action="verify_contact_phone" payload={{ id: x.id }} confirm="אימתת שזה המספר הנכון של איש הקשר?">סמן כמאומת</ActionButton> : null])} empty="אין אנשי קשר" />
+      <div className="card"><h2>איש קשר</h2><ActionForm action="create_contact" extra={{ client_id: id }} fields={[{ name: 'name', label: 'שם', required: true }, { name: 'role_title', label: 'תפקיד' },
+        { name: 'phone_e164', label: 'טלפון (בינלאומי)', ltr: true, hint: '‎+972501234567' }, { name: 'email', label: 'אימייל', type: 'email', ltr: true }, { name: 'approval_role', label: 'תפקיד אישור' }, { name: 'whatsapp_opt_in', label: 'הסכים לקבל הודעות WhatsApp', type: 'checkbox' }]} /></div></div>}
+    {tab === 'assets' && <div className="grid g2"><Table head={['סוג', 'מזהה', 'סטטוס גישה']} rows={assets.map((x: any) => [x.kind, <span key="i" dir="ltr">{x.identifier}</span>, x.access_status])} empty="אין נכסים רשומים" />
+      <div className="card"><h2>רישום נכס</h2><p className="small muted">רישום אינו מעניק הרשאת עריכה. החיבור נבדק בנפרד במסך החיבורים.</p>
+        <ActionForm action="create_asset" extra={{ client_id: id }} fields={[{ name: 'kind', label: 'סוג', type: 'select', required: true, options: [['website', 'אתר'], ['wordpress', 'WordPress'], ['meta_ad_account', 'חשבון Meta'], ['google_ads_account', 'חשבון Google Ads'], ['ga4', 'GA4'], ['gsc', 'Search Console'], ['gtm', 'GTM'], ['drive_folder', 'תיקיית Drive'], ['social_profile', 'פרופיל סושיאל']] },
+          { name: 'identifier', label: 'כתובת / מזהה', required: true, ltr: true }, { name: 'project_id', label: 'פרויקט', type: 'select', options: projects.map((p: any) => [p.id, p.name]) }, { name: 'notes', label: 'הערות' }]} /></div></div>}
+    {tab === 'knowledge' && <div className="grid g2"><Table head={['כותרת', 'סוג', 'סטטוס', 'תוקף']} rows={knowledge.map((k: any) => [k.title, k.kind, <Badge key="b" s={k.approval_status} />, k.valid_until ?? '—'])} empty="אין ידע ללקוח" />
+      <div className="card"><h2>פריט ידע ללקוח</h2><ActionForm action="add_knowledge" extra={{ client_id: id, scope: 'client' }} fields={[{ name: 'title', label: 'כותרת', required: true }, { name: 'kind', label: 'סוג', type: 'select', options: [['guideline', 'הנחיה'], ['decision', 'החלטה'], ['fact', 'עובדה'], ['brand', 'מותג'], ['source', 'מקור']] },
+        { name: 'body', label: 'תוכן', type: 'textarea', required: true }, { name: 'source_url', label: 'מקור', ltr: true }, { name: 'valid_until', label: 'בתוקף עד', type: 'date' }]} /></div></div>}
+    {tab === 'work' && <div className="grid g2"><div className="card"><h2>משימות</h2><Table head={['משימה', 'מצב', 'עדכון']} rows={tasks.map((t: any) => [<Link key="l" href={`/tasks/${t.id}`}>{t.title}</Link>, <Badge key="b" s={t.status} />, <When key="w" d={t.updated_at} />])} /></div>
+      <div className="card"><h2>תוצרים</h2><Table head={['תוצר', 'סוג', 'גרסה']} rows={arts.map((a: any) => [<Link key="l" href={`/studio/${a.id}`}>{a.title}</Link>, a.kind, a.current_version])} />
+        <h2 style={{ marginTop: 16 }}>פריטי תוכן</h2><Table head={['נושא', 'מועד', 'הפקה']} rows={items.map((i: any) => [i.topic, fmtDateTime(i.due_at), <Badge key="b" s={i.production_status} />])} /></div></div>}
+  </>;
+}

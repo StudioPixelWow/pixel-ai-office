@@ -1,0 +1,42 @@
+-- applied migration: office_0003a_templates (version 20261030071619)
+create table if not exists office.workflow_templates (key text primary key, name text not null, description text, steps jsonb not null);
+revoke all on office.workflow_templates from public, anon, authenticated;
+insert into office.workflow_templates(key, name, description, steps) values
+('sales_proposal','הכנת הצעת מחיר','ליד → אפיון → ניסוח → עיצוב → בקרה → אישור', '[{"key":"gaps","title":"בדיקת חוסרים בליד ובבריף","agent":"crm_followup","kind":"ai","caps":["generate_text"],"output_kind":"brief"},{"key":"scope","title":"אפיון היקף מוצע","agent":"proposal_builder","kind":"ai","depends":["gaps"],"caps":["generate_text"],"output_kind":"plan"},{"key":"draft","title":"ניסוח ההצעה","agent":"proposal_builder","kind":"ai","depends":["scope"],"caps":["generate_text"],"output_kind":"proposal_doc"},{"key":"version","title":"יצירת גרסת הצעה עם המחיר הנעול","agent":"proposal_builder","kind":"system:proposal_version","depends":["draft"]},{"key":"design","title":"עיצוב מסמך ההצעה","agent":"deck_designer","kind":"ai","depends":["version"],"caps":["generate_text"],"output_kind":"proposal_doc"},{"key":"qa","title":"בקרת מחיר, עובדות ושפה","agent":"qa_brand","kind":"ai","depends":["design"],"caps":["generate_text"],"output_kind":"report"},{"key":"price_check","title":"אימות מחיר נעול וחישובים","agent":"qa_brand","kind":"system:price_check","depends":["qa"]},{"key":"approval","title":"ממתין לאישור ההצעה שלך","agent":"office_manager","kind":"gate:proposal","depends":["price_check"]}]'),
+('monthly_plan_client','תוכנית עבודה חודשית ללקוח','פתיחת תקופה → גאנט לפי מכסות → הפקה לכל פריט', '[{"key":"period","title":"פתיחת תקופת שירות","agent":"project_manager","kind":"system:open_period"},{"key":"research","title":"מחקר קהל וזוויות לחודש","agent":"audience_researcher","kind":"ai","depends":["period"],"caps":["generate_text"],"output_kind":"research"},{"key":"gantt","title":"בניית גאנט תוכן לפי המכסות","agent":"gantt_builder","kind":"system:gantt","depends":["research"]}]'),
+('content_item','הפקת פריט תוכן','רעיון → קופי → עיצוב → בקרה → אישור', '[{"key":"idea","title":"כיווני קריאייטיב","agent":"creator","kind":"ai","caps":["generate_text"],"output_kind":"idea"},{"key":"copy","title":"קופי","agent":"copywriter","kind":"ai","depends":["idea"],"caps":["generate_text"],"output_kind":"copy"},{"key":"design","title":"עיצוב הנכס","agent":"graphic_designer","kind":"ai_image","depends":["copy"],"caps":["generate_text","generate_image"],"output_kind":"design"},{"key":"qa","title":"בקרת איכות ומותג","agent":"qa_brand","kind":"ai","depends":["design"],"caps":["generate_text"],"output_kind":"report"},{"key":"approval","title":"ממתין לאישור התוצר","agent":"office_manager","kind":"gate:artifact","depends":["qa"]}]'),
+('video_production','הפקת וידאו','בריף → תסריט ופריימים → Kling → עריכה ורינדור → בדיקה', '[{"key":"script","title":"תסריט ושוט־ליסט","agent":"scriptwriter","kind":"ai","caps":["generate_text"],"output_kind":"script"},{"key":"prompts","title":"פרומפטים לפריימים ולמקטעים","agent":"video_editor","kind":"ai","depends":["script"],"caps":["generate_text"],"output_kind":"storyboard"},{"key":"generate","title":"יצירת מקטעים ב-Kling","agent":"video_editor","kind":"provider:kling","depends":["prompts"],"caps":["generate_video"]},{"key":"render","title":"עריכה ורינדור (FFmpeg)","agent":"video_editor","kind":"local:render","depends":["generate"],"caps":["render_video"]},{"key":"qa","title":"בדיקת קובץ וידאו","agent":"qa_brand","kind":"ai","depends":["render"],"caps":["generate_text"],"output_kind":"report"},{"key":"approval","title":"ממתין לאישור הסרטון","agent":"office_manager","kind":"gate:artifact","depends":["qa"]}]'),
+('campaign_review','בקרת קמפיינים','נתונים → חריגה → הצלבה → המלצה → החלטה', '[{"key":"pull","title":"משיכת נתוני קמפיינים","agent":"performance_analyst","kind":"connector:read_campaign_metrics","caps":["read_campaign_metrics"]},{"key":"analyze","title":"איתור חריגות והצלבה","agent":"performance_analyst","kind":"ai","depends":["pull"],"caps":["generate_text"],"output_kind":"report"},{"key":"recommend","title":"המלצה לפעולה","agent":"media_planner","kind":"ai","depends":["analyze"],"caps":["generate_text"],"output_kind":"plan"},{"key":"approval","title":"החלטה שלך על ההמלצה","agent":"office_manager","kind":"gate:artifact","depends":["recommend"]}]'),
+('bakoma_article','כתבה לבקומה','מחקר → כתבה → בדיקה → טיוטת WP → סושיאל', '[{"key":"research","title":"מחקר ומקורות","agent":"article_writer","kind":"ai","caps":["generate_text"],"output_kind":"research"},{"key":"article","title":"כתיבת הכתבה","agent":"article_writer","kind":"ai","depends":["research"],"caps":["generate_text"],"output_kind":"article"},{"key":"check","title":"בדיקת כפילות ועובדות","agent":"bakoma_editor","kind":"ai","depends":["article"],"caps":["generate_text"],"output_kind":"report"},{"key":"wp_draft","title":"טיוטה בוורדפרס","agent":"bakoma_editor","kind":"connector:create_wp_draft","depends":["check"],"caps":["create_wp_draft"]},{"key":"social","title":"תוכן לסושיאל","agent":"social_manager","kind":"ai","depends":["check"],"caps":["generate_text"],"output_kind":"copy"},{"key":"approval","title":"אישור הכתבה","agent":"office_manager","kind":"gate:artifact","depends":["social"]}]'),
+('rtm_scan','סריקת RTM ללקוח','אירוע → התאמה → רעיון → אישור', '[{"key":"match","title":"התאמת אירועים ללקוח","agent":"rtm_scout","kind":"ai","caps":["generate_text"],"output_kind":"research"},{"key":"idea","title":"רעיון תגובה","agent":"creator","kind":"ai","depends":["match"],"caps":["generate_text"],"output_kind":"idea"},{"key":"approval","title":"אישור הרעיון","agent":"office_manager","kind":"gate:artifact","depends":["idea"]}]'),
+('free_request','בקשה חופשית למשרד','מנהל המשרד מפרק ומפעיל רק תפקידים רלוונטיים', '[{"key":"plan","title":"פירוק הבקשה","agent":"office_manager","kind":"ai_plan","caps":["generate_text"],"output_kind":"plan"}]'),
+('agent_trial','משימת ניסיון לסוכן','ריצה מוגבלת מול קריטריונים', '[{"key":"trial","title":"משימת ניסיון","agent":null,"kind":"ai","caps":["generate_text"],"output_kind":"report"}]'),
+('single_agent','משימה לסוכן','משימה ישירה לסוכן נבחר', '[{"key":"work","title":"ביצוע","agent":null,"kind":"ai","caps":["generate_text"],"output_kind":"report"}]')
+on conflict (key) do update set name=excluded.name, description=excluded.description, steps=excluded.steps;
+
+create or replace function public.office_workflow_templates() returns jsonb
+language sql stable security definer set search_path = office, public as $$
+  select coalesce(jsonb_agg(to_jsonb(w) order by w.key),'[]'::jsonb) from office.workflow_templates w where (select office.ctx()) is not null $$;
+revoke execute on function public.office_workflow_templates() from anon, public;
+grant execute on function public.office_workflow_templates() to authenticated;
+
+create or replace function office.capability_conn(p_org uuid, p_client uuid, p_cap text) returns uuid
+language sql stable security definer set search_path = office, public as $$
+  select c.id from office.connections c join office.connection_capabilities cc on cc.connection_id = c.id
+  where c.org_id = p_org and c.disconnected_at is null and cc.capability = p_cap and cc.implemented
+    and cc.status in ('access_verified','action_tested') and c.status in ('access_verified','action_tested')
+    and (c.office_scope or (p_client is not null and p_client = any(coalesce(c.allowed_client_ids,'{}'))))
+  order by (cc.status = 'action_tested') desc, c.verified_at desc nulls last limit 1 $$;
+
+create or replace function office.capability_blocker(p_cap text) returns text language sql immutable as $$
+  select case p_cap
+    when 'generate_text' then 'טרם חובר מודל Claude פעיל (ANTHROPIC_API_KEY בשרת) — שלב הכתיבה ממתין'
+    when 'generate_image' then 'טרם חובר מסלול תמונות מורשה (OpenAI Images API) — העיצוב ממתין'
+    when 'generate_video' then 'טרם חובר חשבון שמאפשר יצירת וידאו (Kling API) — שלב ההפקה ממתין'
+    when 'render_video' then 'אין worker רינדור פעיל (Local Runner עם FFmpeg) — הרינדור ממתין'
+    when 'read_campaign_metrics' then 'לא חובר חשבון פרסום מאומת ללקוח הזה'
+    when 'create_wp_draft' then 'לא חובר אתר WordPress עם משתמש ייעודי (Application Password) ללקוח הזה'
+    when 'read_calendar' then 'לא חובר יומן'
+    when 'create_event' then 'נדרשת הרשאת כתיבה ליומן שנבחר'
+    when 'send_message' then 'לא חובר חשבון שולח WhatsApp מאומת'
+    else 'חסר חיבור ליכולת '||p_cap end $$;
