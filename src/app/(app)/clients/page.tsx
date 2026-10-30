@@ -32,7 +32,7 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
       <div className="chips">{DEPTS.map(([k, l]) => <Link key={k} href={href({ d: d === k ? undefined : k })} className={d === k ? 'on' : ''}>{l}</Link>)}</div>
     </div>
     {clients.length ? <div className="cgrid">{clients.map((c) => { const ps = planOf(c.id); const logo = c.profile?.dossier?.brand?.logo_url ?? c.profile?.dossier_extra?.logo; const st = ST[c.status] ?? [c.status, 'muted'];
-      const svc = [...new Set(ps.flatMap((b: any) => b.services ?? []))].map(serviceLabel);
+      const svc = [...new Set([...ps.flatMap((b: any) => b.services ?? []), ...(Array.isArray(c.profile?.services) ? c.profile.services : [])])].map(serviceLabel);
       return <Link key={c.id} href={`/clients/${c.id}`} className="ccard">
         <div className="bc-h"><span className="av">{logo ? <img src={logo} alt="" /> : (c.name ?? '?').slice(0, 1)}</span><div><b>{c.name}</b><small>{DEPT_HE[c.department] ?? c.department}{c.industry ? ` · ${c.industry}` : ''}</small></div></div>
         {svc.length > 0 && <div className="bc-tags">{svc.slice(0, 4).map((x) => <span key={x}>{x}</span>)}</div>}
