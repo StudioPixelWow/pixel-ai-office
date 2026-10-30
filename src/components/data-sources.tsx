@@ -11,7 +11,10 @@ const list = (x: any) => (Array.isArray(x) ? x : []);
 export function DataConnections() {
   const d = useSources();
   const row = (ok: boolean | null, title: string, sub: string, action?: React.ReactNode) => <li className={ok ? 'ok' : ok === false ? 'bad' : ''}><i>{ok ? '✓' : ok === false ? '!' : '…'}</i><div><b>{title}</b><small>{sub}</small></div>{action}</li>;
+  const q = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   return <div className="card ds"><h2>פרסום ונתונים</h2>
+    {q?.get('mt') === 'failed' && <p className="small" style={{ color: 'var(--bad)' }}>חיבור מטא נכשל{q.get('why') ? `: ${q.get('why')}` : ''}</p>}
+    {q?.get('mt') === 'connected' && <p className="small" style={{ color: 'var(--ok)' }}>מטא חובר ✓</p>}
     <p className="small muted">קריאה בלבד — המערכת לא משנה קמפיינים ולא מוציאה כסף. הנתונים מזינים את הדוחות החודשיים ואת שומר התקציב.</p>
     {!d ? <p className="muted">בודק חיבורים…</p> : <ul className="ds-list">
       {row(d.meta?.configured ? (d.meta.check?.ok ?? false) : false, 'Meta Ads', d.meta?.configured ? (d.meta.check?.ok ? `מחובר · ${d.meta.check?.name ?? ''} · ${list(d.meta.accounts).length} חשבונות מודעות` : `החיבור לא עובד: ${d.meta.check?.error ?? ''} — התחבר מחדש`) : d.meta?.app ? 'התחבר עם המשתמש שמנהל את הפייסבוק (מאיה) — המערכת תראה את כל חשבונות המודעות שלו' : 'חסר מפתח האפליקציה (META_APP_SECRET) בוורסל',
