@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { SearchButton } from './search';
 
 export const LOGO_WHITE = 'https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-white-500.webp';
 
@@ -31,7 +32,7 @@ export function MobileBar({ waiting }: { waiting: number }) {
   const tabs: [string, string, string][] = [['/', '◉', 'בקרה'], ['/approvals', '✓', 'לטיפולי'], ['/talk', '✦', 'משימה'], ['/calendar', '▣', 'יומן'], ['/clients', '◎', 'לקוחות']];
   return <>
     <div className="mbar"><button className="mbar-btn" aria-label="תפריט" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? '✕' : '☰'}</button>
-      <img src={LOGO_WHITE} alt="Pixel Digital" /><Link href="/approvals" className="mbar-q">לטיפולי{waiting ? <b>{waiting}</b> : ' ✓'}</Link></div>
+      <img src={LOGO_WHITE} alt="Pixel Digital" /><SearchButton className="mbar-btn mbar-s" /><Link href="/approvals" className="mbar-q">לטיפולי{waiting ? <b>{waiting}</b> : ' ✓'}</Link></div>
     <div className="mscrim" onClick={() => setOpen(false)} />
     <nav className="mtabs" aria-label="ניווט מהיר">{tabs.map(([h, i, l]) => { const on = h === '/' ? p === '/' : p.startsWith(h);
       return <Link key={h} href={h} className={on ? 'on' : ''}><i>{i}</i><span>{l}</span>{h === '/approvals' && waiting > 0 && <b>{waiting}</b>}</Link>; })}</nav>

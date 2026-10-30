@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { heError } from '@/lib/errors';
 import { seedPayload } from '@/agents/roster';
-const ALLOW = new Set(['office_approve_and_send', 'office_quota', 'office_artifact', 'office_seed_test_data', 'office_create_import_token', 'office_events_since', 'office_agent_board', 'office_dashboard', 'office_list', 'office_get']);
+const ALLOW = new Set(['office_approve_and_send', 'office_quota', 'office_artifact', 'office_seed_test_data', 'office_create_import_token', 'office_events_since', 'office_agent_board', 'office_dashboard', 'office_list', 'office_get', 'office_search']);
 export async function POST(req: NextRequest) {
   if (req.headers.get('origin') && new URL(req.headers.get('origin')!).host !== req.nextUrl.host) return NextResponse.json({ error: 'csrf' }, { status: 403 });
   const { fn, args } = await req.json();

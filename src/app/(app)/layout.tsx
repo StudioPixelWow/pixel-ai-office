@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { me, today } from '@/lib/api';
 import { Nav, MobileBar, LOGO_WHITE } from '@/components/nav';
 import { LiveRefresh } from '@/components/client';
+import { SearchButton } from '@/components/search';
 
 export const dynamic = 'force-dynamic';
 const ROLE: Record<string, string> = { owner: 'Owner', admin: 'מנהל מערכת', account_manager: 'מנהל לקוח', employee: 'עובד', viewer: 'צופה' };
@@ -13,6 +14,7 @@ export default async function AppLayout({ children, modal }: { children: React.R
       <Nav waiting={Number(d.waiting_me ?? 0)} /></aside>
     <div className="main">
       <header className="top">
+        <SearchButton />
         <Link className="btn y" href="/talk">＋ משימה לסוכנים</Link>
         <Link className={`btn ${d.waiting_me ? 'c' : ''}`} href="/approvals">לטיפולי{d.waiting_me ? ` · ${d.waiting_me}` : ' ✓'}</Link>
         <Link className="btn ghost top-live" href="/office"><span className="cc-pulse" />{liveN ? `${liveN} סוכנים עובדים` : 'המשרד זמין'}</Link>

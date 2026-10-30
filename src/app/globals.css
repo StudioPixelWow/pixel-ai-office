@@ -748,3 +748,14 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .trow.s-running .av{animation:ldpulse 1.4s infinite}
 .wf-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px} .wf-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:12px;display:grid;gap:4px;color:var(--ink);text-decoration:none!important} .wf-card small{color:var(--muted)} .wf-card .badge{justify-self:start}
 @media (max-width:760px){.trow{grid-template-columns:40px 1fr}.trow-m{grid-column:1/-1;justify-items:center;grid-auto-flow:column;justify-content:center;gap:10px}}
+.top-search{min-width:220px;justify-content:flex-start;color:var(--muted);background:#fff;border:1.5px solid var(--line)} .top-search kbd{margin-inline-start:auto;font:700 11px Assistant;background:var(--bg-3);border-radius:6px;padding:1px 6px;color:var(--muted)}
+.mbar-s .ts-l,.mbar-s kbd{display:none}
+.pal-scrim{position:fixed;inset:0;background:rgba(11,19,32,.45);backdrop-filter:blur(3px);z-index:120;display:flex;justify-content:center;align-items:flex-start;padding-top:12vh;animation:fadein .12s}
+.pal{width:min(640px,94vw);background:#fff;border-radius:24px;box-shadow:0 30px 80px rgba(0,0,0,.3);overflow:hidden}
+.pal-in{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--line)} .pal-in>span{font-size:20px;color:var(--muted)} .pal-in input{border:0;box-shadow:none!important;font-size:17px;padding:6px 0}
+.pal-spin{width:16px;height:16px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--cyan);animation:spin .7s linear infinite} @keyframes spin{to{transform:rotate(360deg)}}
+.pal-l{list-style:none;margin:0;padding:6px;max-height:52vh;overflow:auto} .pal-l button{display:flex;gap:12px;align-items:center;width:100%;border:0;background:none;padding:10px 12px;border-radius:14px;cursor:pointer;text-align:right;font:600 15px Assistant,sans-serif;color:var(--ink)}
+.pal-l button.on{background:var(--bg-2)} .pal-l b{width:32px;height:32px;display:grid;place-items:center;border-radius:10px;background:var(--bg-3);flex:none} .pal-l button.on b{background:var(--grad)}
+.pal-l span{display:grid} .pal-l small{color:var(--muted);font-size:12.5px} .pal-empty{padding:18px;text-align:center;color:var(--muted)}
+.pal-f{display:flex;gap:14px;justify-content:center;padding:8px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+@media (max-width:760px){.pal-scrim{padding-top:8vh}.pal-f{display:none}}
