@@ -1,3 +1,4 @@
+import { Assistant } from '@/components/assistant';
 import Link from 'next/link';
 import { me, today } from '@/lib/api';
 import { Nav, MobileBar, LOGO_WHITE } from '@/components/nav';
@@ -21,6 +22,6 @@ export default async function AppLayout({ children, modal }: { children: React.R
         <LiveRefresh />
         <span className="who">{m.email} · {ROLE[m.role]} · <a href="/auth/signout">יציאה</a></span>
       </header>
-      <main className="page" id="main">{children}</main>{modal}
+      <main className="page" id="main">{children}</main>{modal}<Assistant />
     </div></div>;
 }

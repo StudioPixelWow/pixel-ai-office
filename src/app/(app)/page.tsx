@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { rpc, me, safeList, today } from '@/lib/api';
 import { fmtMoney } from '@/lib/format';
 import { buildQueue, QueueList } from '@/components/today-queue';
+import { HomeCommand } from '@/components/home-command';
 export const dynamic = 'force-dynamic';
 
 const TZ = 'Asia/Jerusalem';
@@ -36,19 +37,14 @@ export default async function CommandCenter() {
         <p>{q.length ? <>יש <b>{q.length}</b> דברים שמחכים לך היום{live.length ? <> · <b>{live.length}</b> סוכנים עובדים עכשיו</> : ''}.</> : 'הכל מטופל. המשרד עובד בשבילך.'}</p>
         {(t.next_markers ?? []).length > 0 && <div className="cc-markers">{(t.next_markers ?? []).slice(0, 4).map((x: any) => <span key={x.date + x.title} className={x.no_marketing ? 'nomkt' : ''}>{dm(x.date)} · {x.title}</span>)}</div>}
       </div>
-      <nav className="cc-qm" aria-label="פעולות מהירות">
-        <Link href="/talk" className="on"><i>✦</i><span>משימה</span></Link>
-        <Link href="/clients?new=1"><i>◎</i><span>לקוח</span></Link>
-        <Link href="/leads?new=1"><i>↗</i><span>ליד</span></Link>
-        <Link href="/calendar"><i>▣</i><span>יומן</span></Link>
-      </nav>
-      <div className="cc-quick">
-        <Link className="btn y" href="/talk">＋ משימה חדשה לסוכנים</Link>
-        <Link className="btn" href="/clients?new=1">לקוח חדש</Link>
-        <Link className="btn" href="/leads?new=1">ליד חדש</Link>
-        <Link className="btn" href="/content">גאנט תוכן</Link>
-      </div>
+      <HomeCommand />
     </section>
+
+    <nav className="qa" aria-label="פעולות מהירות">
+      {([['/leads?new=1', '↗', 'ליד חדש'], ['/clients?new=1', '◎', 'לקוח חדש'], ['/calendar', '▣', 'פגישה / משימה'], ['/leads', '❖', 'הצעת מחיר'],
+        ['/content', '▦', 'גאנט תוכן'], ['/week', '▤', 'מצב שבוע'], ['/forecast', '↟', 'תחזית הכנסות'], ['/approvals', '✓', 'לטיפולי']] as const).map(([h, i, l]) =>
+        <Link key={h} href={h} className="qa-i"><i>{i}</i><span>{l}</span></Link>)}
+    </nav>
 
     <section className="cc-kpis">
       <Link href="/approvals" className={`cc-kpi ${q.length ? 'hot' : ''}`}><b>{q.length}</b><span>לטיפולך</span></Link>
