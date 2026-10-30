@@ -15,8 +15,8 @@ const DOW = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 function tzOff(date: string) { const p = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'shortOffset' }).formatToParts(new Date(`${date}T12:00:00Z`)).find((x) => x.type === 'timeZoneName')?.value ?? 'GMT+2'; const h = Number(p.match(/GMT([+-]\d+)/)?.[1] ?? 2); return `${h >= 0 ? '+' : '-'}${String(Math.abs(h)).padStart(2, '0')}:00`; }
 const iso = (date: string, t: string) => new Date(`${date}T${t}:00${tzOff(date)}`).toISOString();
 
-export function CalendarView({ anchor, view, items, google, gConfigured, gFlash, feed, clients, canConnect }:
-  { anchor: string; view: 'month' | 'week' | 'agenda'; items: any[]; google: any; gConfigured: boolean; gFlash: string | null; feed: string | null; clients: { id: string; name: string }[]; canConnect: boolean }) {
+export function CalendarView({ anchor, view, items, google, gAccounts = [], gConfigured, gFlash, feed, clients, canConnect }:
+  { anchor: string; view: 'month' | 'week' | 'agenda'; items: any[]; google: any; gAccounts?: any[]; gConfigured: boolean; gFlash: string | null; feed: string | null; clients: { id: string; name: string }[]; canConnect: boolean }) {
   const r = useRouter(); const [show, setShow] = useState<Record<string, boolean>>({ holiday: true, meeting: true, loud: true, todo: true, milestone: true, post: false });
   const [edit, setEdit] = useState<any | null>(null); const [peek, setPeek] = useState<any | null>(null); const [gPanel, setGPanel] = useState(!!gFlash); const [copied, setCopied] = useState(false); const [syncing, setSyncing] = useState(false);
   const vis = items.filter((x) => show[x.type]);
@@ -34,7 +34,7 @@ export function CalendarView({ anchor, view, items, google, gConfigured, gFlash,
       <div className="cal-head-a">
         <button className="btn y" onClick={() => newItem(today, 'meeting')}>＋ פגישה</button>
         <button className="btn" onClick={() => newItem(today, 'todo')}>＋ משימה</button>
-        <button className={`btn ${google ? 'ghost' : 'c'}`} onClick={() => setGPanel(true)}>{google ? `✓ Google · ${google.account ?? ''}` : 'חיבור Google Calendar'}</button>
+        <button className={`btn ${google ? 'ghost' : 'c'}`} onClick={() => setGPanel(true)}>{gAccounts.length ? `✓ Google · ${gAccounts.length > 1 ? `${gAccounts.length} יומנים` : gAccounts[0].account}` : 'חיבור Google Calendar'}</button>
       </div>
     </section>
     <div className="cal-bar">
@@ -86,10 +86,11 @@ export function CalendarView({ anchor, view, items, google, gConfigured, gFlash,
     {gPanel && <Sheet onClose={() => { setGPanel(false); if (gFlash) r.replace('/calendar'); }} title="Google Calendar">
       {gFlash && <div className={`ldo-flash ${gFlash === 'connected' ? 'ok' : 'bad'}`}>{({ connected: 'החיבור הצליח ✓ הסנכרון פעיל', denied: 'הגישה לא אושרה בגוגל', bad_state: 'פג תוקף הבקשה — נסה שוב', failed: 'החיבור נכשל — נסה שוב', not_configured: 'חסרים GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET ב-Vercel', forbidden: 'רק Owner/Admin יכול לחבר' } as any)[gFlash] ?? gFlash}</div>}
       <h3>סנכרון דו-כיווני</h3>
-      {google ? <><p>מחובר: <b dir="ltr">{google.account}</b><br /><span className="small muted">סנכרון אחרון: {google.last_sync_at ? f(google.last_sync_at, { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}{google.last_error ? ` · שגיאה: ${google.last_error}` : ''}</span></p>
-        <p className="small muted">פגישות שנוצרות כאן נכנסות ל-Google, ואירועים מ-Google נכנסים לכאן. הסנכרון רץ אוטומטית כל כמה דקות.</p>
+      {gAccounts.length ? <><div className="g-accs">{gAccounts.map((a: any) => <div key={a.account} className="g-acc"><b dir="ltr">{a.account}</b>{a.primary && <span className="badge cyan">ראשי · מקבל פגישות מהמערכת</span>}
+          <small>{a.events} אירועים · סנכרון אחרון {a.last_sync_at ? f(a.last_sync_at, { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}{a.last_error ? ` · שגיאה: ${a.last_error}` : ''}</small></div>)}</div>
+        <p className="small muted">אירועים מכל היומנים נכנסים לכאן. פגישה שמופיעה ביותר מיומן אחד (הזמנה משותפת, או אותה כותרת ואותה שעה) מוצגת פעם אחת. פגישות שנוצרות כאן נכנסות ליומן הראשי.</p>
         <div className="row"><button className="btn" disabled={syncing} onClick={async () => { setSyncing(true); await fetch('/api/google/sync', { method: 'POST' }).catch(() => null); setSyncing(false); r.refresh(); }}>{syncing ? 'מסנכרן…' : 'סנכרן עכשיו'}</button>
-          {canConnect && <a className="btn ghost" href="/api/google/connect">חיבור מחדש / חשבון אחר</a>}</div></>
+          {canConnect && <a className="btn y" href="/api/google/connect">＋ חבר יומן נוסף</a>}</div></>
         : gConfigured ? (canConnect ? <><p>לחיצה אחת, אישור בגוגל, וזה מחובר.</p><a className="btn y" href="/api/google/connect">חבר את Google Calendar ←</a></> : <p className="muted">רק Owner/Admin יכול לחבר.</p>)
         : <><p>כדי להפעיל צריך להגדיר ב-Vercel את <code>GOOGLE_CLIENT_ID</code> ו-<code>GOOGLE_CLIENT_SECRET</code> (OAuth client מסוג Web, עם redirect <code dir="ltr">{typeof window !== 'undefined' ? window.location.origin : ''}/api/google/callback</code>).</p></>}
       {feed && <><h3 style={{ marginTop: 18 }}>מנוי לקריאה בלבד (ICS)</h3><p className="small muted">עובד מיד ובלי חיבור: ב-Google Calendar ← ״יומנים אחרים״ ← ״+״ ← ״מכתובת URL״ ← להדביק. גוגל מתעדכן כל כמה שעות. מי שמחזיק בקישור רואה את כותרות היומן — לא לשתף.</p>

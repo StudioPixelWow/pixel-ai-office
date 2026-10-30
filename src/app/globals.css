@@ -658,3 +658,4 @@ pre.out{white-space:pre-wrap;background:var(--bg-2);border:1px solid var(--line)
 .search{display:flex;gap:8px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 14px;max-width:420px} .search input{border:0;padding:6px 4px;box-shadow:none!important} .search button{flex:none}
 .chips{display:flex;gap:6px;flex-wrap:wrap} .chips a{background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 14px;font-weight:800;font-size:13px;color:var(--ink-2);text-decoration:none!important} .chips a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .t-holiday{--c:#6B4BA8;--cb:#F0EAFB} .cal-day.hol{background:#FBF8FF} .cal-day.memorial{background:#F4F4F6} .cal-ev.t-holiday{font-weight:800}
+.g-accs{display:grid;gap:8px} .g-acc{border:1px solid var(--line);border-radius:16px;padding:10px 12px;display:grid;gap:4px} .g-acc small{color:var(--muted)}
