@@ -759,3 +759,6 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .pal-l span{display:grid} .pal-l small{color:var(--muted);font-size:12.5px} .pal-empty{padding:18px;text-align:center;color:var(--muted)}
 .pal-f{display:flex;gap:14px;justify-content:center;padding:8px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
 @media (max-width:760px){.pal-scrim{padding-top:8vh}.pal-f{display:none}}
+/* office floor: each department is one row (scrolls if it doesn't fit) — never a broken last row */
+.desks{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 8px;scrollbar-width:thin}
+.desks>*{flex:1 0 150px;max-width:190px;scroll-snap-align:start}
