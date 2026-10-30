@@ -6,11 +6,14 @@ import { AvatarToken } from './avatar-token';
 import { AvatarSheetUpload } from './avatar-sheet';
 import { ROSTER } from '@/agents/roster';
 export default async function Settings() {
-  const m = await me(); const [members, terms, packages] = await Promise.all([safeList('memberships'), safeList('terms_templates'), rpc<any[]>('office_packages').catch(() => [])]);
+  const m = await me(); const [members, terms, packages, st] = await Promise.all([safeList('memberships'), safeList('terms_templates'), rpc<any[]>('office_packages').catch(() => []), rpc<any>('office_settings').catch(() => ({}))]);
   const org: any = m.org;
   return <>
     <Hero title={<>הגדרות</>} sub={`${org?.name} · אזור זמן ${org?.timezone} · מטבע ${org?.currency}`} />
     <Packages items={packages as any} canEdit={m.role === 'owner'} />
+    {m.role === 'owner' && <div className="card" style={{ marginTop: 16 }}><h2>ביקורות בגוגל</h2>
+      <p className="small muted">לקוח שמדרג 9–10 בפורטל מקבל מיד כפתור לכתיבת ביקורת. הדבק כאן את קישור &quot;כתיבת ביקורת&quot; מפרופיל העסק בגוגל.{(st as any)?.google_review_url ? ' ✓ מוגדר' : ' — עוד לא מוגדר'}</p>
+      <ActionForm action="setting_set" extra={{ key: 'google_review_url' }} submit="שמירה" fields={[{ name: 'value', label: 'קישור לביקורת בגוגל', ltr: true, defaultValue: (st as any)?.google_review_url ?? '' }]} /></div>}
     <div className="grid g2" style={{ marginTop: 16 }}>
       <div className="card"><h2>משתמשים והרשאות</h2><Table head={['אימייל', 'תפקיד', 'פעיל']} rows={members.map((x: any) => [<span key="e" dir="ltr">{x.email}</span>, x.role, x.active ? 'כן' : 'לא'])} />
         {m.role === 'owner' && <ActionForm action="invite_member" submit="הוסף משתמש מורשה" fields={[{ name: 'email', label: 'אימייל', type: 'email', ltr: true, required: true },

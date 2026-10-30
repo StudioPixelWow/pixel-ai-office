@@ -15,7 +15,7 @@ export function PortalCard({ clientId, url }: { clientId: string; url: string })
     <p className="small muted">קישור אישי ללקוח: התקדמות, אישור פוסטים בלחיצה, תשלומים ופגישות. בלי סיסמה, ואפשר להחליף אותו בכל רגע.</p>
     <div className="portal-url" dir="ltr">{url.replace(/^https?:\/\//, '').slice(0, 46)}…</div>
     <div className="portal-act">
-      <button className="btn y sm" disabled={busy} onClick={() => run('portal_share', { client_id: clientId, url })}>שליחה ללקוח</button>
+      <button className="btn y sm" disabled={busy} onClick={() => run('portal_share', { client_id: clientId })}>שליחה ללקוח</button>
       <button className="btn sm" onClick={() => { navigator.clipboard?.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? 'הועתק ✓' : 'העתקה'}</button>
       <a className="btn sm ghost" href={url} target="_blank" rel="noreferrer">תצוגה ↗</a>
       <button className="btn sm ghost" disabled={busy} onClick={() => run('portal_rotate', { client_id: clientId }, 'להחליף קישור? הקישור הנוכחי יפסיק לעבוד מיד.')}>החלפה</button>
