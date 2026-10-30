@@ -26,7 +26,8 @@ export function OnboardForm({ terms, clientId }: { terms: { id: string; name: st
       if (!clientId && f.get('research')) {
         const socials: Record<string, string> = {}; if (v('instagram')) socials.instagram = v('instagram'); if (v('facebook')) socials.facebook = v('facebook');
         for (const u of v('other_social').split(/[,\s]+/).filter(Boolean)) { const k = /tiktok/i.test(u) ? 'tiktok' : /youtu/i.test(u) ? 'youtube' : /linkedin/i.test(u) ? 'linkedin' : null; if (k) socials[k] = u; }
-        await callAction('start_client_research', { client_id: d.client_id, website: v('website'), socials }).catch(() => null);
+        const rs = await callAction('start_client_research', { client_id: d.client_id, website: v('website'), socials }).catch(() => null);
+        if (rs?.request_id) { router.push(`/room/${rs.request_id}`); return; }
       }
       setMsg({ ok: true, t: `נשמר · נוצרו ${d.payments_created} תשלומים במעקב` }); router.push(`/clients/${d.client_id}?tab=billing`); router.refresh(); }
     catch (err) { setMsg({ ok: false, t: heError(err) }); } finally { setBusy(false); }

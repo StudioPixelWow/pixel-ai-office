@@ -13,7 +13,7 @@ export function ResearchPanel({ clientId, name, industry, website, socials }: { 
     setBusy(true); setMsg('');
     const socials: Record<string, string> = {};
     for (const k of ['instagram', 'facebook', 'tiktok', 'youtube', 'linkedin']) { const v = String(f.get(k) ?? '').trim(); if (v) socials[k] = v; }
-    try { const d = await callAction('start_client_research', { client_id: clientId, website: f.get('website'), socials, notes: f.get('notes') }); setMsg(d.note); r.refresh(); }
+    try { const d = await callAction('start_client_research', { client_id: clientId, website: f.get('website'), socials, notes: f.get('notes') }); setMsg(d.note); r.push(`/room/${d.request_id}`); }
     catch (e) { setMsg(heError(e)); } finally { setBusy(false); }
   }
   async function save() {

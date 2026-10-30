@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 const ERR: Record<string, string> = { already_signed: 'ההצעה כבר נחתמה', link_invalid_or_expired: 'הקישור אינו בתוקף', 'missing:signer_name': 'נא למלא שם מלא', 'missing:signature': 'נא לחתום במסגרת', sign_first: 'יש לחתום לפני התשלום' };
-const he = (m: string) => Object.entries(ERR).find(([k]) => m.includes(k))?.[1] ?? 'אירעה שגיאה, נסו שוב';
+const he = (m: string) => Object.entries(ERR).find(([k]) => m.includes(k))?.[1] ?? `אירעה שגיאה, נסו שוב (${m.slice(0, 120)})`;
 
 /** Client signature: typed full name + hand-drawn signature + explicit consent. Then optional payment via Grow. */
 export function SignPanel({ token, signed, signerName, signedAt, canPay, paymentUrl }: { token: string; signed: boolean; signerName?: string; signedAt?: string; canPay: boolean; paymentUrl?: string | null }) {

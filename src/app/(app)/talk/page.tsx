@@ -18,7 +18,7 @@ export default async function Talk({ searchParams }: { searchParams: Promise<{ r
           {['running', 'planning'].includes(cur.status) && <ActionButton className="btn sm" action="pause_request" payload={{ request_id: cur.id }}>השהה</ActionButton>}
           {cur.status === 'paused' && <ActionButton className="btn sm" action="resume_request" payload={{ request_id: cur.id }}>המשך</ActionButton>}
           {!['done', 'cancelled'].includes(cur.status) && <ActionButton className="btn danger sm" action="cancel_run" payload={{ request_id: cur.id }} confirm="לבטל את המשך העבודה? תוצרים שכבר הופקו יישמרו.">בטל</ActionButton>}</div>
-        <p>{cur.text}</p>
+        <p>{cur.text}</p><Link className="btn y sm" href={`/room/${cur.id}`}>לחדר העבודה ←</Link>
         {cur.answer && <pre className="out">{cur.answer}</pre>}
         <h3>משימות שנפתחו ({tasks.length})</h3>
         <Table head={['משימה', 'סוכן', 'מצב', 'חסם']} rows={tasks.map((t: any) => [<Link key="l" href={`/tasks/${t.id}`}>{t.title}</Link>, t.agent_id ?? '—', <Badge key="b" s={t.status} />, <span key="x" className="small">{t.blocker ?? ''}</span>])} empty="לא נפתחו משימות (תשובה בלבד או אין לקוחות רלוונטיים)" />
@@ -28,7 +28,7 @@ export default async function Talk({ searchParams }: { searchParams: Promise<{ r
         <li>תכין את תוכנית העבודה לחודש הבא לכל הלקוחות הפעילים לפי השירותים והמכסות שלהם</li></ul></>}</div>
     </div>
     <div className="card" style={{ marginTop: 16 }}><h2>בקשות אחרונות</h2>
-      <Table head={['בקשה', 'מקור', 'היקף', 'מצב', 'נוצר']} rows={reqs.map((q: any) => [<Link key="l" href={`/talk?r=${q.id}`}>{q.text.slice(0, 90)}</Link>, q.source, q.scope, <Badge key="b" s={q.status} />, <When key="w" d={q.created_at} />])} /></div>
+      <Table head={['בקשה', 'מקור', 'היקף', 'מצב', 'נוצר']} rows={reqs.map((q: any) => [<Link key="l" href={`/room/${q.id}`}>{q.text.slice(0, 90)}</Link>, q.source, q.scope, <Badge key="b" s={q.status} />, <When key="w" d={q.created_at} />])} /></div>
     <Contract source="office.requests + task_runs" actions="פקודה ידנית / השהיה / ביטול; כל משימה קיימת גם במסכי המשימות והסוכנים" perms="מנהל לקוח ומעלה; 'כל הלקוחות' — Owner/מנהל" empty="הצגת דוגמאות" />
   </>;
 }

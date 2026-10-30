@@ -12,7 +12,7 @@ export function TalkForm({ clients, projects, canAll }: { clients: [string, stri
     try {
       const d = await callAction('create_request', { text: fd.get('text'), mode: fd.get('mode'), scope: scope === 'auto' ? null : scope,
         client_id: scope === 'all_active_clients' ? null : client || null, project_id: fd.get('project_id') || null, idempotency_key: `talk:${crypto.randomUUID()}` });
-      r.push(`/talk?r=${d.request_id}`); r.refresh();
+      r.push(d.request_id ? `/room/${d.request_id}` : `/talk`); r.refresh();
     } catch (err) { setMsg(heError(err)); } finally { setBusy(false); }
   }
   return <form className="f" onSubmit={submit}>

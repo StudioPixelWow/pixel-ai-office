@@ -42,7 +42,7 @@ export function OfficeFloor({ board, avatars, clients, readyCaps }: { board: A[]
       <h3 style={{ marginTop: 18 }}>תן משימה ל{sel.name}</h3>
       <ActionForm action="assign_task" extra={{ agent_id: sel.id, idempotency_key: `assign:${sel.id}:${Date.now()}` }} submit="פתח משימה"
         fields={[{ name: 'client_id', label: 'לקוח (ריק = הקשר כללי של Pixel)', type: 'select', options: clients.map((c) => [c.id, c.name]) },
-          { name: 'instruction', label: 'המשימה', type: 'textarea', required: true }]} redirectTo="/talk?r={request_id}" />
+          { name: 'instruction', label: 'המשימה', type: 'textarea', required: true }]} redirectTo="/room/{request_id}" />
       <p className="small"><Link href={`/agents/${sel.id}`}>כרטיס הסוכן המלא ←</Link></p></div>}
   </>;
 }
