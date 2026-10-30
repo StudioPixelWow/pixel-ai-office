@@ -1,0 +1,2 @@
+-- 0052: action client_website_set (updates clients.profile.website; used by the autopilot card). Applied live via MCP.
+-- See act_sources: a 'client_website_set' branch was prepended; permission row added for owner/admin/account_manager.

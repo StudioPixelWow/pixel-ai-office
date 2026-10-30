@@ -10,7 +10,8 @@ const WAIT = ['waiting_approval', 'waiting_input', 'waiting_connection', 'waitin
 // Meeting rooms index: every request is a meeting around a table; live ones first.
 export default async function Rooms() {
   const reqs = await safeList<any>('requests', {}, 40);
-  const [tasks, defs] = await Promise.all([reqs.length ? safeList<any>('task_runs', { request_id: reqs.map((r) => r.id) }, 1000) : Promise.resolve([]), safeList<any>('agent_definitions', {}, 200)]);
+  const [tasks, defs, cls] = await Promise.all([reqs.length ? safeList<any>('task_runs', { request_id: reqs.map((r) => r.id) }, 1000) : Promise.resolve([]), safeList<any>('agent_definitions', {}, 200), safeList<any>('clients', {}, 500)]);
+  const testIds = new Set(cls.filter((c) => c.is_test || c.status === 'archived').map((c) => c.id));
   const ag = Object.fromEntries(defs.map((d) => [d.id, d]));
   const rooms = reqs.map((r) => {
     const ts = tasks.filter((t) => t.request_id === r.id); const agents = [...new Set(ts.map((t) => t.agent_id).filter(Boolean))] as string[];
@@ -18,7 +19,7 @@ export default async function Rooms() {
     const speaking = ts.filter((t) => ['running', 'retrying'].includes(t.status)).map((t) => ag[t.agent_id]?.name).filter(Boolean);
     const last = ts.map((t) => t.updated_at ?? t.created_at).sort().pop() ?? r.created_at;
     return { r, ts, agents, done, live, wait, speaking, last, pct: ts.length ? Math.round((done / ts.length) * 100) : 0 };
-  }).filter((x) => x.ts.length);
+  }).filter((x) => x.ts.length && !x.ts.some((t) => t.client_id && testIds.has(t.client_id)));
   const live = rooms.filter((x) => x.live); const waiting = rooms.filter((x) => x.wait); const past = rooms.filter((x) => !x.live && !x.wait);
   const card = (x: (typeof rooms)[number]) => <Link key={x.r.id} href={`/room/${x.r.id}`} className={`mt-card ${x.live ? 'on' : x.wait ? 'wait' : ''}`}>
     <div className="mt-table"><div className="mt-seats">{x.agents.slice(0, 7).map((a, i) => <span key={a} className="cc-av sm" style={{ ['--i' as any]: i, ['--n' as any]: Math.min(x.agents.length, 7) }}>

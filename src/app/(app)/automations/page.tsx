@@ -1,11 +1,14 @@
 import { safeList, rpc, me } from '@/lib/api';
 import { CarePanel } from './care';
+import { AutopilotPanel } from './autopilot';
 import { Hero, Table, Badge, When, Contract } from '@/components/ui';
 import { ActionButton, ActionForm } from '@/components/client';
 export default async function Automations() {
   const [autos, tpls, care, m] = await Promise.all([safeList('automations'), rpc<any[]>('office_workflow_templates'), rpc<any>('office_care_rules').catch(() => ({ rules: {}, stats: {} })), me()]);
+  const ap = await rpc<any>('office_autopilot').catch(() => null);
   return <>
     <Hero title={<>אוטומציות</>} sub="פקודה ידנית, אירוע עסקי ותזמון משתמשים באותם תהליכים, הרשאות ומגבלות. הפעלה כפולה לא יוצרת עבודה כפולה. כל הודעת WhatsApp נשארת לאישורך." />
+    {ap && <AutopilotPanel s={ap} canEdit={(m as any)?.role === 'owner'} />}
     <CarePanel rules={care?.rules ?? {}} stats={care?.stats ?? {}} canEdit={['owner', 'admin'].includes((m as any)?.role)} />
     <h2 style={{ marginTop: 26 }}>תהליכי סוכנים מתוזמנים</h2>
     <Table head={['שם', 'טריגר', 'לקוחות', 'תהליך', 'תזמון', 'מגבלות', 'ריצה אחרונה', 'הבאה', 'מצב', '']} rows={autos.map((a: any) => [a.name, a.trigger_type === 'schedule' ? 'תזמון' : `אירוע: ${a.event_key}`, a.client_scope,

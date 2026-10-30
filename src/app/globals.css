@@ -1091,3 +1091,21 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .mt-card.on .mt-table{animation:mtPulse 2.4s ease-in-out infinite}@keyframes mtPulse{50%{box-shadow:0 0 0 6px rgba(34,195,230,.15)}}
 .mt-body{display:flex;flex-direction:column;gap:3px;min-width:0}.mt-body b{line-height:1.3}.mt-body small{font-size:13px}
 @media (max-width:720px){.mt-grid{grid-template-columns:1fr}.mt-sec h2{justify-content:center}}
+@media (max-width:720px){.mt-card{flex-direction:column;text-align:center}.mt-body{align-items:center}.mt-sec>p{text-align:center}}
+/* autopilot */
+.ap{margin-bottom:18px;border-top:4px solid var(--yellow)}.ap h2{margin:0 0 4px}
+.ap-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:14px 0}
+.ap-stats>div{background:var(--bg-2);border-radius:14px;padding:10px;text-align:center}.ap-stats b{display:block;font-size:22px;font-weight:900}.ap-stats small{color:var(--muted,#5b6b80)}
+.ap-rules{display:flex;flex-direction:column;gap:10px}
+.ap-rule{display:flex;gap:14px;align-items:center;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.ap-rule small{display:block;color:var(--muted,#5b6b80);margin-top:2px}
+.ap-sw{border:0;border-radius:999px;min-width:78px;padding:8px 14px;font:800 14px Assistant,sans-serif;background:var(--bg-3);color:var(--ink);cursor:pointer}
+.ap-sw.on{background:var(--yellow);box-shadow:var(--glow)}.ap-sw:disabled{opacity:.6;cursor:default}
+.ap-inline{display:inline-flex;align-items:center;gap:6px;margin-top:6px;font-size:13px}.ap-inline select{width:auto;padding:4px 8px}
+.ap-days{display:inline-flex;gap:4px;margin-top:6px}.ap-days button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:3px 8px;font:700 13px Assistant,sans-serif;cursor:pointer}
+.ap-days button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ap-missing{margin-top:14px}.ap-missing summary{cursor:pointer;font-weight:800}
+.ap-sites{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px;margin-top:10px}
+.ap-site{display:flex;gap:8px;align-items:center}.ap-site b{flex:0 0 40%;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ap-site input{flex:1;min-width:0}
+@media (max-width:720px){.ap-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.ap-rule{flex-direction:column;text-align:center}.ap-head{text-align:center}
+  .ap-sites{grid-template-columns:1fr}.ap-site{flex-direction:column}.ap-site b{flex:none;white-space:normal}.ap-site input{width:100%}.ap-missing summary{text-align:center}}
