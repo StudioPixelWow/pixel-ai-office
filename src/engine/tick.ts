@@ -62,8 +62,8 @@ export async function selfChecks() {
     try {
       const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal: AbortSignal.timeout(45000),
         headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
-        body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 60, tools: [{ type: process.env.ANTHROPIC_WEB_SEARCH_TOOL || 'web_search_20250305', name: 'web_search', max_uses: 1 }],
-          messages: [{ role: 'user', content: 'Search the web for "Pixel Digital Israel" and reply with one word: ok' }] }) });
+        body: JSON.stringify({ model: 'claude-haiku-5-5', max_tokens: 400, tool_choice: { type: 'any' }, tools: [{ type: process.env.ANTHROPIC_WEB_SEARCH_TOOL || 'web_search_20250305', name: 'web_search', max_uses: 1 }],
+          messages: [{ role: 'user', content: 'Use web search once to look up "Pixel Digital Israel", then reply with one word: ok' }] }) });
       const j: any = await r.json().catch(() => ({}));
       ws = r.ok ? { ok: (j.usage?.server_tool_use?.web_search_requests ?? 0) > 0, n: j.usage?.server_tool_use?.web_search_requests ?? 0, status: r.status } : { ok: false, status: r.status, error: j?.error?.message };
     } catch (e: any) { ws = { ok: false, error: String(e?.message ?? e) }; }
