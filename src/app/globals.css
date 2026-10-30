@@ -958,3 +958,6 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
   .badge.warn{white-space:normal;text-align:center;line-height:1.4;border-radius:14px;padding:8px 12px;display:block;max-width:100%}
   .badge{max-width:100%}
 }
+@media (max-width:760px){
+  .cg-legend{display:none!important}
+}
