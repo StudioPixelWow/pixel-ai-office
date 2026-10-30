@@ -8,7 +8,8 @@ const ymd = (d: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).form
 export async function adsSync() {
   const h = Number(new Intl.DateTimeFormat('en-GB', { timeZone: TZ, hour: '2-digit', hour12: false }).format(new Date())); if (h < 6 || h > 10) return { skipped: true };
   const hasG = !!(await marketingToken().catch(() => null));
-  if (!metaConfigured() && !hasG) return { skipped: 'no_connections' };
+  const hasM = await metaConfigured();
+  if (!hasM && !hasG) return { skipped: 'no_connections' };
   const list: any[] | null = await w('office_worker_metric_targets', {}); if (!list) return { skipped: 'done_today' };
   const now = new Date(); const today = ymd(now); const m0 = `${today.slice(0, 7)}-01`;
   const prev = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 2, 1)); const p0 = prev.toISOString().slice(0, 10); const p1 = new Date(Date.UTC(Number(today.slice(0, 4)), Number(today.slice(5, 7)) - 1, 0)).toISOString().slice(0, 10);
@@ -17,19 +18,19 @@ export async function adsSync() {
   for (const c of list) {
     const s = c.sources ?? {}; out.clients++;
     for (const [a, b] of ranges) {
-      if (s.meta && metaConfigured()) await metaInsights(s.meta, a, b).then((d) => w('office_worker_metrics_save', { p_client: c.client_id, p_month: a, p_source: 'meta', p_data: d })).catch((e) => out.errors.push(`meta ${c.client}: ${e.message}`));
+      if (s.meta && hasM) await metaInsights(s.meta, a, b).then((d) => w('office_worker_metrics_save', { p_client: c.client_id, p_month: a, p_source: 'meta', p_data: d })).catch((e) => out.errors.push(`meta ${c.client}: ${e.message}`));
       if (s.google_ads && hasG && adsConfigured()) await adsMonth(s.google_ads, a, b).then((d) => w('office_worker_metrics_save', { p_client: c.client_id, p_month: a, p_source: 'google_ads', p_data: d })).catch((e) => out.errors.push(`ads ${c.client}: ${e.message}`));
       if (s.ga4 && hasG) await ga4Month(s.ga4, a, b).then((d) => w('office_worker_metrics_save', { p_client: c.client_id, p_month: a, p_source: 'ga4', p_data: d })).catch((e) => out.errors.push(`ga4 ${c.client}: ${e.message}`));
     }
-    out.alerts += await budgetGuard(c, s, hasG).catch(() => 0);
+    out.alerts += await budgetGuard(c, s, hasG, hasM).catch(() => 0);
   }
   await w('office_worker_metrics_done', {});
   return out;
 }
 // שומר התקציב — yesterday vs. the 7 days before: CPL jump, spend with no results, paused/disabled account, monthly pace.
-async function budgetGuard(c: any, s: any, hasG: boolean) {
+async function budgetGuard(c: any, s: any, hasG: boolean, hasM: boolean) {
   let n = 0; const alert = async (key: string, title: string) => { if (await w('office_worker_budget_alert', { p_client: c.client_id, p_key: key, p_title: title })) n++; };
-  if (s.meta && metaConfigured()) {
+  if (s.meta && hasM) {
     const d = await metaDaily(s.meta, 8); const days = d.days.slice(-8); const y = days[days.length - 1]; const base = days.slice(0, -1);
     if (d.account?.account_status && d.account.account_status !== 1) await alert('meta_status', `🛑 חשבון Meta של ${c.client} אינו פעיל (סטטוס ${d.account.account_status}) — הקמפיינים לא רצים`);
     if (y && base.length >= 3) {

@@ -1,9 +1,37 @@
 import 'server-only';
-// Meta Marketing API — read-only (ads_read) via a System User token the owner sets in Vercel (META_SYSTEM_TOKEN).
+import { w } from '@/engine/db';
+import { seal, unseal } from '@/lib/crypto';
+// Meta Marketing API — read-only (ads_read). Token source: a System User token in Vercel (META_SYSTEM_TOKEN) if set,
+// otherwise the office user's own login ("חיבור מטא" — sees every ad account that user can access, incl. ones added later).
 const V = process.env.META_GRAPH_VERSION ?? 'v26.0';
-export const metaConfigured = () => !!process.env.META_SYSTEM_TOKEN;
+export const P_META = 'meta_user';
+export const metaAppConfigured = () => !!(process.env.META_APP_ID && process.env.META_APP_SECRET);
+let tk: { t: string | null; at: number } | null = null;
+export async function metaToken(): Promise<string | null> {
+  if (process.env.META_SYSTEM_TOKEN) return process.env.META_SYSTEM_TOKEN;
+  if (tk && Date.now() - tk.at < 10 * 60_000) return tk.t;
+  const r: any = await w('office_worker_oauth_get', { p_provider: P_META }).catch(() => null);
+  let t: string | null = null; try { t = r?.token_enc ? JSON.parse(unseal(r.token_enc)).token : null; } catch { t = null; }
+  tk = { t, at: Date.now() }; return t;
+}
+export const metaConfigured = async () => !!(await metaToken());
+export function metaAuthUrl(origin: string, state: string) {
+  const q = new URLSearchParams({ client_id: process.env.META_APP_ID!, redirect_uri: `${origin}/api/meta/callback`, state, response_type: 'code', scope: 'ads_read,read_insights,business_management' });
+  return `https://www.facebook.com/${V}/dialog/oauth?${q}`;
+}
+export async function metaExchange(origin: string, code: string) {
+  const a = new URLSearchParams({ client_id: process.env.META_APP_ID!, client_secret: process.env.META_APP_SECRET!, redirect_uri: `${origin}/api/meta/callback`, code });
+  const r1: any = await (await fetch(`https://graph.facebook.com/${V}/oauth/access_token?${a}`)).json(); if (!r1.access_token) throw new Error(r1.error?.message ?? 'no_token');
+  const b = new URLSearchParams({ grant_type: 'fb_exchange_token', client_id: process.env.META_APP_ID!, client_secret: process.env.META_APP_SECRET!, fb_exchange_token: r1.access_token });
+  const r2: any = await (await fetch(`https://graph.facebook.com/${V}/oauth/access_token?${b}`)).json(); const token = r2.access_token ?? r1.access_token;
+  const meR: any = await (await fetch(`https://graph.facebook.com/${V}/me?fields=id,name&access_token=${encodeURIComponent(token)}`)).json();
+  const expires = r2.expires_in ? new Date(Date.now() + r2.expires_in * 1000).toISOString() : null;
+  await w('office_worker_oauth_save', { p_provider: P_META, p_account: meR.name ?? meR.id ?? 'Meta', p_token_enc: seal(JSON.stringify({ token, expires })), p_scopes: 'ads_read,read_insights,business_management' });
+  tk = null; return { name: meR.name, expires };
+}
 async function g(path: string, params: Record<string, string> = {}) {
-  const q = new URLSearchParams({ ...params, access_token: process.env.META_SYSTEM_TOKEN! });
+  const t = await metaToken(); if (!t) throw Object.assign(new Error('meta not_connected'), { status: 0 });
+  const q = new URLSearchParams({ ...params, access_token: t });
   const r = await fetch(`https://graph.facebook.com/${V}/${path}?${q}`, { signal: AbortSignal.timeout(20000) });
   const j: any = await r.json().catch(() => ({})); if (!r.ok || j.error) throw Object.assign(new Error(`meta ${r.status}: ${j.error?.message ?? ''}`.slice(0, 240)), { status: r.status });
   return j;
