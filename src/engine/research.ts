@@ -14,7 +14,7 @@ async function get(url: string, ms = 9000): Promise<{ ok: boolean; status: numbe
     return { ok: r.ok, status: r.status, url: r.url, type, text: new TextDecoder('utf-8').decode(buf.slice(0, 1_500_000)) };
   } catch { return { ok: false, status: 0, url, text: '', type: '' }; } finally { clearTimeout(t); }
 }
-const decode = (s: string) => s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCharCode(+n));
+const decode = (s: string) => s.replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(+n)).replace(/&#x([0-9a-f]+);/gi, (_, h) => String.fromCodePoint(parseInt(h, 16)));
 const meta = (h: string, name: string) => decode((h.match(new RegExp(`<meta[^>]+(?:name|property)=["']${name}["'][^>]*content=["']([^"']*)`, 'i')) ?? h.match(new RegExp(`<meta[^>]+content=["']([^"']*)["'][^>]*(?:name|property)=["']${name}["']`, 'i')))?.[1] ?? '').trim();
 function textOf(h: string) {
   return decode(h.replace(/<script[\s\S]*?<\/script>/gi, ' ').replace(/<style[\s\S]*?<\/style>/gi, ' ').replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ').replace(/<svg[\s\S]*?<\/svg>/gi, ' ')
@@ -100,7 +100,8 @@ export async function openaiWebResearch(prompt: string) {
     const ids: string[] = (ms.data ?? []).map((m: any) => m.id);
     model = ['gpt-5.5', 'gpt-5.2', 'gpt-5.1', 'gpt-5', 'gpt-4.1', 'gpt-4o'].find((m) => ids.includes(m)) ?? ids.find((m) => /^gpt-5/.test(m)) ?? 'gpt-4.1';
   }
-  const r = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: H, body: JSON.stringify({ model, tools: [{ type: 'web_search' }], input: prompt }) });
+  const ctrl = new AbortController(); const to = setTimeout(() => ctrl.abort(), 170_000);
+  const r = await fetch('https://api.openai.com/v1/responses', { method: 'POST', headers: H, signal: ctrl.signal, body: JSON.stringify({ model, tools: [{ type: 'web_search' }], input: prompt }) }).finally(() => clearTimeout(to));
   const j: any = await r.json().catch(() => ({}));
   if (!r.ok) { const e: any = new Error(`openai research ${r.status}: ${j?.error?.message ?? ''}`); e.status = r.status; throw e; }
   const msgs = (j.output ?? []).filter((o: any) => o.type === 'message').flatMap((o: any) => o.content ?? []);
