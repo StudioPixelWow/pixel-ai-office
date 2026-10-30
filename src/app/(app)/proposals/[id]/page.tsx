@@ -1,3 +1,4 @@
+import { Critique } from '@/components/critique';
 import Link from 'next/link';
 import { get, list, safeList, me } from '@/lib/api';
 import { Badge, Table, Empty } from '@/components/ui';
@@ -20,6 +21,7 @@ export default async function Proposal({ params }: { params: Promise<{ id: strin
     <div className="hero"><div className="row"><div className="sp"><h1>{p.title}</h1><p>גרסה נוכחית: {p.current_version || '—'}</p></div><Badge s={p.status} />
       {cur && <Link className="btn" href={`/proposals/${id}/print`}>תצוגת הדפסה / PDF</Link>}</div></div>
     <JourneyBar j={journey} />
+    {!['accepted', 'declined', 'archived'].includes(p.status) && <Critique id={p.id} initial={p.critique ?? null} />}
     {branded && <div className="grid g2" style={{ marginBottom: 16 }}>
       <div className="card"><h2>שליחה לחתימה</h2>
         {sig ? <><p><span className="badge ok">נחתם</span> על ידי <b>{sig.signer_name}</b>{sig.signer_title ? ` (${sig.signer_title})` : ''} · {fmtDateTime(sig.signed_at)}</p>

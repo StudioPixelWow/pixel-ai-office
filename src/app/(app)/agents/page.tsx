@@ -7,7 +7,7 @@ export default async function Agents() {
   const [board, defs] = await Promise.all([rpc<any[]>('office_agent_board'), safeList<any>('agent_definitions', {}, 200)]);
   const av = Object.fromEntries(defs.map((d: any) => [d.id, d.avatar_blob_id]));
   return <>
-    <Hero title={<>הסוכנים <span className="mark">שלי</span></>} sub="40 תפקידי פתיחה עם מפרט תפעולי מלא, גרסאות, כלים והרשאות. אפשר להוסיף תפקידים חדשים בסטודיו.">
+    <Hero title={<>הסוכנים <span className="mark">שלי</span></>} sub={`${board.length} תפקידים עם מפרט תפעולי מלא, גרסאות, כלים והרשאות. אפשר להוסיף תפקידים חדשים בסטודיו.`}>
       <Link className="btn k" href="/agents/new">סטודיו ליצירת סוכן</Link></Hero>
     {board.length ? Object.entries(board.reduce((g: Record<string, any[]>, a: any) => { (g[a.department] ??= []).push(a); return g; }, {})).map(([dep, list]) => <section key={dep} className="ag-sec">
       <h2>{DEPARTMENTS[dep as keyof typeof DEPARTMENTS] ?? dep} <span className="ag-n">{(list as any[]).length}</span></h2>

@@ -75,6 +75,11 @@ export function CalendarView({ anchor, view, items, google, gAccounts = [], gCon
       {peek.location && <p>📍 {peek.location}</p>}{peek.service && <p>שירות: {peek.service}</p>}
       {(peek.description || peek.notes) && <p style={{ whiteSpace: 'pre-wrap' }}>{peek.description || peek.notes}</p>}
       {peek.type === 'holiday' && <>{peek.hebrew && <p>{peek.hebrew}</p>}{peek.no_marketing ? <p className="ldo-flash bad">יום זיכרון / יום ללא שיווק — לא מתזמנים פוסטים שיווקיים</p> : <p className="small muted">{peek.kind === 'marketing' ? 'יום שיווקי — הזדמנות לתוכן' : 'חג / מועד'}</p>}{peek.memo && <p>{peek.memo}</p>}</>}
+      {peek.type === 'meeting' && peek.prep && (() => { let x: any = null; try { x = JSON.parse(peek.prep); } catch { /* plain text */ } return x?.brief ? <div className="prep"><b>📋 דף הכנה לפגישה</b><p style={{ margin: 0 }}>{x.brief}</p>
+        {(x.numbers ?? []).length > 0 && <><small>מספרים</small><ul>{x.numbers.map((n: string, i: number) => <li key={i}>{n}</li>)}</ul></>}
+        {(x.open_items ?? []).length > 0 && <><small>פתוח</small><ul>{x.open_items.map((n: string, i: number) => <li key={i}>{n}</li>)}</ul></>}
+        {x.opportunity && <><small>הזדמנות</small><p style={{ margin: 0 }}>💡 {x.opportunity}</p></>}
+        {(x.questions ?? []).length > 0 && <><small>לשאול</small><ul>{x.questions.map((n: string, i: number) => <li key={i}>{n}</li>)}</ul></>}</div> : null; })()}
       {peek.type === 'meeting' && <MeetingSummary m={peek} />}
       {peek.source === 'google' && <p className="small muted">מגיע מ-Google Calendar</p>}
       {peek.sync === 'error' && <p className="small" style={{ color: 'var(--bad)' }}>הסנכרון ל-Google נכשל — ננסה שוב</p>}

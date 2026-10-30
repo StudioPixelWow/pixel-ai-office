@@ -9,7 +9,7 @@ const mon = (d: string) => new Intl.DateTimeFormat('he-IL', { month: 'long', yea
 export default async function Forecast() {
   const m = await me();
   if (!['owner', 'admin'].includes(m.role)) return <div className="card">התחזית זמינה לבעלים ולמנהלת המשרד בלבד.</div>;
-  const [f, opps]: any[] = await Promise.all([rpc('office_forecast').catch(() => null), rpc<any[]>('office_opportunities', {}).catch(() => [])]);
+  const [f, opps, ret]: any[] = await Promise.all([rpc('office_forecast').catch(() => null), rpc<any[]>('office_opportunities', {}).catch(() => []), rpc('office_retention').catch(() => null)]);
   if (!f) return <div className="card">לא ניתן לטעון את התחזית כרגע.</div>;
   const months: any[] = f.months ?? []; const max = Math.max(1, ...months.map((x) => Number(x.paid) + Number(x.committed) + Number(x.weighted)));
   const total3 = months.reduce((a, x) => a + Number(x.paid) + Number(x.committed), 0); const weighted3 = months.reduce((a, x) => a + Number(x.weighted), 0);
@@ -44,6 +44,10 @@ export default async function Forecast() {
           : <div className="cc-empty"><b>עוד אין ריטיינרים</b><p>הם נוצרים אוטומטית כשנחתמת הצעה עם תשלום חודשי.</p></div>}
       </section>
     </div>
+    {ret?.data?.clients?.length > 0 && <section id="retention" className="fc-card"><h2>🛡️ שימור לקוחות · {new Intl.DateTimeFormat('he-IL', { month: 'long', timeZone: 'UTC' }).format(new Date(ret.month + 'T12:00:00Z'))}</h2>
+      {ret.data.summary && <p className="muted">{ret.data.summary}</p>}
+      <ul className="fc-list">{ret.data.clients.map((c: any) => <li key={c.client_id ?? c.client}><Link href={c.client_id ? `/clients/${c.client_id}` : '/clients'}><b>{c.client}</b><small>{(c.drivers ?? []).join(' · ')}</small><small>→ {(c.actions ?? []).join(' · ')}</small></Link>
+        <span className={`badge ${c.risk >= 60 ? 'bad' : c.risk >= 35 ? 'warn' : 'ok'}`}>סיכון {c.risk}</span></li>)}</ul></section>}
     <section className="fc-card"><h2>הזדמנויות להגדלת עסקה ({(opps ?? []).length})</h2><Opportunities items={opps ?? []} /></section>
     <p className="small muted" style={{ textAlign: 'center' }}>סיכויי סגירה: במו״מ 60% · נשלחה 40% · מוכנה לשליחה 25% · ממתינה לאישורך 20% · בכתיבה 10%.</p>
   </div>;
