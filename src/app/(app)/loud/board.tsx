@@ -19,14 +19,15 @@ export function LoudBoard({ d, intake }: { d: any; intake: string }) {
   const r = useRouter(); const [copied, setCopied] = useState(false); const [tab, setTab] = useState<'pipe' | 'cal' | 'set'>('pipe');
   const bookings: any[] = d.bookings ?? []; const slots: any[] = d.slots ?? [];
   const now = Date.now(); const week = now + 7 * 864e5;
+  const live = bookings.filter((b) => !['cancelled', 'no_show'].includes(b.status));
   const k = {
     waiting: bookings.filter((b) => ['questions_review', 'changes_requested'].includes(b.status)).length,
-    week: bookings.filter((b) => b.starts_at && +new Date(b.starts_at) > now && +new Date(b.starts_at) < week).length,
+    week: live.filter((b) => b.starts_at && +new Date(b.starts_at) > now && +new Date(b.starts_at) < week).length,
     open: slots.filter((s) => s.status === 'open' && +new Date(s.starts_at) > now).length,
     pay: bookings.filter((b) => b.status === 'awaiting_payment').reduce((a, b) => a + Number(b.price ?? 0), 0),
     msgs: bookings.reduce((a, b) => a + Number(b.msgs_waiting ?? 0), 0),
   };
-  const next = bookings.filter((b) => b.starts_at && +new Date(b.starts_at) > now - 36e5).sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at))[0];
+  const next = live.filter((b) => b.starts_at && +new Date(b.starts_at) > now - 36e5).sort((a, b) => +new Date(a.starts_at) - +new Date(b.starts_at))[0];
   return <div className="ldo">
     <section className="ldo-hero">
       <div className="ldo-hero-bg" style={{ backgroundImage: 'url(/brand/loud-studio-mic.webp)' }} />
