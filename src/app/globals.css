@@ -686,3 +686,13 @@ pre.out{white-space:pre-wrap;background:var(--bg-2);border:1px solid var(--line)
   .jr-steps li>a,.jr-steps li>div{justify-items:center}
   .board-col header,.ldo-col header{text-align:center}
 }
+@media (max-width:760px){
+  html,body{overflow-x:hidden;max-width:100vw} .shell,.main,.page{max-width:100vw;min-width:0} .page{overflow-x:clip}
+  /* scrollable one-row groups: centered when they fit, start-aligned scroll when they don't */
+  .cc-markers,.cal-filters,.chips,.cc-quick,.cal-head-a,.ldo-hero-act,.kpis,.ldo-kpis,.cc-kpis{justify-content:flex-start!important;max-width:100%}
+  .cc-markers>:first-child,.cal-filters>:first-child,.chips>:first-child,.cc-quick>:first-child,.cal-head-a>:first-child,.ldo-hero-act>:first-child,.kpis>:first-child,.ldo-kpis>:first-child,.cc-kpis>:first-child{margin-inline-start:auto}
+  .cc-markers>:last-child,.cal-filters>:last-child,.chips>:last-child,.cc-quick>:last-child,.cal-head-a>:last-child,.ldo-hero-act>:last-child,.kpis>:last-child,.ldo-kpis>:last-child,.cc-kpis>:last-child{margin-inline-end:auto}
+  .kpis,.ldo-kpis,.cc-kpis{margin-inline:0;padding-inline:0}
+  .cal-grid{max-width:100%} .cal-bar{max-width:100%;overflow:hidden}
+  .cc-hero,.ldo-hero{max-width:100%}
+}
