@@ -27,7 +27,7 @@ export async function growCreatePaymentLink(o: { title: string; productName: str
     const url = j?.data?.url;
     if (r.ok && String(j?.status) === '1' && url) return { ok: true as const, url: String(url), ref: String(j.data.processId ?? ''), sandbox: growIsSandbox() };
     const err = typeof j?.err === 'object' ? (j.err?.message ?? JSON.stringify(j.err)) : j?.err;
-    return { ok: false as const, error: err || `HTTP ${r.status}` };
+    return { ok: false as const, error: err || `HTTP ${r.status} · ${JSON.stringify(j).slice(0, 220)}` };
   } catch (e: any) { return { ok: false as const, error: e?.name === 'AbortError' ? 'Grow לא הגיב בזמן' : String(e?.message ?? e) }; }
   finally { clearTimeout(t); }
 }
