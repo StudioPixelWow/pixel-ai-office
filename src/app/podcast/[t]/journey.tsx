@@ -14,7 +14,7 @@ export function GuestJourney({ t, d }: { t: string; d: any }) {
     const j = await res.json().catch(() => ({})); setBusy('');
     if (!res.ok) return setErr(j.error ?? 'משהו השתבש');
     if (op === 'payment' && j.url) { window.location.href = j.url; return; }
-    r.refresh();
+    setPick(null); setAsk(false); r.refresh();
   }
   const kit = d.kit; const nQ = kit ? kit.segments.reduce((a: number, s: any) => a + (s.questions?.length ?? 0), 0) : 0;
   const days = groupDays(d.open_slots ?? []);

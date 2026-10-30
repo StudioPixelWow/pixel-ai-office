@@ -166,15 +166,18 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
       // fill gaps in small batches (a single long call gets cut off and returns only the first posts); recheck after each batch
       const covered = () => { const u = new Set<number>(); return slots.filter((sl) => { const k = plan.posts.findIndex((p: any, i: number) => !u.has(i) && days(p.date, sl) <= 2); if (k >= 0) { u.add(k); return false; } return true; }); };
       let gaps = covered();
-      for (let round = 0; gaps.length && round < 4; round++) {
-        const batch = gaps.slice(0, 3);
+      for (let round = 0; gaps.length && round < 6; round++) {
+        const batch = gaps.slice(0, 2);
         await hb('משלים משבצות חסרות', `${gaps.length} חסרים · כותב עכשיו: ${batch.join(', ')}`);
         try {
           const have = plan.posts.map((p: any) => `${p.date}: ${p.title}`).join(' | ');
           const fillCtx = { ...c, dependencies: [], task: { ...c.task, inputs: { ...c.task.inputs, output_kind: 'content_plan', max_tokens: 4000,
-            instruction: `כתוב בדיוק ${batch.length} פוסטים — אחד לכל אחד מהתאריכים: ${batch.join(', ')} (אפשר להזיז ביום אחד לתאריך מתוך allowed_dates). פוסטים שכבר קיימים בחודש — אל תחזור על הנושאים, הכותרות או ההוקים שלהם: ${have}. post_text מלא 250–600 תווים בשפת הלקוח (social_voice), creative_prompt באנגלית בלי טקסט בתמונה.` } }, agent_version: c.agent_version };
+            instruction: `כתוב בדיוק ${batch.length} פוסטים, בסדר הזה: ${batch.map((d, i) => `פוסט ${i + 1} לתאריך ${d}`).join(' · ')}. כל פוסט חייב שדה date עם התאריך שלו. פוסטים שכבר קיימים בחודש — אל תחזור על הנושאים, הכותרות או ההוקים שלהם: ${have}. post_text מלא 250–600 תווים בשפת הלקוח (social_voice), creative_prompt באנגלית בלי טקסט בתמונה.` } }, agent_version: c.agent_version };
           const { data } = await runModel(fillCtx as any, 'content_plan');
-          plan.posts.push(...(data.posts ?? []).filter((p: any) => p?.date && (p.post_text || p.idea)).slice(0, batch.length));
+          // pin each returned post to one missing slot (models tend to drift dates onto days that are already taken)
+          const got = (data.posts ?? []).filter((p: any) => p && (p.post_text || p.idea)).slice(0, batch.length);
+          got.forEach((p: any, i: number) => { const near = (days(String(p.date ?? ''), batch[i]) <= 1); p.date = near ? p.date : batch[i]; });
+          plan.posts.push(...got);
           plan.posts.sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)));
         } catch (e: any) { await hb('השלמה נכשלה', String(e?.message ?? e).slice(0, 120)); }
         gaps = covered();
