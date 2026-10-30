@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 
 // Every page requires a session. Public: /login, /auth/*, worker/webhook/avatar endpoints (they authenticate themselves).
-const PUBLIC = [/^\/login/, /^\/auth\//, /^\/api\/worker\//, /^\/api\/webhooks\//, /^\/api\/avatar\//, /^\/api\/avatars\/import/, /^\/api\/health/, /^\/_next\//, /^\/favicon/];
+const PUBLIC = [/^\/login/, /^\/p\//, /^\/api\/public\//, /^\/auth\//, /^\/api\/worker\//, /^\/api\/webhooks\//, /^\/api\/avatar\//, /^\/api\/avatars\/import/, /^\/api\/health/, /^\/_next\//, /^\/favicon/];
 export async function proxy(req: NextRequest) {
   const res = NextResponse.next({ request: req });
   if (PUBLIC.some((r) => r.test(req.nextUrl.pathname))) return res;
