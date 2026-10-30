@@ -93,3 +93,9 @@ pre.out{white-space:pre-wrap;background:var(--bg-2);border:1px solid var(--line)
 .gantt .item.approved{background:#DDF5EA} .gantt .item.in_review{background:var(--yellow)} .gantt .wk{background:#FAFCFE}
 .print-doc{background:#fff;max-width:900px;margin:0 auto;padding:40px}
 @media print{.side,.top,.noprint{display:none!important}.shell{display:block}.page{padding:0}body{background:#fff}}
+
+.chips{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px}.chips legend{width:100%;margin-bottom:6px}
+.chip{display:inline-flex!important;align-items:center;gap:6px;border:1.5px solid var(--line,#E3EAF2);border-radius:999px;padding:6px 14px;cursor:pointer;font-weight:700;font-size:13.5px;background:#fff}
+.chip input{width:auto;margin:0;accent-color:var(--cyan-deep)} .chip.on{border-color:var(--cyan);background:#E6FAFF}
+.avi{width:40px;height:36px;border-radius:50%;object-fit:cover;object-position:top;background:var(--bg-3);flex:none}
+.avi-lg{width:120px;height:120px;border-radius:24px;object-fit:cover;object-position:top}

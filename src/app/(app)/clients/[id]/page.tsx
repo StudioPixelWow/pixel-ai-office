@@ -4,6 +4,9 @@ import { Badge, Table, Tabs, Empty, When } from '@/components/ui';
 import { ActionForm, ActionButton } from '@/components/client';
 import { DEPT_HE, fmtMoney, fmtDateTime } from '@/lib/format';
 import { notFound } from 'next/navigation';
+import { OnboardForm } from '../onboard-form';
+import { KIND_HE, VAT_MODE_HE, PAY_STATUS_HE, serviceLabel } from '@/lib/services';
+import { fmtDate } from '@/lib/format';
 
 export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
   const { id } = await params; const { tab = 'overview' } = await searchParams; const m = await me();
@@ -13,15 +16,28 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
     safeList('service_periods', { client_id: id }), safeList('knowledge_items', { client_id: id }), safeList('task_runs', { client_id: id }, 50), safeList('artifacts', { client_id: id }, 50), safeList('content_items', { client_id: id }, 100)]);
   const ents = engagements.length ? await safeList('service_entitlements', { engagement_id: engagements.map((e: any) => e.id) }) : [];
   const quota = periods[0] ? await rpc<any[]>('office_quota', { p_period: periods[0].id }).catch(() => []) : [];
-  const base = `/clients/${id}?tab=`;
+  const base = `/clients/${id}?tab=`; const fin = ['owner', 'admin'].includes(m.role);
+  const [plans, pays, terms] = fin && tab === 'billing' ? await Promise.all([safeList<any>('billing_plans', { client_id: id }), safeList<any>('payments', { client_id: id }, 500), safeList<any>('terms_templates')]) : [[], [], []];
   return <>
     <div className="hero"><div className="row"><div className="sp"><h1>{c.name}</h1><p>{DEPT_HE[c.department] ?? c.department} · {c.industry ?? 'תחום לא הוגדר'} {c.is_test && '· [בדיקה]'}</p></div><Badge s={c.status} /></div></div>
-    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'assets', 'נכסים'], [base + 'knowledge', 'ידע'], [base + 'work', 'משימות ותוצרים']]} />
+    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'assets', 'נכסים'], [base + 'knowledge', 'ידע'], [base + 'work', 'משימות ותוצרים']]} />
     {tab === 'overview' && <div className="grid g2">
       <div className="card"><h2>תיק לקוח</h2><dl className="kv">{['goals', 'audiences', 'differentiators', 'competitors', 'voice', 'constraints', 'references', 'need'].map((k) => <><dt key={k}>{({ goals: 'מטרות', audiences: 'קהלים', differentiators: 'בידולים', competitors: 'מתחרים', voice: 'שפה', constraints: 'אילוצים', references: 'רפרנסים', need: 'צורך' } as any)[k]}</dt><dd>{c.profile?.[k] ?? <span className="muted">חסר</span>}</dd></>)}</dl></div>
       <div className="card"><h2>עדכון תיק</h2><ActionForm action="update_client" reset={false} extra={{ id, version: c.version }} fields={[
         { name: 'status', label: 'סטטוס', type: 'select', options: [['onboarding', 'בהקמה'], ['active', 'פעיל'], ['paused', 'מושהה'], ['ended', 'הסתיים']], defaultValue: c.status },
         { name: 'profile', label: 'פרטי תיק (JSON: goals, audiences, differentiators, competitors, voice, constraints)', type: 'textarea', json: true, ltr: true, defaultValue: JSON.stringify(c.profile ?? {}, null, 1) }]} /></div></div>}
+    {tab === 'billing' && fin && <div className="grid g2">
+      <div className="card"><h2>הסדרי תשלום</h2>{plans.length ? plans.map((b: any) => <div key={b.id} style={{ marginBottom: 14 }}>
+        <div className="row"><b className="sp">{b.title} · {KIND_HE[b.kind]}</b><span className={`badge ${b.status === 'active' ? 'ok' : 'muted'}`}>{b.status === 'active' ? 'פעיל' : b.status === 'paused' ? 'מושהה' : 'הסתיים'}</span></div>
+        <div className="small">{fmtMoney(b.amount)}{b.kind === 'retainer' ? ` לחודש · יום ${b.payment_day} בחודש` : b.installments > 1 ? ` · ${b.installments} תשלומים` : ''} · {VAT_MODE_HE[b.vat_mode]}</div>
+        <div className="small muted">{(b.services ?? []).map(serviceLabel).join(' · ')}{b.contact_name ? ` · איש קשר: ${b.contact_name}` : ''}</div>
+        {b.status === 'active' && <div className="row" style={{ marginTop: 6 }}><ActionButton className="btn sm" action="update_billing_plan" payload={{ id: b.id, version: b.version, status: 'paused' }} confirm="להשהות? תשלומים עתידיים שלא שולמו יבוטלו">השהה</ActionButton>
+          <ActionButton className="btn sm ghost" action="update_billing_plan" payload={{ id: b.id, version: b.version, status: 'ended' }} confirm="לסיים את ההסדר? תשלומים עתידיים שלא שולמו יבוטלו">סיים</ActionButton></div>}
+      </div>) : <Empty>אין הסדר תשלום ללקוח.</Empty>}
+        <h3 style={{ marginTop: 16 }}>תשלומים</h3>
+        <Table head={['מועד', 'סכום', 'סטטוס', 'שולם']} rows={pays.map((x: any) => [fmtDate(x.due_date), fmtMoney(x.amount_gross ?? x.amount), PAY_STATUS_HE[x.effective_status] ?? x.effective_status, x.paid_at ? `${fmtDate(x.paid_at)} · ${fmtMoney(x.paid_amount)}` : '—'])} empty="אין תשלומים" />
+        <Link className="btn sm" href={`/payments?f=all&client=${id}`}>לניהול התשלומים</Link></div>
+      <div className="card"><h2>הסדר תשלום חדש</h2><OnboardForm clientId={id} terms={terms.map((t: any) => ({ id: t.id, name: `${t.name}${t.vat_rate != null ? ` · מע״מ ${t.vat_rate}%` : ''}` }))} /></div></div>}
     {tab === 'services' && <div className="grid g2">
       <div className="card"><h2>התקשרויות</h2>{engagements.length ? engagements.map((e: any) => <div key={e.id} style={{ marginBottom: 12 }}>
         <div className="row"><Badge s={e.status} /><span className="sp">הקמה {fmtMoney(e.setup_fee)} · חודשי {fmtMoney(e.monthly_fee)} · מדיה (נפרד) {fmtMoney(e.media_budget)}</span>

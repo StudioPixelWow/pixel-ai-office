@@ -1,6 +1,7 @@
 import { safeList, me } from '@/lib/api';
 import { Hero, Table, Badge, When, Contract } from '@/components/ui';
 import { ActionButton, ActionForm } from '@/components/client';
+import { CheckNow } from './check-now';
 const CATALOG: [string, string, string, string][] = [
   ['wordpress', 'WordPress (REST + Application Password)', 'app_password', 'create_wp_draft'], ['meta_ads', 'Meta Ads', 'oauth', 'read_campaign_metrics'], ['google_ads', 'Google Ads', 'oauth', 'read_campaign_metrics'],
   ['google_calendar', 'Google Calendar', 'oauth', 'read_calendar'], ['outlook', 'Outlook Calendar', 'oauth', 'read_calendar'], ['ga4', 'GA4', 'oauth', 'read_analytics'], ['gsc', 'Search Console', 'oauth', 'read_gsc'],
@@ -11,7 +12,7 @@ export default async function Connections() {
   const m = await me(); const [conns, caps, checks, runners, clients] = await Promise.all([safeList('connections', {}, 200), safeList('connection_capabilities', {}, 1000), safeList('connection_checks', {}, 60), safeList('local_runners'), safeList('clients', { _active: true })]);
   const cn = Object.fromEntries(clients.map((c: any) => [c.id, c.name]));
   return <>
-    <Hero title={<>חיבורים, <span className="mark">הרשאות ותקינות</span></>} sub="חיבור מסומן פעיל רק אחרי בדיקה אמיתית. שמירת כתובת או מפתח אינה הוכחת יכולת. ChatGPT בדפדפן ו-OpenAI API הם חיבורים נפרדים." />
+    <Hero title={<>חיבורים, <span className="mark">הרשאות ותקינות</span></>} sub="חיבור מסומן פעיל רק אחרי בדיקה אמיתית. שמירת כתובת או מפתח אינה הוכחת יכולת. ChatGPT בדפדפן ו-OpenAI API הם חיבורים נפרדים.">{['owner', 'admin'].includes(m.role) && <CheckNow />}</Hero>
     {conns.map((c: any) => <div key={c.id} className="card" style={{ marginBottom: 12 }}>
       <div className="row"><h3 className="sp">{c.label} <span className="small muted">({c.provider} · {c.access_method})</span></h3><Badge s={c.status} />
         {!c.disconnected_at && c.access_method !== 'builtin' && <ActionButton className="btn danger sm" action="disconnect_connection" payload={{ id: c.id }} confirm="לנתק? משימות תלויות יעברו להמתנה.">נתק</ActionButton>}</div>

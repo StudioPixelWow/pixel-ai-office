@@ -5,6 +5,9 @@ import { anthropicConfigured, listModels } from './adapters/anthropic';
 import { openaiConfigured, checkImageModel, imageModel } from './adapters/openai';
 import { klingConfigured, checkAuth } from './adapters/kling';
 import { waConfigured, waCheck, waSendText } from './adapters/whatsapp';
+import { growConfigured } from './adapters/grow';
+import { greenInvoiceConfigured, giCheck } from './adapters/greeninvoice';
+import { gmailConfigured, gmailCheck } from './adapters/gmail';
 
 export async function selfChecks() {
   const out: any = {};
@@ -30,6 +33,17 @@ export async function selfChecks() {
   out.whatsapp = await w('office_worker_connection_report', { p_provider: 'whatsapp_cloud', p_label: 'WhatsApp Cloud API (רשמי)', p_secret_ref: 'WHATSAPP_CLOUD_TOKEN',
     p_caps: [{ capability: 'send_message', implemented: true, status: !wa ? 'not_connected' : wa.ok ? 'access_verified' : 'expired', check_method: 'GET phone number', account: (wa as any)?.account ?? null,
       details: !wa ? 'טוקן ומזהה מספר לא הוגדרו' : wa.ok ? 'החשבון אומת (שליחה נבדקת רק בהודעת בדיקה מאושרת)' : (wa as any).error }] });
+  const gi = greenInvoiceConfigured() ? await giCheck() : null;
+  out.green_invoice = await w('office_worker_connection_report', { p_provider: 'green_invoice', p_label: 'חשבונית ירוקה (Morning)', p_secret_ref: 'GREEN_INVOICE_API_ID',
+    p_caps: [{ capability: 'issue_invoice', implemented: true, status: !gi ? 'not_connected' : gi.ok ? 'access_verified' : gi.status === 401 || gi.status === 403 ? 'expired' : 'requires_user', check_method: 'POST /account/token',
+      details: !gi ? 'מפתחות API לא הוגדרו' : gi.ok ? `אומת (${process.env.GREEN_INVOICE_ENV === 'sandbox' ? 'סביבת בדיקה' : 'ייצור'}) — הפקה רק בלחיצה מאושרת` : (gi as any).error }] });
+  out.grow = await w('office_worker_connection_report', { p_provider: 'grow', p_label: 'Grow — קישורי תשלום', p_secret_ref: 'GROW_USER_ID',
+    p_caps: [{ capability: 'payment_link', implemented: true, status: growConfigured() ? 'pending_setup' : 'not_connected', check_method: 'יצירת קישור ראשון',
+      details: growConfigured() ? 'מזהים הוגדרו; יאומת בקישור התשלום הראשון שיווצר' : 'GROW_USER_ID / GROW_PAGE_CODE לא הוגדרו' }] });
+  const gm = gmailConfigured() ? await gmailCheck() : null;
+  out.gmail = await w('office_worker_connection_report', { p_provider: 'gmail', p_label: `Gmail — ${process.env.GMAIL_USER ?? 'office@'}`, p_secret_ref: 'GMAIL_APP_PASSWORD',
+    p_caps: [{ capability: 'send_email', implemented: true, status: !gm ? 'not_connected' : gm.ok ? 'access_verified' : 'expired', check_method: 'SMTP verify',
+      details: !gm ? 'GMAIL_APP_PASSWORD לא הוגדר' : gm.ok ? 'החיבור אומת — שליחה רק בלחיצה עם תצוגה מקדימה' : (gm as any).error }] });
   out.sandbox = await w('office_worker_connection_report', { p_provider: 'whatsapp_sandbox', p_label: 'WhatsApp — סביבת בדיקה (לא שולח לאף טלפון)', p_secret_ref: null,
     p_caps: [{ capability: 'send_message', implemented: true, status: 'action_tested', check_method: 'office.sandbox_outbox', details: 'רושם הודעות לטבלת בדיקה בלבד; מותר רק למספרי בדיקה שאישרת' }] });
   return out;
@@ -55,6 +69,7 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   const started = Date.now(); const budget = opts.budgetMs ?? 240_000; const workerId = `vercel-${process.env.VERCEL_REGION ?? 'local'}`;
   const report: any = { automations: null, executed: 0, outbox: 0, checks: null, errors: [] as string[] };
   try { report.automations = await w('office_worker_tick_automations', {}); } catch (e: any) { report.errors.push(e.message); }
+  try { report.billing = await w('office_worker_billing_tick', {}); } catch (e: any) { report.errors.push(e.message); }
   if (opts.checks) { try { report.checks = await selfChecks(); } catch (e: any) { report.errors.push(e.message); } }
   try { report.outbox += await dispatchOutbox(); } catch (e: any) { report.errors.push(e.message); }
   while (Date.now() - started < budget) {
