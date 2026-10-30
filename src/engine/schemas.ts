@@ -20,6 +20,22 @@ export const OUTPUT = {
   proposal_doc: z.object({ need: z.string(), services: z.array(z.string()), deliverables: z.array(z.string()), phases: z.array(z.object({ title: z.string(), detail: z.string() })), timeline: z.string(), assumptions: z.array(z.string()),
     items: z.array(z.object({ kind: z.enum(['setup', 'retainer', 'addon', 'media']), title: z.string(), quantity: z.number().optional(), unit_price: z.number().optional(), description: z.string().optional() })).default([]),
     html: z.string().optional() }),
+  client_dossier: z.object({ summary: z.string(),
+    brand: z.object({ voice: z.string().default(''), tone_words: z.array(z.string()).default([]), values: z.array(z.string()).default([]), differentiators: z.array(z.string()).default([]),
+      messages: z.array(z.string()).default([]), colors: z.array(z.object({ hex: z.string(), role: z.string().optional() })).default([]), fonts: z.array(z.string()).default([]), logo_url: z.string().nullable().optional() }).default({} as any),
+    business: z.object({ about: z.string().default(''), services: z.array(z.object({ name: z.string(), description: z.string().default('') })).default([]), faq: z.array(z.object({ q: z.string(), a: z.string() })).default([]),
+      locations: z.array(z.string()).default([]), contact: z.object({ phones: z.array(z.string()).default([]), emails: z.array(z.string()).default([]), address: z.string().optional() }).default({} as any) }).default({} as any),
+    audiences: z.array(z.object({ name: z.string(), pains: z.array(z.string()).default([]), motivations: z.array(z.string()).default([]), channels: z.array(z.string()).default([]) })).default([]),
+    competitors: z.array(z.object({ name: z.string(), url: z.string().optional(), strengths: z.string().default(''), gap: z.string().default('') })).default([]),
+    digital_presence: z.array(z.object({ network: z.string(), url: z.string().optional(), status: z.string().default(''), notes: z.string().default(''), recommendation: z.string().default('') })).default([]),
+    social_voice: z.object({ style: z.string().default(''), caption_length: z.string().default(''), emoji_use: z.string().default(''), hashtags: z.array(z.string()).default([]),
+      hooks: z.array(z.string()).default([]), formats_that_work: z.array(z.string()).default([]), visual_style: z.string().default(''), do: z.array(z.string()).default([]), dont: z.array(z.string()).default([]),
+      top_examples: z.array(z.object({ url: z.string(), why: z.string() })).default([]) }).default({} as any),
+    reputation: z.object({ summary: z.string().default(''), rating: z.string().optional(), themes_positive: z.array(z.string()).default([]), themes_negative: z.array(z.string()).default([]) }).default({} as any),
+    content_library: z.object({ pillars: z.array(z.object({ name: z.string(), description: z.string().default('') })).default([]),
+      post_ideas: z.array(z.object({ title: z.string(), format: z.string().default(''), pillar: z.string().default(''), hook: z.string().default('') })).max(40).default([]),
+      seo_keywords: z.array(z.string()).default([]), aeo_questions: z.array(z.string()).default([]) }).default({} as any),
+    opportunities: z.array(z.string()).default([]), open_questions: z.array(z.string()).default([]), sources: z.array(z.string()).default([]) }),
 } as const;
 export type OutputKind = keyof typeof OUTPUT;
 
@@ -34,6 +50,7 @@ export const SHAPE_HINT: Record<OutputKind, string> = {
   script: '{"title","duration_s","aspect":"9:16","shots":[{"n","seconds","visual","voiceover","caption"}]}',
   storyboard: '{"shots":[{"n","seconds","kling_prompt (English)","caption"}],"music_note"}',
   article: '{"title","slug","excerpt","body_markdown","sources":[...],"faq":[{"q","a"}]}',
+  client_dossier: '{"summary","brand":{"voice","tone_words":[],"values":[],"differentiators":[],"messages":[],"colors":[{"hex","role"}],"fonts":[],"logo_url"},"business":{"about","services":[{"name","description"}],"faq":[{"q","a"}],"locations":[],"contact":{"phones":[],"emails":[],"address"}},"audiences":[{"name","pains":[],"motivations":[],"channels":[]}],"competitors":[{"name","url","strengths","gap"}],"digital_presence":[{"network","url","status","notes","recommendation"}],"social_voice":{"style","caption_length","emoji_use","hashtags":[],"hooks":[],"formats_that_work":[],"visual_style","do":[],"dont":[],"top_examples":[{"url","why"}]},"reputation":{"summary","rating","themes_positive":[],"themes_negative":[]},"content_library":{"pillars":[{"name","description"}],"post_ideas":[{"title","format","pillar","hook"}] (30),"seo_keywords":[],"aeo_questions":[]},"opportunities":[],"open_questions":[],"sources":[]}',
   proposal_doc: '{"need","services":[],"deliverables":[],"phases":[{"title","detail"}],"timeline","assumptions":[],"items":[{"kind":"setup|retainer|addon|media","title","quantity","unit_price?","description"}],"html?"}',
 };
 
@@ -55,6 +72,21 @@ export function toMarkdown(kind: OutputKind, d: any): string {
     case 'storyboard': return d.shots.map((s: any) => `${s.n}. [${s.seconds}s] ${s.kling_prompt}`).join('\n');
     case 'article': return `# ${d.title}\n\n${d.body_markdown}\n\n**מקורות:**\n${d.sources.map((s: string) => `- ${s}`).join('\n')}`;
     case 'proposal_doc': return `## הבנת הצורך\n${d.need}\n\n## שירותים\n${d.services.map((s: string) => `- ${s}`).join('\n')}\n\n## תוצרים\n${d.deliverables.map((s: string) => `- ${s}`).join('\n')}\n\n## שלבים\n${d.phases.map((p: any) => `- **${p.title}:** ${p.detail}`).join('\n')}\n\n## לוח זמנים\n${d.timeline}\n\n## הנחות יסוד\n${d.assumptions.map((s: string) => `- ${s}`).join('\n')}`;
+    case 'client_dossier': return dossierMarkdown(d);
     case 'plan': return `${d.answer ?? d.summary ?? ''}\n\n${(d.tasks ?? []).map((t: any) => `- ${t.title} → ${t.agent_id}`).join('\n')}`;
   }
+}
+
+export function dossierMarkdown(d: any): string {
+  const L = (a: any[] = []) => a.map((x) => `- ${x}`).join('\n');
+  return [`# תיק לקוח\n${d.summary}`,
+    `## מותג\n**טון:** ${d.brand?.voice ?? ''}\n**מילות טון:** ${(d.brand?.tone_words ?? []).join(', ')}\n**בידול:**\n${L(d.brand?.differentiators)}\n**מסרים:**\n${L(d.brand?.messages)}\n**צבעים:** ${(d.brand?.colors ?? []).map((c: any) => `${c.hex}${c.role ? ` (${c.role})` : ''}`).join(', ')}\n**פונטים:** ${(d.brand?.fonts ?? []).join(', ')}`,
+    `## העסק\n${d.business?.about ?? ''}\n${(d.business?.services ?? []).map((s: any) => `- **${s.name}** — ${s.description}`).join('\n')}`,
+    `## קהלי יעד\n${(d.audiences ?? []).map((a: any) => `- **${a.name}** · כאבים: ${a.pains.join(', ')} · מניעים: ${a.motivations.join(', ')}`).join('\n')}`,
+    `## מתחרים\n${(d.competitors ?? []).map((c: any) => `- **${c.name}** ${c.url ?? ''} — ${c.strengths} · הפער: ${c.gap}`).join('\n')}`,
+    `## נוכחות דיגיטלית\n${(d.digital_presence ?? []).map((p: any) => `- **${p.network}** ${p.url ?? ''} — ${p.status}. ${p.notes} → ${p.recommendation}`).join('\n')}`,
+    `## שפת הרשתות\n**סגנון:** ${d.social_voice?.style ?? ''}\n**אורך טקסט:** ${d.social_voice?.caption_length ?? ''} · **אימוג׳י:** ${d.social_voice?.emoji_use ?? ''}\n**האשטגים:** ${(d.social_voice?.hashtags ?? []).join(' ')}\n**הוקים:**\n${L(d.social_voice?.hooks)}\n**פורמטים שעובדים:** ${(d.social_voice?.formats_that_work ?? []).join(', ')}\n**ויזואל:** ${d.social_voice?.visual_style ?? ''}\n**כן:**\n${L(d.social_voice?.do)}\n**לא:**\n${L(d.social_voice?.dont)}\n**דוגמאות מובילות:**\n${(d.social_voice?.top_examples ?? []).map((x: any) => `- ${x.url} — ${x.why}`).join('\n')}`,
+    `## מוניטין\n${d.reputation?.summary ?? ''}`,
+    `## ספריית תוכן\n### עמודי תוכן\n${(d.content_library?.pillars ?? []).map((p: any) => `- **${p.name}** — ${p.description}`).join('\n')}\n### רעיונות לפוסטים\n${(d.content_library?.post_ideas ?? []).map((p: any, i: number) => `${i + 1}. ${p.title} (${p.format}${p.pillar ? ` · ${p.pillar}` : ''}) — ${p.hook}`).join('\n')}\n### ביטויי SEO\n${(d.content_library?.seo_keywords ?? []).join(' · ')}\n### שאלות למנועי AI\n${L(d.content_library?.aeo_questions)}`,
+    `## הזדמנויות\n${L(d.opportunities)}`, `## שאלות פתוחות ללקוח\n${L(d.open_questions)}`, `## מקורות\n${L(d.sources)}`].join('\n\n');
 }

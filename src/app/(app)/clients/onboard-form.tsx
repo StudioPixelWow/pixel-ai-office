@@ -23,6 +23,11 @@ export function OnboardForm({ terms, clientId }: { terms: { id: string; name: st
       contact: { name: v('contact_name'), role_title: v('contact_role'), phone: v('contact_phone'), email: v('contact_email') }, plan };
     setBusy(true); setMsg(null);
     try { const d = await callAction(clientId ? 'add_billing_plan' : 'onboard_client', payload);
+      if (!clientId && f.get('research')) {
+        const socials: Record<string, string> = {}; if (v('instagram')) socials.instagram = v('instagram'); if (v('facebook')) socials.facebook = v('facebook');
+        for (const u of v('other_social').split(/[,\s]+/).filter(Boolean)) { const k = /tiktok/i.test(u) ? 'tiktok' : /youtu/i.test(u) ? 'youtube' : /linkedin/i.test(u) ? 'linkedin' : null; if (k) socials[k] = u; }
+        await callAction('start_client_research', { client_id: d.client_id, website: v('website'), socials }).catch(() => null);
+      }
       setMsg({ ok: true, t: `נשמר · נוצרו ${d.payments_created} תשלומים במעקב` }); router.push(`/clients/${d.client_id}?tab=billing`); router.refresh(); }
     catch (err) { setMsg({ ok: false, t: heError(err) }); } finally { setBusy(false); }
   }
@@ -31,6 +36,10 @@ export function OnboardForm({ terms, clientId }: { terms: { id: string; name: st
       <label>שם החברה *<input name="name" required /></label>
       <div className="grid g2"><label>תחום<input name="industry" /></label>
         <label>מחלקה<select name="department" defaultValue="pixel_digital">{Object.entries(DEPT_HE).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label></div>
+      <h3>נוכחות דיגיטלית (למחקר)</h3>
+      <div className="grid g2"><label>אתר<input name="website" dir="ltr" placeholder="example.co.il" /></label><label>אינסטגרם<input name="instagram" dir="ltr" placeholder="https://instagram.com/…" /></label>
+        <label>פייסבוק<input name="facebook" dir="ltr" placeholder="https://facebook.com/…" /></label><label>טיקטוק / יוטיוב / לינקדאין<input name="other_social" dir="ltr" placeholder="קישור אחד או יותר, מופרדים בפסיק" /></label></div>
+      <label className="agree"><input type="checkbox" name="research" defaultChecked /> <span>הפעל מחקר לקוח מלא מיד: אתר, רשתות ודוגמאות תוכן, מוניטין, מתחרים ומחקר ChatGPT — לבניית ספריית ידע ותוכן (כ-1–3$ לפי השימוש)</span></label>
       <h3>איש קשר</h3>
       <div className="grid g2"><label>שם *<input name="contact_name" required /></label><label>תפקיד<input name="contact_role" /></label>
         <label>טלפון<input name="contact_phone" type="tel" dir="ltr" placeholder="+9725XXXXXXXX" /></label><label>דוא״ל<input name="contact_email" type="email" dir="ltr" /></label></div>
