@@ -762,3 +762,4 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 /* office floor: each department is one row (scrolls if it doesn't fit) — never a broken last row */
 .desks{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x proximity;padding:2px 2px 8px;scrollbar-width:thin}
 .desks>*{flex:1 0 150px;max-width:190px;scroll-snap-align:start}
+.cg-empty{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#FFFBD1;border:1.5px solid #EAE36A;border-radius:18px;padding:10px 14px} .cg-empty span{color:var(--ink-2);font-size:14px;flex:1;min-width:220px}

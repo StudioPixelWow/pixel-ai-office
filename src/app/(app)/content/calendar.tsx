@@ -66,8 +66,10 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
     </div>
 
     <div className="cg-bar">
-      <select value={client?.id ?? ''} onChange={(e) => r.push(`?m=${month}&client=${e.target.value}`)} aria-label="לקוח">
+      {clients.length ? <select value={client?.id ?? ''} onChange={(e) => r.push(`?m=${month}&client=${e.target.value}`)} aria-label="לקוח">
+        {!client && <option value="">בחר לקוח…</option>}
         {clients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.retainer ? ' · ריטיינר' : ''}</option>)}</select>
+        : <div className="cg-empty"><b>עוד אין לקוחות במערכת</b><span>גאנט תוכן נבנה ללקוח — לקוח נפתח אוטומטית כשליד חותם על הצעה, או ידנית.</span><a className="btn y sm" href="/clients?new=1">＋ לקוח חדש</a><a className="btn sm ghost" href="/leads?new=1">＋ ליד חדש</a></div>}
       {canEdit && client && <>
         <label className="cg-ppw">פוסטים בשבוע<select value={ppw} onChange={(e) => setPpw(Number(e.target.value))}>{[2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
         <button className="btn y" disabled={!!busy} onClick={plan}>{busy === 'plan' ? 'מתחיל…' : items.length ? 'בנה מחדש את החודש' : 'צור גאנט לחודש'}</button>
