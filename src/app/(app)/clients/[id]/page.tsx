@@ -15,6 +15,8 @@ import { Milestones } from './milestones';
 import { ProfileForm } from './profile-form';
 import { PortalCard } from './portal-card';
 import { DocsPanel } from './docs-panel';
+import { ReportsPanel } from './reports-panel';
+import { Opportunities } from '@/components/opportunities';
 
 
 export default async function ClientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string }> }) {
@@ -26,23 +28,25 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const [journey, milestones] = await Promise.all([rpc<any>('office_journey', { p_client: id }).catch(() => null), tab === 'milestones' || tab === 'overview' ? rpc<any[]>('office_client_milestones', { p_client: id }).catch(() => []) : Promise.resolve([])]);
   const ents = engagements.length ? await safeList('service_entitlements', { engagement_id: engagements.map((e: any) => e.id) }) : [];
   const quota = periods[0] ? await rpc<any[]>('office_quota', { p_period: periods[0].id }).catch(() => []) : [];
-  const portal = await rpc<string>('office_portal_link', { p_client: id }).catch(() => '');
+  const [portal, opps] = await Promise.all([rpc<string>('office_portal_link', { p_client: id }).catch(() => ''), tab === 'overview' ? rpc<any[]>('office_opportunities', { p_client: id }).catch(() => []) : Promise.resolve([] as any[])]);
   const base = `/clients/${id}?tab=`; const fin = ['owner', 'admin'].includes(m.role);
   const [plans, pays, terms] = fin && tab === 'billing' ? await Promise.all([safeList<any>('billing_plans', { client_id: id }), safeList<any>('payments', { client_id: id }, 500), safeList<any>('terms_templates')]) : [[], [], []];
   return <>
     <div className="hero"><div className="row"><div className="sp"><h1>{c.name}</h1><p>{DEPT_HE[c.department] ?? c.department} · {c.industry ?? 'תחום לא הוגדר'} {c.is_test && '· [בדיקה]'}</p></div><Badge s={c.status} /></div></div>
     <JourneyBar j={journey} />
-    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'milestones', 'אבני דרך'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'docs', 'מסמכים וחוזים'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
+    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'milestones', 'אבני דרך'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'docs', 'מסמכים וחוזים'], [base + 'reports', 'דוחות'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
     {tab === 'overview' && <div className="grid g2 ov">
       <ProfileForm c={c} />
       <div className="grid" style={{ alignContent: 'start' }}>
         {portal && <PortalCard clientId={id} url={portal} />}
+        {opps.length > 0 && <div className="card"><h2>💡 הזדמנויות להגדלה</h2><Opportunities items={opps} compact /></div>}
         <div className="card"><h2>אבני דרך קרובות</h2>{milestones.filter((x: any) => !['done', 'skipped'].includes(x.status)).slice(0, 6).map((x: any) => <div key={x.id} className="ov-ms"><span className={`dotx ${x.due_date && x.due_date < new Date().toISOString().slice(0, 10) ? 'late' : ''}`} /><div><b>{x.title}</b><small>{x.service} · {x.due_date ? new Date(x.due_date).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric' }) : '—'}</small></div></div>)}
           {!milestones.length && <p className="muted">אין עדיין אבני דרך — הן נוצרות כשנפתחת עסקה.</p>}<Link className="btn sm ghost" href={`${base}milestones`}>לכל אבני הדרך ←</Link></div>
         <div className="card"><h2>קיצורי דרך</h2><div className="ov-links">
           <Link href={`/content?client=${id}`}>▦ גאנט תוכן</Link><Link href={`${base}knowledge`}>⌕ תיק מותג ומחקר</Link><Link href={`${base}assets`}>◧ בנק נכסים</Link>
           {fin ? <Link href={`${base}billing`}>₪ תשלומים</Link> : <Link href={`${base}contacts`}>☎ אנשי קשר</Link>}<Link href={`/talk?client=${id}`}>✦ משימה לסוכנים</Link><Link href={`/calendar`}>▣ פגישות ביומן</Link></div></div>
       </div></div>}
+    {tab === 'reports' && <ReportsPanel clientId={id} data={await rpc<any>('office_client_reports', { p_client: id }).catch(() => ({}))} />}
     {tab === 'docs' && <DocsPanel clientId={id} docs={await rpc<any[]>('office_client_documents', { p_client: id }).catch(() => [])} />}
     {tab === 'milestones' && <Milestones clientId={id} items={milestones} engagements={engagements} />}
     {tab === 'billing' && fin && <div className="grid g2">

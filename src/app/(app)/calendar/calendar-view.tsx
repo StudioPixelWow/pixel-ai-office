@@ -75,6 +75,7 @@ export function CalendarView({ anchor, view, items, google, gAccounts = [], gCon
       {peek.location && <p>📍 {peek.location}</p>}{peek.service && <p>שירות: {peek.service}</p>}
       {(peek.description || peek.notes) && <p style={{ whiteSpace: 'pre-wrap' }}>{peek.description || peek.notes}</p>}
       {peek.type === 'holiday' && <>{peek.hebrew && <p>{peek.hebrew}</p>}{peek.no_marketing ? <p className="ldo-flash bad">יום זיכרון / יום ללא שיווק — לא מתזמנים פוסטים שיווקיים</p> : <p className="small muted">{peek.kind === 'marketing' ? 'יום שיווקי — הזדמנות לתוכן' : 'חג / מועד'}</p>}{peek.memo && <p>{peek.memo}</p>}</>}
+      {peek.type === 'meeting' && <MeetingSummary m={peek} />}
       {peek.source === 'google' && <p className="small muted">מגיע מ-Google Calendar</p>}
       {peek.sync === 'error' && <p className="small" style={{ color: 'var(--bad)' }}>הסנכרון ל-Google נכשל — ננסה שוב</p>}
       <div className="row" style={{ marginTop: 12 }}>
@@ -154,4 +155,25 @@ function LinkBox({ m, clients, leads, onDone }: { m: any; clients: { id: string;
     <small className="muted">{m.reminder_sent_at ? `✓ נשלחה תזכורת במייל ל-${(m.reminder_to ?? []).join(', ')}` : linked || m.source === 'office' ? (m.remind ? '✉ תזכורת תישלח אוטומטית במייל יום לפני, למשתתפים / לאיש הקשר' : 'תזכורת במייל כבויה לפגישה הזו') : 'אחרי שיוך — תישלח תזכורת אוטומטית במייל יום לפני'}</small>
     {(linked || m.source === 'office') && !m.reminder_sent_at && <button className="btn sm ghost" onClick={async () => { await callAction('meeting_remind', { id: m.id, remind: !m.remind }); r.refresh(); onDone(); }}>{m.remind ? 'כבה תזכורת לפגישה הזו' : 'הפעל תזכורת'}</button>}
     {err && <span className="small" style={{ color: 'var(--bad)' }}>{err}</span>}</div>;
+}
+
+function MeetingSummary({ m }: { m: any }) {
+  const r = useRouter(); const [open, setOpen] = useState(false); const [notes, setNotes] = useState(''); const [busy, setBusy] = useState(false);
+  const [res, setRes] = useState<any>(m.summary ?? null); const [msg, setMsg] = useState<string | null>(null);
+  const run = async () => {
+    setBusy(true); setMsg(null);
+    const j = await fetch(`/api/meetings/${m.id}/summary`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ notes }) }).then((x) => x.json()).catch(() => ({ error: 'אין חיבור' }));
+    setBusy(false); if (j.error) { setMsg(j.error); return; }
+    setRes(j.data); setOpen(false);
+    setMsg(`נשמר ✓${j.todos ? ` · ${j.todos} משימות נוספו ליומן` : ''}${j.draft_id ? ' · טיוטת הודעה ללקוח ממתינה ב"לטיפולי"' : ''}`); r.refresh();
+  };
+  return <div className="ms-sum">
+    <div className="ms-sum-h"><b>✦ סיכום פגישה</b>{!open && <button className="btn sm" onClick={() => setOpen(true)}>{res ? 'סיכום מחדש' : 'סכם עם AI'}</button>}</div>
+    {open && <><textarea rows={6} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="הדבק כאן את ההערות / התמלול מהפגישה. ה-AI יכין סיכום, החלטות, משימות (שלנו נכנסות ליומן) וטיוטת הודעה ללקוח לאישורך." />
+      <div className="row"><button className="btn y sm" disabled={busy || notes.trim().length < 20} onClick={run}>{busy ? 'מסכם… (עד דקה)' : 'סכם ושמור'}</button><button className="btn sm ghost" onClick={() => setOpen(false)}>ביטול</button></div></>}
+    {res && !open && <div className="ms-sum-b"><p>{res.summary}</p>
+      {(res.decisions ?? []).length > 0 && <><small>החלטות</small><ul>{res.decisions.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></>}
+      {(res.action_items ?? []).length > 0 && <><small>משימות</small><ul>{res.action_items.map((x: any, i: number) => <li key={i}>{x.owner === 'client' ? '👤 ' : '✓ '}{x.title}{x.due ? ` · ${x.due.split('-').reverse().slice(0, 2).join('.')}` : ''}</li>)}</ul></>}</div>}
+    {msg && <p className="small">{msg}</p>}
+  </div>;
 }

@@ -1,6 +1,6 @@
 import { gcalSync } from './adapters/gcal';
 import { meetingReminders } from './reminders';
-import { morningDigest } from './digest';
+import { morningDigest, weeklyPlan } from './digest';
 import 'server-only';
 import { w } from './db';
 import { execute } from './executor';
@@ -90,6 +90,7 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   try { report.calendar = await gcalSync(); } catch (e: any) { report.errors.push(e.message); }
   try { report.reminders = await meetingReminders(); } catch (e: any) { report.errors.push(e.message); }
   if (new Date().getUTCMinutes() % 5 === 1) { try { report.care = await w('office_worker_care_tick', {}); } catch (e: any) { report.errors.push(e.message); } }
+  try { report.week = await weeklyPlan(); } catch (e: any) { report.errors.push(e.message); }
   try { report.digest = await morningDigest(); } catch (e: any) { report.errors.push(e.message); }
   if (opts.checks) { try { report.checks = await selfChecks(); } catch (e: any) { report.errors.push(e.message); } }
   try { report.outbox += await dispatchOutbox(); } catch (e: any) { report.errors.push(e.message); }

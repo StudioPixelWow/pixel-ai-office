@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { rpc, me } from '@/lib/api';
 import { fmtMoney } from '@/lib/format';
+import { Opportunities } from '@/components/opportunities';
 export const dynamic = 'force-dynamic';
 const ST: Record<string, string> = { drafting: 'בכתיבה', in_review: 'בבדיקה', pending_owner: 'ממתינה לאישורך', ready_to_send: 'מוכנה לשליחה', sent: 'נשלחה', negotiation: 'במו״מ' };
 const mon = (d: string) => new Intl.DateTimeFormat('he-IL', { month: 'long', year: 'numeric', timeZone: 'UTC' }).format(new Date(d + 'T12:00:00Z'));
@@ -8,7 +9,7 @@ const mon = (d: string) => new Intl.DateTimeFormat('he-IL', { month: 'long', yea
 export default async function Forecast() {
   const m = await me();
   if (!['owner', 'admin'].includes(m.role)) return <div className="card">התחזית זמינה לבעלים ולמנהלת המשרד בלבד.</div>;
-  const f: any = await rpc('office_forecast').catch(() => null);
+  const [f, opps]: any[] = await Promise.all([rpc('office_forecast').catch(() => null), rpc<any[]>('office_opportunities', {}).catch(() => [])]);
   if (!f) return <div className="card">לא ניתן לטעון את התחזית כרגע.</div>;
   const months: any[] = f.months ?? []; const max = Math.max(1, ...months.map((x) => Number(x.paid) + Number(x.committed) + Number(x.weighted)));
   const total3 = months.reduce((a, x) => a + Number(x.paid) + Number(x.committed), 0); const weighted3 = months.reduce((a, x) => a + Number(x.weighted), 0);
@@ -43,6 +44,7 @@ export default async function Forecast() {
           : <div className="cc-empty"><b>עוד אין ריטיינרים</b><p>הם נוצרים אוטומטית כשנחתמת הצעה עם תשלום חודשי.</p></div>}
       </section>
     </div>
+    <section className="fc-card"><h2>הזדמנויות להגדלת עסקה ({(opps ?? []).length})</h2><Opportunities items={opps ?? []} /></section>
     <p className="small muted" style={{ textAlign: 'center' }}>סיכויי סגירה: במו״מ 60% · נשלחה 40% · מוכנה לשליחה 25% · ממתינה לאישורך 20% · בכתיבה 10%.</p>
   </div>;
 }

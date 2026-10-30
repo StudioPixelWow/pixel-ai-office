@@ -83,6 +83,17 @@ export function Portal({ t, d }: { t: string; d: any }) {
       </> : <div className="pt-empty">התוכנית בהכנה — השלבים יופיעו כאן בקרוב.</div>}
     </section>
 
+
+    {(d.reports ?? []).length > 0 && <section id="reports" className="pt-sec">
+      <h2>הדוחות החודשיים שלכם</h2>
+      {(d.reports as any[]).map((x, i) => { const s = x.summary ?? {}; return <details key={x.month} className="pt-rep" open={i === 0}>
+        <summary><b>{fd(x.month, { month: 'long', year: 'numeric' })}</b><span>{s.headline}</span></summary>
+        {(s.numbers ?? []).length > 0 && <div className="pt-rep-n">{s.numbers.map((n: any, j: number) => <div key={j}><b>{n.value}</b><small>{n.label}</small></div>)}</div>}
+        {(s.highlights ?? []).length > 0 && <><h3>מה השגנו</h3><ul>{s.highlights.map((h: string, j: number) => <li key={j}>{h}</li>)}</ul></>}
+        {(s.insights ?? []).length > 0 && <><h3>מה למדנו</h3><ul>{s.insights.map((h: string, j: number) => <li key={j}>{h}</li>)}</ul></>}
+        {(s.next_month ?? []).length > 0 && <><h3>בחודש הבא</h3><ul>{s.next_month.map((h: string, j: number) => <li key={j}>{h}</li>)}</ul></>}
+      </details>; })}
+    </section>}
     <section id="content" className="pt-sec">
       <h2>התוכן הקרוב</h2>
       {(d.upcoming ?? []).length ? <div className="pt-grid">{d.upcoming.map((x: any) => <a key={x.id} className="pt-tile" href={x.url || undefined} target={x.url ? '_blank' : undefined} rel="noreferrer">

@@ -5,7 +5,7 @@ import { callAction } from '@/components/client';
 import { heError } from '@/lib/errors';
 
 type Item = { id: string; version: number; topic: string; idea?: string; post_text?: string; hook?: string; cta?: string; pillar?: string; hashtags: string[]; format?: string; platforms: string[];
-  creative_prompt?: string; creative?: string | null; slot_kind?: string; marker?: string | null; due_at: string; status: string; published_url?: string | null; published_at?: string | null; why?: string | null };
+  creative_prompt?: string; creative?: string | null; slot_kind?: string; marker?: string | null; due_at: string; status: string; published_url?: string | null; is_winner?: boolean; win_note?: string | null; published_at?: string | null; why?: string | null };
 type Marker = { date: string; title: string; kind: string; no_marketing: boolean };
 
 export const STATUS: Record<string, { he: string; cls: string }> = {
@@ -107,7 +107,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
 function PostDrawer({ item, client, canEdit, onClose, run, busy }: { item: Item; client: { name: string; logo: string | null }; canEdit: boolean; onClose: () => void;
   run: (k: string, f: () => Promise<any>, ok?: string) => Promise<any>; busy: string }) {
   const [f, setF] = useState({ topic: item.topic ?? '', idea: item.idea ?? '', post_text: item.post_text ?? '', hashtags: (item.hashtags ?? []).join(' '), creative_prompt: item.creative_prompt ?? '' });
-  const [url, setUrl] = useState(item.published_url ?? ''); const fileRef = useRef<HTMLInputElement>(null);
+  const [url, setUrl] = useState(item.published_url ?? ''); const [winNote, setWinNote] = useState(item.win_note ?? ''); const fileRef = useRef<HTMLInputElement>(null);
   const st = effective(item); const dirty = f.topic !== (item.topic ?? '') || f.idea !== (item.idea ?? '') || f.post_text !== (item.post_text ?? '') || f.hashtags !== (item.hashtags ?? []).join(' ') || f.creative_prompt !== (item.creative_prompt ?? '');
   const save = () => run('save', () => callAction('update_content_item', { id: item.id, topic: f.topic, idea: f.idea, post_text: f.post_text, creative_prompt: f.creative_prompt,
     hashtags: f.hashtags.split(/\s+/).filter(Boolean).map((h) => (h.startsWith('#') ? h : `#${h}`)) }), 'נשמר');
@@ -154,6 +154,12 @@ function PostDrawer({ item, client, canEdit, onClose, run, busy }: { item: Item;
           {item.status !== 'published' && <button className="btn sm ghost" disabled={!!busy} onClick={() => status('not_published')}>לא עלה</button>}</div>
         {item.published_url && <a className="small" href={item.published_url} target="_blank" rel="noreferrer" dir="ltr">{item.published_url}</a>}
       </div>
+      {item.status === 'published' && <div className={`cg-win ${item.is_winner ? 'on' : ''}`}>
+        <b>{item.is_winner ? '⭐ פוסט מנצח' : 'הפוסט הצליח במיוחד?'}</b>
+        <small>פוסטים מנצחים נכנסים להקשר של הסוכנים — הם לומדים מה עובד אצל הלקוח.</small>
+        {!item.is_winner && <input placeholder="למה הוא הצליח? (למשל: הוק שאלה, וידאו קצר, 3× מעורבות)" value={winNote} onChange={(e) => setWinNote(e.target.value)} />}
+        <button className={`btn sm ${item.is_winner ? 'ghost' : 'y'}`} disabled={!!busy} onClick={() => run('win', () => callAction('content_winner', { id: item.id, on: !item.is_winner, note: winNote }), item.is_winner ? 'הוסר מהמנצחים' : '⭐ נשמר כפוסט מנצח')}>{item.is_winner ? 'הסר מהמנצחים' : '⭐ סמן כמנצח'}</button>
+      </div>}
     </>}
   </aside>;
 }
