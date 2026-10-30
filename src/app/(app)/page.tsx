@@ -8,6 +8,7 @@ const TZ = 'Asia/Jerusalem';
 const tm = (d: string) => new Intl.DateTimeFormat('he-IL', { timeZone: TZ, hour: '2-digit', minute: '2-digit' }).format(new Date(d));
 const dm = (d: string) => new Intl.DateTimeFormat('he-IL', { timeZone: TZ, day: 'numeric', month: 'numeric' }).format(new Date(d));
 const ago = (d: string) => { const s = Math.max(0, (Date.now() - +new Date(d)) / 1000); return s < 60 ? 'עכשיו' : s < 3600 ? `לפני ${Math.round(s / 60)} דק׳` : s < 86400 ? `לפני ${Math.round(s / 3600)} שע׳` : `לפני ${Math.round(s / 86400)} ימים`; };
+const human = (m: string) => /output_schema_invalid|expected at position|ECONN|timeout|failed|error/i.test(m ?? '') ? 'תקלה זמנית בהרצה — הסוכן ינסה שוב אוטומטית' : m;
 const ST: Record<string, string> = { pending_approval: 'ממתין לאישור', approved: 'מאושר', scheduled: 'מתוזמן', design: 'בעיצוב', writing: 'בכתיבה', idea: 'רעיון', not_published: 'לא עלה', published: 'עלה' };
 
 export default async function CommandCenter() {
@@ -30,11 +31,17 @@ export default async function CommandCenter() {
   return <div className="cc">
     <section className="cc-hero">
       <div>
-        <small>{greg} · {heb}</small>
+        <small>{greg}<span className="cc-heb"> · {heb}</span></small>
         <h1>{hello}{name ? `, ${name}` : ''}</h1>
         <p>{q.length ? <>יש <b>{q.length}</b> דברים שמחכים לך היום{live.length ? <> · <b>{live.length}</b> סוכנים עובדים עכשיו</> : ''}.</> : 'הכל מטופל. המשרד עובד בשבילך.'}</p>
         {(t.next_markers ?? []).length > 0 && <div className="cc-markers">{(t.next_markers ?? []).slice(0, 4).map((x: any) => <span key={x.date + x.title} className={x.no_marketing ? 'nomkt' : ''}>{dm(x.date)} · {x.title}</span>)}</div>}
       </div>
+      <nav className="cc-qm" aria-label="פעולות מהירות">
+        <Link href="/talk" className="on"><i>✦</i><span>משימה</span></Link>
+        <Link href="/clients?new=1"><i>◎</i><span>לקוח</span></Link>
+        <Link href="/leads?new=1"><i>↗</i><span>ליד</span></Link>
+        <Link href="/calendar"><i>▣</i><span>יומן</span></Link>
+      </nav>
       <div className="cc-quick">
         <Link className="btn y" href="/talk">＋ משימה חדשה לסוכנים</Link>
         <Link className="btn" href="/clients?new=1">לקוח חדש</Link>
@@ -64,8 +71,8 @@ export default async function CommandCenter() {
             <span className="cc-av">{a.avatar ? <img src={`/api/avatar/${a.avatar}`} alt="" /> : (a.name ?? '?')[0]}</span>
             <div><b>{a.name ?? a.agent}</b><small>{a.action || a.title}</small></div><em>{a.started ? ago(a.started) : ''}</em></Link>)
           : <div className="cc-empty"><b>הסוכנים זמינים</b><p>{t.agents_total} סוכנים מחכים למשימה{t.queued ? ` · ${t.queued} בתור` : ''}.</p><Link className="btn sm y" href="/talk">תן להם עבודה</Link></div>}
-        {(t.feed ?? []).length > 0 && <><h3>מה קרה לאחרונה</h3><ul className="cc-feed">{(t.feed ?? []).slice(0, 7).map((e: any, i: number) =>
-          <li key={i}><span className="cc-av sm">{e.avatar ? <img src={`/api/avatar/${e.avatar}`} alt="" /> : '•'}</span><div>{e.request_id ? <Link href={`/room/${e.request_id}`}>{e.message}</Link> : e.message}<small>{e.name ? `${e.name} · ` : ''}{ago(e.at)}</small></div></li>)}</ul></>}
+        {(t.feed ?? []).length > 0 && <><h3>מה קרה לאחרונה</h3><ul className="cc-feed">{(t.feed ?? []).slice(0, 6).map((e: any, i: number) =>
+          <li key={i}><span className="cc-av sm">{e.avatar ? <img src={`/api/avatar/${e.avatar}`} alt="" /> : '•'}</span><div>{e.request_id ? <Link href={`/room/${e.request_id}`}>{human(e.message)}</Link> : human(e.message)}<small>{e.name ? `${e.name} · ` : ''}{ago(e.at)}</small></div></li>)}</ul></>}
       </section>
     </div>
 
@@ -74,7 +81,7 @@ export default async function CommandCenter() {
       <div className="cc-days">{(t.week_posts ?? []).map((d: any) => { const dt = new Date(d.day + 'T12:00:00Z');
         return <div key={d.day} className={`cc-day ${d.day === t.today ? 'today' : ''} ${(d.markers ?? []).some((x: any) => x.no_marketing) ? 'nomkt' : ''}`}>
           <small>{new Intl.DateTimeFormat('he-IL', { weekday: 'short', timeZone: 'UTC' }).format(dt)}</small><b>{dt.getUTCDate()}</b>
-          <span className="cc-count">{d.total ? `${d.published}/${d.total} עלו` : '—'}</span>
+          <span className="cc-count">{d.total ? `${d.published}/${d.total} עלו` : '—'}</span><span className="cc-dot">{d.total ? d.total : ''}</span>
           {(d.markers ?? []).slice(0, 1).map((x: any) => <em key={x.title}>{x.title}</em>)}</div>; })}</div>
       {(t.posts_soon ?? []).length > 0 && <div className="cc-posts">{(t.posts_soon ?? []).slice(0, 8).map((p: any) =>
         <Link key={p.id} href={`/content?client=${p.client_id}`} className="cc-post">{p.creative ? <img src={`/api/files/${p.creative}`} alt="" /> : <span className="cc-noimg">❝</span>}

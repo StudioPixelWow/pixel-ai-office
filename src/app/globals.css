@@ -781,3 +781,69 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .care-sw{width:46px;height:26px;border-radius:99px;background:#CBD5E0;position:relative;transition:.18s;flex:none} .care-sw i{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:.18s}
 .care-sw.on{background:var(--ink)} .care-sw.on i{right:23px;background:var(--yellow)}
 @media (max-width:760px){.care{padding:14px;border-radius:22px}.care-head{flex-direction:column;text-align:center}.care-grid{grid-template-columns:1fr}.care-card{grid-template-columns:40px 1fr auto}}
+/* ================= mobile home v2 — app-like ================= */
+.cc-qm,.cc-dot{display:none}
+@media (max-width:760px){
+  .cc{gap:14px}
+  .cc-hero{padding:20px 18px 16px;border-radius:26px;flex-direction:column;align-items:stretch!important;gap:14px}
+  .cc-hero small{font-size:12px} .cc-heb{display:none} .cc-hero h1{font-size:28px;margin:2px 0 4px} .cc-hero p{font-size:14.5px}
+  .cc-markers,.cc-quick{display:none!important}
+  .cc-qm{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  .cc-qm a{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 4px 9px;border-radius:18px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#fff;text-decoration:none!important;font-weight:800;font-size:12.5px}
+  .cc-qm a i{font-style:normal;width:38px;height:38px;border-radius:13px;display:grid;place-items:center;font-size:18px;background:rgba(255,255,255,.12)}
+  .cc-qm a.on i{background:var(--yellow);color:var(--ink)}
+  /* KPIs: equal 2×2 */
+  .cc-kpis{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;overflow:visible;gap:10px;padding:0;margin:0}
+  .cc-kpis>:first-child,.cc-kpis>:last-child{margin:0!important}
+  .cc-kpi{flex:none;padding:14px 10px;border-radius:20px;min-height:96px;justify-content:center} .cc-kpi b{font-size:26px} .cc-kpi span{font-size:13.5px} .cc-kpi small{font-size:11.5px;line-height:1.35}
+  .cc-kpi:nth-child(5){display:none}
+  /* cards */
+  .cc-card{padding:16px 14px;border-radius:22px}
+  .cc-card>header{flex-direction:column;align-items:center;gap:2px;margin-bottom:12px;text-align:center} .cc-card h2{font-size:18px;justify-content:center}
+  /* queue: text on top, full-width action below */
+  .cc-queue li{display:grid;grid-template-columns:36px minmax(0,1fr);gap:8px 10px;padding:12px;text-align:right}
+  .cc-queue li div{text-align:right} .cc-queue li b{font-size:14.5px;line-height:1.35} .cc-queue li small{line-height:1.4}
+  .cc-queue li .btn{grid-column:1/-1;width:100%;justify-content:center;min-height:40px}
+  /* live office */
+  .cc-live .cc-empty{padding:16px 12px} .cc-live h3{text-align:center;margin:16px 0 8px;font-size:14px;color:var(--muted)}
+  .cc-feed li{padding:8px 10px;border-radius:14px;background:var(--bg-2);text-align:right} .cc-feed li div{min-width:0} .cc-feed li a{color:var(--ink);font-weight:700;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .cc-feed li:nth-child(n+5){display:none}
+  /* week: one compact strip of 7 */
+  .cc-days{grid-template-columns:repeat(7,minmax(0,1fr))!important;gap:5px}
+  .cc-day{padding:8px 0 7px;border-radius:14px;gap:1px} .cc-day small{font-size:11px} .cc-day b{font-size:17px} .cc-day .cc-count,.cc-day em{display:none}
+  .cc-dot{display:block;margin:2px auto 0;min-width:18px;height:18px;line-height:18px;border-radius:99px;font-size:10.5px;font-weight:900;background:var(--cyan);color:#fff;padding:0 5px}
+  .cc-dot:empty{background:transparent;height:6px;min-width:6px;width:6px;padding:0;margin-top:7px;box-shadow:inset 0 0 0 1px #CBD5E1}
+  .cc-day.today .cc-dot:empty{box-shadow:inset 0 0 0 1px rgba(255,255,255,.5)}
+  .cc-posts{grid-template-columns:1fr!important}
+  /* money & sales: 3 values in one row */
+  .cc-two{grid-template-columns:1fr!important;gap:14px}
+  .cc-money,.cc-funnel{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:8px;text-align:center}
+  .cc-money div{align-items:center;padding:10px 4px;border-radius:14px;background:var(--bg-2)} .cc-money b{font-size:16px} .cc-money small{font-size:11.5px}
+  .cc-funnel a{padding:12px 4px} .cc-funnel a b{font-size:22px} .cc-funnel a small{font-size:11.5px;text-align:center;line-height:1.3}
+  .cc-two p.small{text-align:center}
+}
+/* calendar — mobile month: dots in the grid, the chosen day's list below */
+.cal-daylist{display:none}
+@media (max-width:760px){
+  .cal-grid.month{gap:3px} .cal-grid.month .cal-day{min-height:58px;padding:4px 3px;cursor:pointer;border-radius:12px;display:flex;flex-direction:column;align-items:center}
+  .cal-grid.month .cal-day header{justify-content:center} .cal-grid.month .cal-day header span{font-size:13px;font-weight:800}
+  .cal-grid.month .cal-plus,.cal-grid.month .cal-more{display:none}
+  .cal-grid.month .cal-day{flex-wrap:wrap;flex-direction:row;justify-content:center;align-content:flex-start;gap:3px}
+  .cal-grid.month .cal-day header{width:100%}
+  .cal-grid.month .cal-ev{pointer-events:none;width:7px;height:7px;min-height:0;padding:0;border-radius:50%;font-size:0;border:0;background:var(--c,var(--cyan));overflow:hidden;flex:none}
+  .cal-grid.month .cal-ev>*{display:none}
+  .cal-grid.month .cal-day[data-sel]{outline:2px solid var(--ink);outline-offset:-2px}
+  .cal-grid.month .cal-day.today header span{background:var(--yellow);border-radius:99px;padding:0 7px}
+  .cal-daylist{display:grid;gap:8px;background:#fff;border:1px solid var(--line);border-radius:22px;padding:14px;box-shadow:var(--shadow-sm)}
+  .cal-daylist header{display:flex;justify-content:space-between;align-items:center;gap:8px} .cal-daylist header b{font-size:16px}
+  .cal-daylist .cal-row{width:100%}
+  .cal-daylist .empty{padding:14px}
+}
+/* generic mobile forms & filters */
+@media (max-width:760px){
+  .page form.row{display:grid!important;grid-template-columns:1fr;gap:8px;width:100%}
+  .page form.row>*{width:100%!important;max-width:none!important}
+  input,select,textarea{font-size:16px} /* no iOS zoom */
+  .page input:not([type=checkbox]):not([type=radio]),.page select,.sheet input:not([type=checkbox]):not([type=radio]),.sheet select{min-height:44px}
+  .btn{min-height:40px} .btn.sm{min-height:34px}
+}

@@ -18,7 +18,7 @@ const iso = (date: string, t: string) => new Date(`${date}T${t}:00${tzOff(date)}
 export function CalendarView({ anchor, view, items, google, gAccounts = [], gConfigured, gFlash, feed, clients, canConnect, leads = [] }:
   { anchor: string; view: 'month' | 'week' | 'agenda'; items: any[]; google: any; gAccounts?: any[]; gConfigured: boolean; gFlash: string | null; feed: string | null; clients: { id: string; name: string }[]; canConnect: boolean; leads?: { id: string; name: string }[] }) {
   const r = useRouter(); const [show, setShow] = useState<Record<string, boolean>>({ holiday: true, meeting: true, loud: true, todo: true, milestone: true, post: false });
-  const [edit, setEdit] = useState<any | null>(null); const [peek, setPeek] = useState<any | null>(null); const [gPanel, setGPanel] = useState(!!gFlash); const [copied, setCopied] = useState(false); const [syncing, setSyncing] = useState(false);
+  const [edit, setEdit] = useState<any | null>(null); const [peek, setPeek] = useState<any | null>(null); const [gPanel, setGPanel] = useState(!!gFlash); const [copied, setCopied] = useState(false); const [syncing, setSyncing] = useState(false); const [sel, setSel] = useState<string | null>(null);
   const vis = items.filter((x) => show[x.type]);
   const byDay = useMemo(() => { const m = new Map<string, any[]>(); for (const x of vis) { const k = key(x.start); m.set(k, [...(m.get(k) ?? []), x]); } return m; }, [vis]);
   const a = new Date(`${anchor}T12:00:00Z`);
@@ -48,13 +48,20 @@ export function CalendarView({ anchor, view, items, google, gAccounts = [], gCon
       {DOW.map((d) => <div key={d} className="cal-dow">{d}</div>)}
       {days.map((d) => { const k = key(d); const list = (byDay.get(k) ?? []).sort((x, y) => (x.type === 'holiday' ? -1 : y.type === 'holiday' ? 1 : x.all_day === y.all_day ? x.start.localeCompare(y.start) : x.all_day ? -1 : 1)); const hol = list.find((x) => x.type === 'holiday'); const out = view === 'month' && d.getUTCMonth() !== a.getUTCMonth();
         const max = view === 'month' ? 4 : 40;
-        return <div key={k} className={`cal-day${k === today ? ' today' : ''}${out ? ' out' : ''}${d.getUTCDay() === 6 ? ' sat' : ''}${hol ? (hol.no_marketing ? ' memorial' : ' hol') : ''}`} onDoubleClick={() => newItem(k)}>
+        return <div key={k} className={`cal-day${k === today ? ' today' : ''}${out ? ' out' : ''}${d.getUTCDay() === 6 ? ' sat' : ''}${hol ? (hol.no_marketing ? ' memorial' : ' hol') : ''}`} onDoubleClick={() => newItem(k)} onClick={() => setSel(k)} data-sel={(sel ?? today) === k ? '1' : undefined}>
           <header><span>{f(d, { day: 'numeric' })}</span><button className="cal-plus" onClick={() => newItem(k)} aria-label="הוספה">＋</button></header>
           {list.slice(0, max).map((x) => <button key={x.type + x.id} className={`cal-ev t-${x.type}${x.overdue ? ' late' : ''}${x.status === 'done' ? ' done' : ''}`} onClick={() => setPeek(x)} title={x.title}>
             <i>{TYPE[x.type]?.[1]}</i>{!x.all_day && <em>{time(x.start)}</em>}<span>{x.title}</span>{x.type === 'meeting' && !x.client_id && !x.lead_id && x.source === 'google' ? <b className="unl" title="לא משויך">•</b> : null}</button>)}
           {list.length > max && <button className="cal-more" onClick={() => go(d, 'week')}>+{list.length - max} נוספים</button>}
         </div>; })}
-    </div> : <div className="cal-agenda">{[...byDay.entries()].filter(([k]) => k >= key(new Date(a.getTime() - 864e5 * 0))).sort().slice(0, 40).map(([k, list]) => <section key={k} className={k === today ? 'today' : ''}>
+    </div> : null}
+    {view === 'month' && (() => { const k = sel ?? today; const list = (byDay.get(k) ?? []).slice().sort((x, y) => (x.all_day === y.all_day ? x.start.localeCompare(y.start) : x.all_day ? -1 : 1));
+      return <section className="cal-daylist">
+        <header><b>{f(`${k}T12:00:00Z`, { weekday: 'long', day: 'numeric', month: 'long' })}</b><button className="btn sm y" onClick={() => newItem(k)}>＋ הוספה</button></header>
+        {list.length ? list.map((x) => <button key={x.type + x.id} className={`cal-row t-${x.type}${x.overdue ? ' late' : ''}`} onClick={() => setPeek(x)}><i>{TYPE[x.type]?.[1]}</i><em>{x.all_day ? 'כל היום' : time(x.start)}</em><b>{x.title}</b><span>{x.client ?? ''}</span></button>)
+          : <div className="empty">יום פנוי — אין אירועים.</div>}
+      </section>; })()}
+    {view === 'agenda' && <div className="cal-agenda">{[...byDay.entries()].filter(([k]) => k >= key(new Date(a.getTime() - 864e5 * 0))).sort().slice(0, 40).map(([k, list]) => <section key={k} className={k === today ? 'today' : ''}>
         <h3>{f(`${k}T12:00:00Z`, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
         {list.map((x) => <button key={x.type + x.id} className={`cal-row t-${x.type}${x.overdue ? ' late' : ''}`} onClick={() => setPeek(x)}><i>{TYPE[x.type]?.[1]}</i><em>{x.all_day ? 'כל היום' : time(x.start)}</em><b>{x.title}</b><span>{x.client ?? ''}</span></button>)}
       </section>)}{!byDay.size && <div className="empty">אין אירועים בטווח הזה.</div>}</div>}
