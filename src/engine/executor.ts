@@ -7,6 +7,7 @@ import { wpCreateDraft } from './adapters/wordpress';
 import { OUTPUT, SHAPE_HINT, extractJson, toMarkdown, type OutputKind } from './schemas';
 import { composeSvg, FORMATS } from './compose';
 import { ROSTER } from '@/agents/roster';
+import { tokenCost, IMAGE_COST } from './pricing';
 import { classifyOwnImages, byNetPriority, crawlSite, socialScan, socialSamples, claudeWebResearch, openaiWebResearch, researchPrompt } from './research';
 
 const LOGO = 'https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-500.webp';
@@ -32,7 +33,7 @@ async function runModel(c: Ctx, kind: OutputKind) {
   const usage: any[] = []; let lastErr = '';
   for (let attempt = 0; attempt < 2; attempt++) {
     const r = await claude({ model, system, user: attempt ? `${user}\n\nהתשובה הקודמת לא עמדה במבנה (${lastErr}). החזר JSON תקין בלבד.` : user, maxTokens: c.task.inputs?.max_tokens ? Number(c.task.inputs.max_tokens) : kind === 'client_dossier' ? 16000 : kind === 'article' || kind === 'proposal_doc' ? 8000 : 4000 });
-    usage.push({ provider: 'anthropic', model: r.model, cost_kind: 'computed', input_units: r.usage.input, output_units: r.usage.output, cost_usd: null, note: 'tokens' });
+    usage.push({ provider: 'anthropic', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output), note: 'tokens' });
     try { const parsed = OUTPUT[kind].parse(extractJson(r.text)); return { data: parsed as any, model: r.model, usage }; }
     catch (e: any) { lastErr = String(e?.message ?? e).slice(0, 300); }
   }
@@ -79,7 +80,7 @@ export async function execute(c: Ctx, workerId: string) {
       const [Wd, Ht] = FORMATS[data.format as keyof typeof FORMATS];
       const size = Ht > Wd ? '1024x1536' : Wd > Ht ? '1536x1024' : '1024x1024';
       const img = await generateImage(`${data.image_prompt}. No text, no letters, no watermark, no logo. Brand palette: cyan #00CFFF and yellow #E8F401 accents.`, size);
-      usage.push({ provider: 'openai', model: imageModel(), cost_kind: 'estimate', input_units: 1, output_units: 1, cost_usd: null, note: 'image generation' });
+      usage.push({ provider: 'openai', model: imageModel(), cost_kind: 'estimate', input_units: 1, output_units: 1, cost_usd: IMAGE_COST(), note: 'image generation' });
       const bg = await w('office_worker_put_blob', { p_task: id, p_lease: lease, p_mime: 'image/png', p_b64: img.b64 });
       const svg = composeSvg({ format: data.format, headline: data.headline, sub: data.sub, cta: data.cta, bgDataUri: `data:image/png;base64,${img.b64}`, logoUrl: LOGO });
       const src = await w('office_worker_put_blob', { p_task: id, p_lease: lease, p_mime: 'image/svg+xml', p_b64: Buffer.from(svg).toString('base64') });
@@ -140,7 +141,7 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     const crawl = depArt(c, 'crawl')?.data ?? {};
     const r = await claudeWebResearch(researchPrompt({ company, website, industry: P.industry ?? c.client?.industry, socials: { ...(crawl.socials ?? {}), ...(P.socials ?? {}) } }));
     return void await done(`מחקר רשת (Claude) · ${company}`, { urls: r.urls, model: r.model }, `${r.text}\n\n**מקורות:**\n${r.urls.map((u) => `- ${u}`).join('\n')}`,
-      [{ provider: 'anthropic', model: r.model, cost_kind: 'computed', input_units: r.usage.input, output_units: r.usage.output, cost_usd: null, note: `tokens + ${r.usage.searches} web searches` }], `${r.urls.length} מקורות`);
+      [{ provider: 'anthropic', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output, r.usage.searches), note: `tokens + ${r.usage.searches} web searches` }], `${r.urls.length} מקורות`);
   }
   if (kind === 'tool:openai_research') {
     if (!process.env.OPENAI_API_KEY) return void await done(`מחקר ChatGPT · ${company}`, { skipped: true }, 'OpenAI לא מחובר — דולג.', [], 'דולג');
@@ -148,7 +149,7 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     try {
       const r = await openaiWebResearch(researchPrompt({ company, website, industry: P.industry ?? c.client?.industry }) + '\nהתמקד במיוחד במה שהמחקר הראשון עלול לפספס: קבוצות פייסבוק, פורומים, דירוגים, תמחור מתחרים ומגמות בתחום.');
       return void await done(`מחקר ChatGPT · ${company}`, { urls: r.urls, model: r.model }, `${r.text}\n\n**מקורות:**\n${r.urls.map((u) => `- ${u}`).join('\n')}`,
-        [{ provider: 'openai', model: r.model, cost_kind: 'computed', input_units: r.usage.input, output_units: r.usage.output, cost_usd: null, note: 'tokens + web search' }], `${r.urls.length} מקורות`);
+        [{ provider: 'openai', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output, 1), note: 'tokens + web search' }], `${r.urls.length} מקורות`);
     } catch (e: any) { return void await done(`מחקר ChatGPT · ${company}`, { skipped: true, error: String(e.message) }, `המחקר ב-ChatGPT לא הושלם: ${e.message}. התיק נבנה משאר המקורות.`, [], 'דולג — שגיאת ספק'); }
   }
   if (kind === 'tool:save_content_plan') {

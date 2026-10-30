@@ -1,6 +1,7 @@
 import 'server-only';
 import { supabaseServer } from './supabase/server';
 import { redirect } from 'next/navigation';
+import { cache } from 'react';
 
 export type Me = { user_id: string; email: string; role: 'owner' | 'admin' | 'account_manager' | 'employee' | 'viewer'; org_id: string; permissions: string[]; org: Record<string, unknown> };
 
@@ -19,7 +20,7 @@ export async function list<T = Record<string, any>>(entity: string, filters: Rec
 export async function get<T = Record<string, any>>(entity: string, id: string): Promise<T | null> {
   return rpc<T | null>('office_get', { p_entity: entity, p_id: id });
 }
-export async function me(): Promise<Me> {
+export const me = cache(async function me(): Promise<Me> {
   const sb = await supabaseServer();
   const { data: { user } } = await sb.auth.getUser();
   if (!user) redirect('/login');
@@ -33,7 +34,9 @@ export async function me(): Promise<Me> {
     throw new Error(error.message);
   }
   return data as Me;
-}
+});
+/** office_today is shown in the layout and the command center — fetch once per request. */
+export const today = cache(async () => rpc<any>('office_today').catch(() => null));
 export async function safeList<T = Record<string, any>>(entity: string, filters: Record<string, unknown> = {}, limit = 200): Promise<T[]> {
   try { return await list<T>(entity, filters, limit); } catch { return []; }
 }

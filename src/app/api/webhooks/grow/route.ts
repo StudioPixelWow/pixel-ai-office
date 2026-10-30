@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
   if (ct.includes('json')) raw = await req.json().catch(() => ({}));
   else { const fd = await req.formData().catch(() => null); if (fd) for (const [k, v] of fd.entries()) raw[k] = String(v); }
   const { top, data } = flatten(raw);
-  const ok = String(top.status ?? raw.status ?? '1') === '1';
+  const ok = String(top.status ?? raw.status ?? '') === '1'; // only an explicit success counts
   const txn = data.transactionId ?? data.asmachta ?? data.processId;
   if (!ok || !txn) return NextResponse.json({ ok: true, ignored: true });
   const ref = signed.id; // e.g. payment:<uuid> or proposal:<uuid>
@@ -27,7 +27,10 @@ export async function POST(req: NextRequest) {
   const amount = Number(data.sum ?? data.paymentSum ?? 0) || null;
   const method = /bit/i.test(data.paymentType ?? data.transactionTypeId ?? '') ? 'bit' : 'credit';
   const safe = Object.fromEntries(Object.entries(data).filter(([k]) => !/card(Num|Exp)|token/i.test(k)));
-  const r = await w('office_worker_payment_paid', { p_ref: ref, p_amount: amount, p_provider_ref: String(txn), p_method: method, p_raw: { ...safe, status: top.status } }).catch((e) => ({ ok: false, error: e.message }));
+  let r: any;
+  try { r = await w('office_worker_payment_paid', { p_ref: ref, p_amount: amount, p_provider_ref: String(txn), p_method: method, p_raw: { ...safe, status: top.status } }); }
+  catch (e: any) { console.error('grow webhook: record failed', ref, String(e?.message ?? e).slice(0, 200)); return NextResponse.json({ ok: false }, { status: 500 }); } // Grow retries
+  if (!r?.ok) return NextResponse.json({ ok: false, reason: r?.reason }, { status: 404 });
   const ap = await growApprove(data).catch((e) => ({ ok: false, body: String(e) }));
   return NextResponse.json({ ok: true, recorded: r, approved: ap.ok });
 }

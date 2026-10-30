@@ -15,9 +15,9 @@ export default async function Payments({ searchParams }: { searchParams: Promise
   if (!['owner', 'admin'].includes(m.role)) return <Empty>מעקב התשלומים זמין לבעלים ולמנהלת המשרד בלבד.</Empty>;
   const [rows, plans, sum] = await Promise.all([safeList<any>('payments', client ? { client_id: client } : {}, 1000), safeList<any>('billing_plans', client ? { client_id: client } : {}, 500),
     rpc<any>('office_billing_summary').catch(() => null)]);
-  const today = new Date().toISOString().slice(0, 10); const mon = today.slice(0, 7);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date()); const mon = today.slice(0, 7);
   const shown = rows.filter((p) => f === 'all' ? true : f === 'overdue' ? p.is_overdue : f === 'paid' ? ['paid', 'partial'].includes(p.status) && p.paid_at
-    : f === 'month' ? p.due_date.startsWith(mon) : !['paid', 'waived', 'cancelled'].includes(p.status) && p.due_date <= addDays(today, 45));
+    : f === 'month' ? String(p.due_date ?? '').startsWith(mon) : !['paid', 'waived', 'cancelled'].includes(p.status) && String(p.due_date ?? '') <= addDays(today, 45));
   const grow = growConfigured(); const inv = greenInvoiceConfigured();
   return <>
     <Hero title={<>מעקב <span className="mark">תשלומים</span></>} sub="כל התשלומים הצפויים מהלקוחות — ריטיינרים חודשיים ופרויקטים חד-פעמיים. שליטה ובקרה למנהלת המשרד." />

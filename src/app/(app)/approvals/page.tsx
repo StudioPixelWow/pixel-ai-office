@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { safeList, me } from '@/lib/api';
+import { safeList, me, today } from '@/lib/api';
 import { Hero, Badge, Table, When, Contract, Empty } from '@/components/ui';
 import { DraftCard } from './draft-card';
 import { rpc } from '@/lib/api';
@@ -12,7 +12,7 @@ export default async function Approvals({ searchParams }: { searchParams: Promis
     safeList('clients', {}), safeList('contacts', {}, 1000), safeList('connections', {}, 50)]);
   const cn = Object.fromEntries(clients.map((c: any) => [c.id, c.name])); const ct = Object.fromEntries(contacts.map((c: any) => [c.id, c]));
   const sn = Object.fromEntries(conns.map((c: any) => [c.id, c]));
-  const t = await rpc<any>('office_today').catch(() => null);
+  const t = await today();
   const q = t ? buildQueue({ ...t, blocked: [] }, []) : [];
   return <>
     <Hero title={<>לטיפולי <span className="mark">היום</span></>} sub="כל הודעת WhatsApp נשלחת רק בלחיצה שלך על ״אשר ושלח״ להודעה המסוימת. אין ״אשר הכל״, ואין אישור קבוע." />

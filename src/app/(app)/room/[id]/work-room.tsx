@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { LiveRefresh } from '@/components/client';
+
 
 type T = { id: string; title: string; step: string; agent: string | null; status: string; stage?: string | null; last_action?: string | null; blocker?: string | null; depends_on: string[];
   started_at?: string | null; finished_at?: string | null; created_at: string; outputs?: any; artifacts: string[]; attempts: number; kind?: string };
@@ -40,7 +40,7 @@ export function WorkRoom({ request, tasks, agents, events, artifacts, usage }: {
   const transcript = events.filter((e) => e.message && !/^task\.started$/.test(e.kind)).slice(0, 60);
   const outs = tasks.filter((x) => x.status === 'done' && (x.outputs?.summary || x.artifacts.length));
   return <div className="room">
-    <LiveRefresh />
+
     <div className="room-head"><div className="sp"><small>חדר עבודה</small><h1>{request.text}</h1>
       <div className="room-meta"><span>{done}/{tasks.length} שלבים</span><span>{seats.length} סוכנים סביב השולחן</span><span>⏱ {dur(request.created_at, allDone ? lastEnd : null)}</span>{totalCost > 0 && <span>${totalCost.toFixed(3)}</span>}</div></div>
       {request.research && request.client_id && <Link className={`btn ${pct === 100 ? 'y' : 'ghost room-ghost'}`} href={`/clients/${request.client_id}?tab=knowledge`}>{pct === 100 ? 'לתיק המותג המלא ←' : 'תיק הלקוח בבנייה ←'}</Link>}

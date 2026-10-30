@@ -1,13 +1,12 @@
 import Link from 'next/link';
-import { me, rpc } from '@/lib/api';
+import { me, today } from '@/lib/api';
 import { Nav, MobileBar, LOGO_WHITE } from '@/components/nav';
 import { LiveRefresh } from '@/components/client';
 
 export const dynamic = 'force-dynamic';
 const ROLE: Record<string, string> = { owner: 'Owner', admin: 'מנהל מערכת', account_manager: 'מנהל לקוח', employee: 'עובד', viewer: 'צופה' };
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const m = await me();
-  const t = await rpc<any>('office_today').catch(() => null); const d = { waiting_me: Number(t?.action_count ?? 0) }; const liveN = (t?.live ?? []).length;
+  const [m, t] = await Promise.all([me(), today()]); const d = { waiting_me: Number(t?.action_count ?? 0) }; const liveN = (t?.live ?? []).length;
   return <div className="shell">
     <MobileBar waiting={d.waiting_me} />
     <aside className="side" id="side"><div className="logo"><img src={LOGO_WHITE} alt="Pixel Digital" /><b>AI OFFICE</b></div>

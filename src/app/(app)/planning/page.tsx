@@ -4,7 +4,7 @@ import { ActionForm } from '@/components/client';
 import { fmtDateTime } from '@/lib/format';
 import { Gantt } from './gantt';
 export default async function Planning({ searchParams }: { searchParams: Promise<{ m?: string; client?: string }> }) {
-  const sp = await searchParams; const base = sp.m ? new Date(sp.m + '-01T00:00:00Z') : new Date(); const y = base.getUTCFullYear(), mo = base.getUTCMonth();
+  const sp = await searchParams; const base = /^\d{4}-\d{2}$/.test(sp.m ?? '') ? new Date(sp.m + '-01T00:00:00Z') : new Date(); const y = base.getUTCFullYear(), mo = base.getUTCMonth();
   const [items, clients, meetings, markers] = await Promise.all([safeList('content_items', sp.client ? { client_id: sp.client, _active: true } : { _active: true }, 1000), safeList('clients', { _active: true }), safeList('meetings', {}, 200), safeList('calendar_markers', {}, 200)]);
   const inMonth = items.filter((i: any) => i.due_at && new Date(i.due_at).getUTCMonth() === mo && new Date(i.due_at).getUTCFullYear() === y);
   const cn = Object.fromEntries(clients.map((c: any) => [c.id, c.name]));
@@ -15,7 +15,7 @@ export default async function Planning({ searchParams }: { searchParams: Promise
       <a className="btn sm" href={`?m=${next}${sp.client ? `&client=${sp.client}` : ''}`}>חודש הבא ›</a><input type="hidden" name="m" value={`${y}-${String(mo + 1).padStart(2, '0')}`} />
       <select name="client" defaultValue={sp.client ?? ''} style={{ width: 220 }}><option value="">כל הלקוחות</option>{clients.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}</select><button className="btn">סינון</button></form>
     <Gantt year={y} month={mo} items={inMonth.map((i: any) => ({ id: i.id, topic: i.topic, due_at: i.due_at, status: i.production_status, client: cn[i.client_id] ?? '', version: i.version }))}
-      markers={markers.filter((x: any) => new Date(x.date).getUTCMonth() === mo).map((x: any) => ({ date: x.date, title: x.title }))} />
+      markers={markers.filter((x: any) => new Date(x.date).getUTCMonth() === mo && new Date(x.date).getUTCFullYear() === y).map((x: any) => ({ date: x.date, title: x.title }))} />
     <p className="small muted">גרירה של פריט ליום אחר משנה את המועד ומתועדת; גם מקלדת: בחר פריט ולחץ חץ ימינה/שמאלה. שינוי מועד אינו משנה מכסות.</p>
     <div className="grid g2" style={{ marginTop: 16 }}>
       <div className="card"><h2>יומן פגישות</h2><Table head={['פגישה', 'לקוח', 'מתי', 'סטטוס']} rows={meetings.map((x: any) => [x.title, cn[x.client_id] ?? '—', fmtDateTime(x.starts_at), <Badge key="b" s={x.status} />])} empty="אין פגישות. יומן Google/Outlook טרם חובר — פגישות נרשמות ידנית." />

@@ -77,7 +77,7 @@ export function LiveRefresh({ onEvent }: { onEvent?: (e: any) => void }) {
       es = new EventSource('/api/stream' + (last.current ? `?after=${last.current}` : ''));
       es.onopen = () => setState('on');
       es.onmessage = (m) => { try { const e = JSON.parse(m.data); last.current = Math.max(last.current, e.id); onEvent?.(e);
-        clearTimeout(t.current); t.current = setTimeout(() => router.refresh(), 600); } catch {} };
+        if (!t.current) t.current = setTimeout(() => { t.current = null; router.refresh(); }, 4000); } catch {} };
       es.onerror = () => { setState('off'); es?.close(); if (!stop) setTimeout(open, 3000); };
     };
     open(); return () => { stop = true; es?.close(); };

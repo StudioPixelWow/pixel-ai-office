@@ -8,6 +8,6 @@ export async function GET(req: NextRequest) {
   const got = Buffer.from(req.headers.get('authorization') ?? ''); const want = Buffer.from(`Bearer ${process.env.CRON_SECRET ?? '-'}`);
   if (!process.env.CRON_SECRET || got.length !== want.length || !timingSafeEqual(got, want)) return NextResponse.json({ error: 'unauthorized' }, { status: 401 });
   const minute = new Date().getUTCMinutes();
-  const report = await tick({ budgetMs: 240_000, checks: minute % 10 === 0 || req.nextUrl.searchParams.has('checks') });
+  const report = await tick({ budgetMs: 240_000, checks: (minute === 7 && new Date().getUTCHours() % 6 === 0) || req.nextUrl.searchParams.has('checks') });
   return NextResponse.json(report);
 }
