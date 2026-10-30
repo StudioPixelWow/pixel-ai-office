@@ -72,7 +72,10 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   try { report.billing = await w('office_worker_billing_tick', {}); } catch (e: any) { report.errors.push(e.message); }
   if (opts.checks) { try { report.checks = await selfChecks(); } catch (e: any) { report.errors.push(e.message); } }
   try { report.outbox += await dispatchOutbox(); } catch (e: any) { report.errors.push(e.message); }
-  while (Date.now() - started < budget) {
+  // A single AI step can take up to ~230s. Only claim new work while at least that much of the 300s function window remains;
+  // the next cron tick (every minute) picks up whatever is left.
+  const claimCutoff = Math.min(budget, Number(process.env.WORKER_CLAIM_CUTOFF_MS ?? 55_000));
+  while (Date.now() - started < claimCutoff) {
     let batch: any[] = [];
     try { batch = await w('office_worker_claim', { p_worker: workerId, p_max: 3 }); } catch (e: any) { report.errors.push(e.message); break; }
     if (!batch.length) break;
