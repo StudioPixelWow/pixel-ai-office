@@ -248,3 +248,9 @@ pre.out{white-space:pre-wrap;background:var(--bg-2);border:1px solid var(--line)
 .pay-btn:disabled{opacity:.5;cursor:wait} .pay-btn.ghost{background:#fff;border:1.5px solid var(--line);box-shadow:none;display:inline-block}
 .pay-err{color:var(--bad);font-weight:800;margin:0} .pay-methods{text-align:center;color:var(--muted);font-size:12.5px;margin:2px 0 0}
 .pay-ok{text-align:center;padding:10px 0} .pay-ok b{font-size:22px} .pay-foot{color:var(--muted);font-size:12px;text-align:center;margin:18px 0 0}
+.bb-ph{aspect-ratio:4/5;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;color:#fff;background:linear-gradient(160deg,#0E2A3B,#0B1622);position:relative;overflow:hidden}
+.bb-ph:after{content:'';position:absolute;inset:auto -30% -40% auto;width:80%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(0,207,255,.45),transparent 70%)}
+.bb-ph span{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;font-size:22px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);z-index:1}
+.bb-ph b{z-index:1;font-size:14px} .bb-ph small{z-index:1;color:#BFEFFF;font-weight:800}
+.bb-ph.n-tiktok{background:linear-gradient(160deg,#111,#0B1622)} .bb-ph.n-tiktok:after{background:radial-gradient(circle,rgba(232,244,1,.28),transparent 70%)}
+.bb-ph.n-facebook{background:linear-gradient(160deg,#0B3A7A,#0B1622)} .bb-ph.n-instagram{background:linear-gradient(160deg,#0A4A5C,#0B1622)} .bb-ph.n-instagram:after{background:radial-gradient(circle,rgba(255,170,0,.35),transparent 70%)}

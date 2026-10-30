@@ -134,8 +134,20 @@ export function researchPrompt(p: { company: string; website?: string; industry?
 
 /** Recent posts/reels/videos for voice calibration. Instagram via the official Graph API (Business Discovery) when Meta is
  *  connected; YouTube via its public feed; other networks only if publicly readable. Never scrapes behind a login. */
+// Collection priority (Tal): Facebook → Instagram → TikTok → others.
+export const NET_PRIORITY = ['facebook', 'instagram', 'tiktok', 'youtube', 'linkedin'];
+export const byNetPriority = (a: any, b: any) => (NET_PRIORITY.indexOf(a.network) + 1 || 99) - (NET_PRIORITY.indexOf(b.network) + 1 || 99);
 export async function socialSamples(socials: Record<string, string>, limit = 20) {
   const samples: any[] = []; const notes: string[] = [];
+  const fbPage = socials.facebook?.match(/facebook\.com\/(?:pg\/)?([^/?#]+)/)?.[1];
+  let fbDone = false;
+  if (fbPage && process.env.META_ACCESS_TOKEN) {
+    const r: any = await fetch(`https://graph.facebook.com/v21.0/${encodeURIComponent(fbPage)}/posts?fields=message,permalink_url,full_picture,created_time,shares,reactions.summary(true).limit(0),comments.summary(true).limit(0)&limit=${limit}&access_token=${process.env.META_ACCESS_TOKEN}`).then((x) => x.json()).catch(() => ({}));
+    if (Array.isArray(r?.data)) { fbDone = true; for (const m of r.data) if (m.permalink_url) samples.push({ network: 'facebook', type: 'post', url: m.permalink_url, date: m.created_time, text: m.message ?? '',
+      likes: m.reactions?.summary?.total_count ?? null, comments: m.comments?.summary?.total_count ?? null, shares: m.shares?.count ?? null, thumb: m.full_picture ?? null });
+      notes.push(`פייסבוק: נאספו ${r.data.length} פוסטים מהעמוד`); }
+    else notes.push(`פייסבוק: Graph API לא החזיר פוסטים (${r?.error?.message ?? 'אין הרשאת עמוד'})`);
+  }
   const ig = socials.instagram?.match(/instagram\.com\/([A-Za-z0-9._]+)/)?.[1];
   if (ig) {
     if (process.env.META_IG_USER_ID && process.env.META_ACCESS_TOKEN) {
@@ -158,8 +170,8 @@ export async function socialSamples(socials: Record<string, string>, limit = 20)
         views: Number(e.match(/views="(\d+)"/)?.[1] ?? 0) || null, thumb: e.match(/<media:thumbnail url="([^"]+)"/)?.[1] ?? null }); }
     else notes.push('יוטיוב: לא אותר מזהה ערוץ');
   }
-  for (const net of ['facebook', 'tiktok', 'linkedin'] as const) if (socials[net]) notes.push(`${net}: נדרשת כניסה לקריאת פוסטים — נוצרה משימת השלמה`);
-  return { samples: samples.slice(0, limit), notes };
+  for (const net of ['facebook', 'tiktok', 'linkedin'] as const) if (socials[net] && !(net === 'facebook' && fbDone)) notes.push(`${net}: נדרשת כניסה לקריאת פוסטים — אפשר להשלים דרך הכרום המחובר או בהדבקת קישורים בבנק הנכסים`);
+  return { samples: samples.sort(byNetPriority).slice(0, limit), notes };
 }
 
 // Enrich a pasted post/reel/video link into a content sample. TikTok and YouTube expose public oEmbed (caption, thumbnail, author);
@@ -171,7 +183,9 @@ export async function enrichSample(url: string, extra: { views?: number | null }
   const oembed = network === 'tiktok' ? `https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}` : network === 'youtube' ? `https://www.youtube.com/oembed?format=json&url=${encodeURIComponent(url)}` : null;
   try {
     if (oembed) { const r = await fetch(oembed, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'Mozilla/5.0 PixelOffice' } });
-      if (r.ok) { const j: any = await r.json(); base.text = String(j.title ?? '').slice(0, 2000); base.thumb = j.thumbnail_url ?? null; base.author = j.author_name ?? null; base.enriched = true; } }
+      const j: any = await r.json().catch(() => ({}));
+      if (r.ok && (j.title || j.thumbnail_url)) { base.text = String(j.title ?? '').slice(0, 2000); base.thumb = j.thumbnail_url ?? null; base.author = j.author_name ?? null; base.enriched = true; }
+      else base.enrich_error = `oEmbed ${r.status}${j?.message || j?.status_msg ? ` · ${j.message ?? j.status_msg}` : ''}`; }
     else { const r = await fetch(url, { signal: AbortSignal.timeout(8000), headers: { 'user-agent': 'facebookexternalhit/1.1' } }); const h = await r.text();
       const m = (p: string) => h.match(new RegExp(`<meta[^>]+property=["']${p}["'][^>]+content=["']([^"']*)["']`, 'i'))?.[1];
       const d = m('og:description') ?? m('og:title'); if (d) { base.text = decode(d).slice(0, 2000); base.enriched = true; } base.thumb = m('og:image') ? decode(m('og:image')!) : null; }

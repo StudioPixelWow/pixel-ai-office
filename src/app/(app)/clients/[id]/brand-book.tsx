@@ -137,7 +137,8 @@ export function AssetBank({ client, assets, addForm }: { client: any; assets: an
   const imgs: string[] = [...new Set([x.og_image, ...arr(x.images), ...assets.filter((a) => a.kind === 'site_image').map((a) => a.identifier)].filter(Boolean))];
   const logos: string[] = [...new Set([client.profile?.dossier?.brand?.logo_url, x.logo, ...assets.filter((a) => a.kind === 'logo').map((a) => a.identifier)].filter(Boolean))];
   const socials = arr(x.socials).length ? arr(x.socials) : assets.filter((a) => a.kind === 'social_profile').map((a) => ({ network: a.owner_label, url: a.identifier, status: a.access_status }));
-  const samples = arr(x.samples).length ? arr(x.samples) : assets.filter((a) => a.kind === 'social_sample').map((a) => ({ network: a.owner_label, url: a.identifier, text: a.notes }));
+  const PRI = ['facebook', 'instagram', 'tiktok', 'youtube', 'linkedin']; const pri = (n: string) => (PRI.indexOf(n) + 1) || 99;
+  const samples = (arr(x.samples).length ? arr(x.samples) : assets.filter((a) => a.kind === 'social_sample').map((a) => ({ network: a.owner_label, url: a.identifier, text: a.notes }))).slice().sort((a: any, b: any) => pri(a.network) - pri(b.network) || (Number(b.views ?? b.likes ?? 0) - Number(a.views ?? a.likes ?? 0)));
   const gaps = arr(x.sample_gaps).filter((n: string) => /כניסה|חיבור|login/i.test(n));
   return <div className="bb">
     <Section n="01" title="לוגו ונכסי מותג">
@@ -154,7 +155,8 @@ export function AssetBank({ client, assets, addForm }: { client: any; assets: an
     </Section>
     <Section n="04" title={`דוגמאות תוכן מהרשתות (${samples.length})`} sub="פוסטים, רילסים וסרטונים לכיול שפת הלקוח">
       {samples.length ? <Grid n={samples.length} max={4}>{samples.map((s: any, i: number) => <a key={i} href={s.url} target="_blank" rel="noreferrer" className="bb-sample">
-        {(s.thumb || s.thumbnail || s.image) && <img src={s.thumb || s.thumbnail || s.image} alt="" loading="lazy" />}
+        {(s.thumb || s.thumbnail || s.image) ? <img src={s.thumb || s.thumbnail || s.image} alt="" loading="lazy" />
+          : <div className={`bb-ph n-${s.network}`}><span>{s.type === 'post' ? '❝' : '▶'}</span><b>{netHe(s.network)}</b>{s.views != null && <small>{Number(s.views).toLocaleString('he-IL')} צפיות</small>}</div>}
         <div className="row"><span className="bb-tag">{netHe(s.network)}{s.type ? ` · ${s.type}` : ''}</span>{s.date && <small className="muted">{String(s.date).slice(0, 10)}</small>}</div>
         <p>{String(s.text ?? s.caption ?? '').slice(0, 220)}</p>
         <small className="muted">{[s.author, s.likes != null && `${s.likes} לייקים`, s.views != null && `${Number(s.views).toLocaleString('he-IL')} צפיות`, s.comments != null && `${s.comments} תגובות`].filter(Boolean).join(' · ')}</small></a>)}</Grid>

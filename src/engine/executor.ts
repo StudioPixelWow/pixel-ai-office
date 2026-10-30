@@ -7,7 +7,7 @@ import { wpCreateDraft } from './adapters/wordpress';
 import { OUTPUT, SHAPE_HINT, extractJson, toMarkdown, type OutputKind } from './schemas';
 import { composeSvg, FORMATS } from './compose';
 import { ROSTER } from '@/agents/roster';
-import { crawlSite, socialScan, socialSamples, claudeWebResearch, openaiWebResearch, researchPrompt } from './research';
+import { byNetPriority, crawlSite, socialScan, socialSamples, claudeWebResearch, openaiWebResearch, researchPrompt } from './research';
 
 const LOGO = 'https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-500.webp';
 type Ctx = any;
@@ -130,7 +130,7 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     const prof = await socialScan(socials);
     await hb('אוסף דוגמאות תוכן', 'פוסטים, רילסים וסרטונים אחרונים');
     const sm0 = await socialSamples(socials, 20); const seen = new Set<string>();
-    const sm = { notes: sm0.notes, samples: [...known, ...sm0.samples].filter((x: any) => !seen.has(x.url) && seen.add(x.url)).slice(0, 30) };
+    const sm = { notes: sm0.notes, samples: [...known, ...sm0.samples].filter((x: any) => !seen.has(x.url) && seen.add(x.url)).sort(byNetPriority).slice(0, 30) };
     if (known.length) sm.notes.unshift(`${known.length} דוגמאות שנוספו ע״י הצוות נכללו בכיול השפה`);
     const body = `# רשתות חברתיות — ${company}\n${sm.notes.map((n) => `> ${n}`).join('\n')}\n\n## דוגמאות תוכן (${sm.samples.length})\n${sm.samples.map((x, i) => `${i + 1}. [${x.network} · ${x.type}] ${x.url}${x.likes != null ? ` · ${x.likes} לייקים` : ''}${x.views != null ? ` · ${x.views} צפיות` : ''}\n   ${String(x.text).replace(/\s+/g, ' ').slice(0, 500)}`).join('\n')}\n\n## פרופילים\n` + prof.map((p) => `- **${p.network}** ${p.url} — ${p.status === 'public' ? `${p.title ?? ''}${p.followers_text ? ` · ${p.followers_text} עוקבים` : ''}${p.description ? `\n  ${p.description}` : ''}` : p.status === 'requires_login' ? 'הרשת דורשת כניסה — לא נאספו נתונים (לא מנחשים)' : 'קישור'}`).join('\n');
     return void await done(`רשתות חברתיות · ${company}`, { profiles: prof, samples: sm.samples, notes: sm.notes, urls: prof.map((p) => p.url) }, body, [], `נבדקו ${prof.length} פרופילים · ${sm.samples.length} דוגמאות תוכן`);
