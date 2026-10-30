@@ -1191,3 +1191,12 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .onb-steps{list-style:none;padding:0;margin:8px 0;display:flex;flex-direction:column;gap:4px;font-size:14px}.onb-steps li.ok{color:var(--ok)}.onb-steps a{font-size:13px}
 .onb-ans{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;font-size:13.5px}.onb-ans dt{font-weight:800}.onb-ans dd{margin:0}
 @media (max-width:760px){.next-step.big{flex-direction:column;text-align:center}}
+/* icon set */
+.side nav .ni{width:30px;height:30px;border-radius:10px;opacity:1;background:rgba(255,255,255,.06);color:#9FE9FF;transition:background .15s,color .15s}
+.side nav a:hover .ni{background:rgba(0,207,255,.16);color:#fff}
+.side nav a.on .ni{background:var(--ink);color:var(--yellow)}
+.qa-i i svg,.mtabs a i svg{display:block}
+.qa-i i{background:linear-gradient(150deg,#E6FAFF 0%,#FDFFE0 100%);color:var(--ink);border:1px solid #D6F2FB;box-shadow:inset 0 -2px 0 rgba(0,207,255,.18)}
+.qa-i:hover i{background:var(--grad);border-color:transparent}
+.mtabs a i{display:grid;place-items:center;height:24px}.mtabs a.on i{color:var(--cyan-deep,#00A8D6)}
+.mbar-btn svg{display:block}

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Icon } from '@/components/icon';
 import { rpc, me, safeList, today } from '@/lib/api';
 import { fmtMoney } from '@/lib/format';
 import { buildQueue, QueueList } from '@/components/today-queue';
@@ -41,9 +42,9 @@ export default async function CommandCenter() {
     </section>
 
     <nav className="qa" aria-label="פעולות מהירות">
-      {([['/leads?new=1', '↗', 'ליד חדש'], ['/clients?new=1', '◎', 'לקוח חדש'], ['/calendar', '▣', 'פגישה / משימה'], ['/leads', '❖', 'הצעת מחיר'],
-        ['/content', '▦', 'גאנט תוכן'], ['/week', '▤', 'מצב שבוע'], ['/forecast', '↟', 'תחזית הכנסות'], ['/approvals', '✓', 'לטיפולי']] as const).map(([h, i, l]) =>
-        <Link key={h} href={h} className="qa-i"><i>{i}</i><span>{l}</span></Link>)}
+      {([['/leads?new=1', 'newLead', 'ליד חדש'], ['/clients?new=1', 'newClient', 'לקוח חדש'], ['/calendar', 'newMeeting', 'פגישה / משימה'], ['/leads', 'newProposal', 'הצעת מחיר'],
+        ['/content', 'content', 'גאנט תוכן'], ['/week', 'week', 'מצב שבוע'], ['/payments', 'payments', 'הנהלת חשבונות'], ['/approvals', 'approvals', 'לטיפולי']] as const).map(([h, i, l]) =>
+        <Link key={h} href={h} className="qa-i"><i><Icon name={i} size={22} /></i><span>{l}</span></Link>)}
     </nav>
 
     <section className="cc-kpis">

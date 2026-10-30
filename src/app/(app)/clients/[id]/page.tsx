@@ -51,7 +51,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
           <div className="pt-onb-bar"><i style={{ width: `${onb.pct}%` }} /></div>
           <ul className="onb-steps">{(onb.steps ?? []).map((x: any) => <li key={x.key} className={x.done ? 'ok' : ''}>{x.done ? '✓' : '○'} {x.label}{x.note ? <small> · {x.note}</small> : null}
             {(x.files ?? []).map((f: any) => <a key={f.blob} href={`/api/files/${f.blob}?download=${encodeURIComponent(f.name ?? 'file')}`}> 📎 {f.name}</a>)}</li>)}</ul>
-          {onb.answers && Object.keys(onb.answers).length > 0 && <details><summary className="small"><b>תשובות השאלון</b></summary><dl className="onb-ans">{Object.entries(onb.answers).map(([k, v]) => <><dt key={k + 'k'}>{ONB_Q[k] ?? k}</dt><dd key={k + 'v'}>{String(v)}</dd></>)}</dl></details>}</div>}
+          {onb.answers && Object.keys(onb.answers).length > 0 && <details><summary className="small"><b>תשובות השאלון</b></summary><dl className="onb-ans">{Object.entries(onb.answers).flatMap(([k, v]) => [<dt key={k + 'k'}>{ONB_Q[k] ?? k}</dt>, <dd key={k + 'v'}>{String(v)}</dd>])}</dl></details>}</div>}
         {portal && <PortalCard clientId={id} url={portal} />}
         {site && <div className="card sc"><h2>{site.ok ? '✅' : '🔧'} בריאות האתר</h2><p className="small muted">בדיקה אחרונה {fmtDateTime(site.at)} · {site.result?.ms ? `${Math.round(site.result.ms / 100) / 10} שנ׳` : ''}{site.result?.https ? ' · HTTPS ✓' : ''}{site.result?.form ? ' · טופס ✓' : ''}</p>
           {(site.result?.pixels ?? []).length > 0 && <p className="small">מדידה: {site.result.pixels.join(' · ')}</p>}
