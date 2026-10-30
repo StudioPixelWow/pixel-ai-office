@@ -31,12 +31,12 @@ export function SignPanel({ token, signed, signerName, signedAt, canPay, payment
     <p>תודה! עותק ההצעה החתומה נשמר אצלנו{signedAt ? ` (${new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' }).format(new Date(signedAt))})` : ''}. ניצור קשר לתיאום פגישת ההתנעה.</p>
     {(canPay || paymentUrl) && <><p>אפשר לשלם עכשיו בצורה מאובטחת באשראי או ב-Bit:</p><button className="btn y" disabled={busy} onClick={pay}>{busy ? 'מעביר לתשלום…' : 'לתשלום מאובטח'}</button></>}
     <button className="btn ghost" onClick={() => window.print()}>הדפסה / שמירה כ-PDF</button>{msg && <p className="small" style={{ color: 'var(--bad)' }}>{msg}</p>}</div>;
-  return <form className="pub-card f" action={sign}>
+  return <form className="pub-card f" onSubmit={(e) => { e.preventDefault(); sign(new FormData(e.currentTarget)); }}>
     <h2>אישור וחתימה דיגיטלית</h2>
     <div className="grid g2"><label>שם מלא *<input name="name" required minLength={2} /></label><label>תפקיד<input name="title" /></label></div>
     <label>חתימה *<span className="sig-wrap"><canvas ref={cv} className="sig" onPointerDown={down} onPointerMove={move} onPointerUp={() => (drawing.current = false)} onPointerLeave={() => (drawing.current = false)} aria-label="משטח חתימה" /></span></label>
     <div className="row"><button type="button" className="btn ghost sm" onClick={clear}>נקה חתימה</button></div>
-    <label className="row" style={{ fontWeight: 600 }}><input type="checkbox" name="agree" style={{ width: 'auto' }} /> קראתי ואני מאשר/ת את ההצעה, התכולה והמחיר המפורטים בה</label>
+    <label className="agree"><input type="checkbox" name="agree" /> <span>קראתי ואני מאשר/ת את ההצעה, התכולה והמחיר המפורטים בה</span></label>
     <div className="row"><button className="btn y" disabled={busy}>{busy ? 'חותם…' : 'אני מאשר/ת וחותם/ת'}</button><button type="button" className="btn ghost" onClick={() => window.print()}>הדפסה / PDF</button></div>
     {msg && <p className="small" style={{ color: 'var(--bad)' }}>{msg}</p>}
     <p className="small muted">החתימה נשמרת יחד עם תאריך, שעה וטביעת תוכן של ההצעה, כך שאי אפשר לשנות את ההצעה החתומה.</p>

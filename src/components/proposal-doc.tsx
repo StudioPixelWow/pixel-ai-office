@@ -36,7 +36,7 @@ export function ProposalDoc({ data, signature }: { data: ProposalData; signature
         {highlights.length > 0 && <div className="pq-hl">{highlights.slice(0, 3).map((h, i) => <div key={i}><b className={i === 1 ? 'pq-ye' : ''}>{h.t}</b><span>{h.s}</span></div>)}</div>}
       </div>
       <h2 className="pq-h2"><i />{retainer ? 'תכולת השירות החודשי' : 'תכולת הפרויקט'}</h2>
-      <div className="pq-blocks">{blocks.map((b, i) => <div key={i} className={`pq-block ${i % 2 ? 'alt' : ''}`}>
+      <div className={`pq-blocks ${blocks.length % 2 ? "one" : ""}`}>{blocks.map((b, i) => <div key={i} className={`pq-block ${i % 2 ? 'alt' : ''}`}>
         <small>{b.tag}</small><h3><span className="pq-num">{String(i + 1).padStart(2, '0')}</span>{b.title}</h3>
         <ul>{(b.bullets ?? []).map((x: string, k: number) => <li key={k}>{x}</li>)}</ul></div>)}</div>
       <Footer page={1} />

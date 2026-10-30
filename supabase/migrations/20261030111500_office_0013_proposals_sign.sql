@@ -128,7 +128,7 @@ begin
           encode(digest(coalesce(p_ip,''), 'sha256'), 'hex'), left(p_ua, 300));
   update office.proposals set status = 'accepted', updated_at = now() where id = pr.id;
   update office.leads set stage = 'engaged', updated_at = now() where id = pr.lead_id;
-  perform office.audit(pr.org_id,'client','proposal_link','proposal_signed','proposal',pr.id::text,null,jsonb_build_object('signer', trim(p_name), 'version', pv.version_no));
+  perform office.audit(pr.org_id,'system','client_signing_link','proposal_signed','proposal',pr.id::text,null,jsonb_build_object('signer', trim(p_name), 'version', pv.version_no));
   perform office.emit(pr.org_id,'proposal.signed','ההצעה נחתמה: '||pr.title||' · '||trim(p_name));
   return jsonb_build_object('ok', true, 'signed_at', now());
 end $$;
