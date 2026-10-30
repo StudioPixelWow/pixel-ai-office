@@ -27,7 +27,7 @@ export default async function Settings() {
           { name: 'payment_terms', label: 'תנאי תשלום', type: 'textarea' }, { name: 'validity_days', label: 'תוקף הצעה (ימים)', type: 'number' }]} />}</div>
       {m.role === 'owner' && <div className="card"><h2>מספרי בדיקה ל-WhatsApp</h2><p className="small muted">חשבון הבדיקה שולח רק לטבלת בדיקה, ורק למספרים שאישרת כאן במפורש.</p>
         <ActionForm action="set_test_numbers" reset={false} fields={[{ name: 'numbers', label: 'מספרים (JSON)', type: 'textarea', json: true, ltr: true, defaultValue: JSON.stringify(org?.settings?.test_numbers ?? ['+972500000001']) }]} /></div>}
-      {m.role === 'owner' && <div className="card"><h2>יבוא דמויות סוכנים</h2><AvatarSheetUpload ids={[...ROSTER].sort((a, b) => a.number - b.number).map((a) => a.id)} /><AvatarToken /></div>}
+      {m.role === 'owner' && <div className="card"><h2>יבוא דמויות סוכנים</h2><AvatarSheetUpload ids={[...[...ROSTER].sort((a, b) => a.number - b.number).map((a) => a.id), 'pixi']} /><AvatarToken /></div>}
     </div>
   </>;
 }

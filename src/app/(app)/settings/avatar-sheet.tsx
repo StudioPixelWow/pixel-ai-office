@@ -37,7 +37,7 @@ export function AvatarSheetUpload({ ids }: { ids: string[] }) {
   return <div className="f">
     <p className="small muted">מעלים גיליון דמויות של 4×2. השוליים הכהים נחתכים אוטומטית, וכל תא נשמר כדמות של הסוכן לפי הסדר.</p>
     <label>גיליון<select value={sheet} onChange={(e) => setSheet(Number(e.target.value))}>
-      {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{`גיליון ${n} — סוכנים ${(n - 1) * 8 + 1}–${n * 8}`}</option>)}</select></label>
+      {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>{`גיליון ${n} — סוכנים ${(n - 1) * 8 + 1}–${n * 8}`}</option>)}</select></label>
     <input type="file" accept="image/*" data-avatar-sheet onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ''; }} />
     {log && <pre className="small" dir="ltr" style={{ whiteSpace: 'pre-wrap' }}>{log}</pre>}
   </div>;
