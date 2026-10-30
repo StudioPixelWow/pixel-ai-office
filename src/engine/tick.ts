@@ -5,7 +5,7 @@ import { anthropicConfigured, listModels } from './adapters/anthropic';
 import { openaiConfigured, checkImageModel, imageModel } from './adapters/openai';
 import { klingConfigured, checkAuth } from './adapters/kling';
 import { waConfigured, waCheck, waSendText } from './adapters/whatsapp';
-import { growConfigured } from './adapters/grow';
+import { growCheck, growIsSandbox, growConfigured } from './adapters/grow';
 import { greenInvoiceConfigured, giCheck } from './adapters/greeninvoice';
 import { gmailConfigured, gmailCheck } from './adapters/gmail';
 
@@ -37,9 +37,10 @@ export async function selfChecks() {
   out.green_invoice = await w('office_worker_connection_report', { p_provider: 'green_invoice', p_label: 'חשבונית ירוקה (Morning)', p_secret_ref: 'GREEN_INVOICE_API_ID',
     p_caps: [{ capability: 'issue_invoice', implemented: true, status: !gi ? 'not_connected' : gi.ok ? 'access_verified' : gi.status === 401 || gi.status === 403 ? 'expired' : 'requires_user', check_method: 'POST /account/token',
       details: !gi ? 'מפתחות API לא הוגדרו' : gi.ok ? `אומת (${process.env.GREEN_INVOICE_ENV === 'sandbox' ? 'סביבת בדיקה' : 'ייצור'}) — הפקה רק בלחיצה מאושרת` : (gi as any).error }] });
+  const gr = growConfigured() ? await growCheck().catch((e: any) => ({ ok: false as const, error: String(e?.message ?? e) })) : null;
   out.grow = await w('office_worker_connection_report', { p_provider: 'grow', p_label: 'Grow — קישורי תשלום', p_secret_ref: 'GROW_USER_ID',
-    p_caps: [{ capability: 'payment_link', implemented: true, status: growConfigured() ? 'pending_setup' : 'not_connected', check_method: 'יצירת קישור ראשון',
-      details: growConfigured() ? 'מזהים הוגדרו; יאומת בקישור התשלום הראשון שיווצר' : 'GROW_USER_ID / GROW_PAGE_CODE לא הוגדרו' }] });
+    p_caps: [{ capability: 'payment_link', implemented: true, status: !gr ? 'not_connected' : gr.ok ? (growIsSandbox() ? 'action_tested' : 'access_verified') : 'requires_user', check_method: 'createPaymentProcess 1₪',
+      details: !gr ? 'GROW_USER_ID / GROW_PAGE_CODE לא הוגדרו' : gr.ok ? (growIsSandbox() ? 'סביבת טסט של Grow — נוצר דף תשלום, אין חיוב אמיתי' : 'סביבה חיה — נוצר דף תשלום') : (gr as any).error }] });
   const gm = gmailConfigured() ? await gmailCheck() : null;
   out.gmail = await w('office_worker_connection_report', { p_provider: 'gmail', p_label: `Gmail — ${process.env.GMAIL_USER ?? 'office@'}`, p_secret_ref: 'GMAIL_APP_PASSWORD',
     p_caps: [{ capability: 'send_email', implemented: true, status: !gm ? 'not_connected' : gm.ok ? 'access_verified' : 'expired', check_method: 'SMTP verify',

@@ -6,6 +6,7 @@ import { DEPT_HE, fmtMoney, fmtDateTime } from '@/lib/format';
 import { notFound } from 'next/navigation';
 import { OnboardForm } from '../onboard-form';
 import { ResearchPanel } from './research-panel';
+import { BrandBook, AssetBank } from './brand-book';
 import { KIND_HE, VAT_MODE_HE, PAY_STATUS_HE, serviceLabel } from '@/lib/services';
 import { fmtDate } from '@/lib/format';
 
@@ -21,7 +22,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const [plans, pays, terms] = fin && tab === 'billing' ? await Promise.all([safeList<any>('billing_plans', { client_id: id }), safeList<any>('payments', { client_id: id }, 500), safeList<any>('terms_templates')]) : [[], [], []];
   return <>
     <div className="hero"><div className="row"><div className="sp"><h1>{c.name}</h1><p>{DEPT_HE[c.department] ?? c.department} · {c.industry ?? 'תחום לא הוגדר'} {c.is_test && '· [בדיקה]'}</p></div><Badge s={c.status} /></div></div>
-    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'assets', 'בנק נכסים'], [base + 'knowledge', 'מחקר וידע'], [base + 'work', 'משימות ותוצרים']]} />
+    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
     {tab === 'overview' && <div className="grid g2">
       <div className="card"><h2>תיק לקוח</h2><dl className="kv">{['goals', 'audiences', 'differentiators', 'competitors', 'voice', 'constraints', 'references', 'need'].map((k) => <><dt key={k}>{({ goals: 'מטרות', audiences: 'קהלים', differentiators: 'בידולים', competitors: 'מתחרים', voice: 'שפה', constraints: 'אילוצים', references: 'רפרנסים', need: 'צורך' } as any)[k]}</dt><dd>{c.profile?.[k] ?? <span className="muted">חסר</span>}</dd></>)}</dl></div>
       <div className="card"><h2>עדכון תיק</h2><ActionForm action="update_client" reset={false} extra={{ id, version: c.version }} fields={[
@@ -60,21 +61,33 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       !x.phone_verified && x.phone_e164 && ['owner', 'admin'].includes(m.role) ? <ActionButton key="v" className="btn sm" action="verify_contact_phone" payload={{ id: x.id }} confirm="אימתת שזה המספר הנכון של איש הקשר?">סמן כמאומת</ActionButton> : null])} empty="אין אנשי קשר" />
       <div className="card"><h2>איש קשר</h2><ActionForm action="create_contact" extra={{ client_id: id }} fields={[{ name: 'name', label: 'שם', required: true }, { name: 'role_title', label: 'תפקיד' },
         { name: 'phone_e164', label: 'טלפון (בינלאומי)', ltr: true, hint: '‎+972501234567' }, { name: 'email', label: 'אימייל', type: 'email', ltr: true }, { name: 'approval_role', label: 'תפקיד אישור' }, { name: 'whatsapp_opt_in', label: 'הסכים לקבל הודעות WhatsApp', type: 'checkbox' }]} /></div></div>}
-    {tab === 'assets' && <div className="grid g2"><Table head={['סוג', 'מזהה', 'סטטוס גישה']} rows={assets.map((x: any) => [x.kind, <span key="i" dir="ltr">{x.identifier}</span>, x.access_status])} empty="אין נכסים רשומים" />
-      <div className="card"><h2>רישום נכס</h2><p className="small muted">רישום אינו מעניק הרשאת עריכה. החיבור נבדק בנפרד במסך החיבורים.</p>
-        <ActionForm action="create_asset" extra={{ client_id: id }} fields={[{ name: 'kind', label: 'סוג', type: 'select', required: true, options: [['website', 'אתר'], ['wordpress', 'WordPress'], ['meta_ad_account', 'חשבון Meta'], ['google_ads_account', 'חשבון Google Ads'], ['ga4', 'GA4'], ['gsc', 'Search Console'], ['gtm', 'GTM'], ['drive_folder', 'תיקיית Drive'], ['social_profile', 'פרופיל סושיאל']] },
-          { name: 'identifier', label: 'כתובת / מזהה', required: true, ltr: true }, { name: 'project_id', label: 'פרויקט', type: 'select', options: projects.map((p: any) => [p.id, p.name]) }, { name: 'notes', label: 'הערות' }]} /></div></div>}
-    {tab === 'knowledge' && <>
-      <div className="card" style={{ marginBottom: 16 }}><h2>מחקר לקוח וספריית ידע</h2>
-        {c.profile?.research_at ? <p className="small">מחקר אחרון: {fmtDateTime(c.profile.research_at)}. {c.profile.research_summary}</p> : <p className="small muted">טרם בוצע מחקר ללקוח.</p>}
-        {tasks.filter((t: any) => /סריקת אתר|רשתות חברתיות|מחקר|תיק לקוח|ספריית הידע/.test(t.title) && !['done', 'cancelled'].includes(t.status)).length > 0 &&
-          <p className="small"><span className="badge cyan">המחקר רץ</span> {tasks.filter((t: any) => /סריקת אתר|רשתות חברתיות|מחקר|תיק לקוח|ספריית הידע/.test(t.title) && !['done', 'cancelled'].includes(t.status)).map((t: any) => t.title.split(' · ').pop()).join(' · ')}</p>}
-        <ResearchPanel clientId={id} name={c.name} industry={c.industry} website={c.profile?.website} socials={c.profile?.socials} /></div>
-      <div className="grid g2"><div><Table head={['כותרת', 'סוג', 'סטטוס', '']} rows={knowledge.map((k: any) => [<details key="d"><summary><b>{k.title}</b></summary><pre className="out" style={{ whiteSpace: 'pre-wrap', maxHeight: 420, overflow: 'auto' }}>{k.body}</pre></details>, k.kind, <Badge key="b" s={k.approval_status} />,
-        k.approval_status === 'pending' && ['owner', 'admin'].includes(m.role) ? <span key="a" className="row" style={{ gap: 6 }}><ActionButton className="btn sm y" action="approve_knowledge" payload={{ id: k.id }}>אשר</ActionButton><ActionButton className="btn sm ghost" action="approve_knowledge" payload={{ id: k.id, status: 'rejected' }}>דחה</ActionButton></span> : null])} empty="אין ידע ללקוח" />
-        {['owner', 'admin'].includes(m.role) && knowledge.some((k: any) => k.approval_status === 'pending') && <p className="small muted">פריטים מאושרים בלבד נכנסים להקשר של הסוכנים.</p>}</div>
-      <div className="card"><h2>פריט ידע ידני</h2><ActionForm action="add_knowledge" extra={{ client_id: id, scope: 'client' }} fields={[{ name: 'title', label: 'כותרת', required: true }, { name: 'kind', label: 'סוג', type: 'select', options: [['guideline', 'הנחיה'], ['decision', 'החלטה'], ['fact', 'עובדה'], ['brand', 'מותג'], ['source', 'מקור']] },
-        { name: 'body', label: 'תוכן', type: 'textarea', required: true }, { name: 'source_url', label: 'מקור', ltr: true }, { name: 'valid_until', label: 'בתוקף עד', type: 'date' }]} /></div></div></>}
+    {tab === 'assets' && <>
+      <AssetBank client={c} assets={assets} />
+      <details className="card" style={{ marginTop: 16 }}><summary><b>כל הנכסים הרשומים ({assets.length}) · רישום נכס חדש</b></summary><div className="grid g2" style={{ marginTop: 12 }}>
+        <Table head={['סוג', 'מזהה', 'סטטוס גישה']} rows={assets.map((x: any) => [x.kind, <span key="i" dir="ltr" style={{ wordBreak: 'break-all' }}>{x.identifier}</span>, x.access_status])} empty="אין נכסים רשומים" />
+        <div><p className="small muted">רישום אינו מעניק הרשאת עריכה. החיבור נבדק בנפרד במסך החיבורים.</p>
+        <ActionForm action="create_asset" extra={{ client_id: id }} fields={[{ name: 'kind', label: 'סוג', type: 'select', required: true, options: [['website', 'אתר'], ['wordpress', 'WordPress'], ['meta_ad_account', 'חשבון Meta'], ['google_ads_account', 'חשבון Google Ads'], ['ga4', 'GA4'], ['gsc', 'Search Console'], ['gtm', 'GTM'], ['drive_folder', 'תיקיית Drive'], ['social_profile', 'פרופיל סושיאל'], ['social_sample', 'דוגמת תוכן (קישור לפוסט/רילס)']] },
+          { name: 'identifier', label: 'כתובת / מזהה', required: true, ltr: true }, { name: 'project_id', label: 'פרויקט', type: 'select', options: projects.map((p: any) => [p.id, p.name]) }, { name: 'notes', label: 'הערות' }]} /></div></div></details></>}
+    {tab === 'knowledge' && (() => {
+      const running = tasks.filter((t: any) => /סריקת אתר|רשתות חברתיות|מחקר|תיק לקוח|ספריית/.test(t.title) && !['done', 'cancelled', 'failed'].includes(t.status));
+      const pending = knowledge.filter((k: any) => k.approval_status === 'pending'); const canApprove = ['owner', 'admin'].includes(m.role);
+      const actions = <>
+        {running.length > 0 && <span className="badge cyan">המחקר רץ · {running.length} שלבים</span>}
+        {canApprove && pending.length > 0 && <ActionButton className="btn y" action="approve_knowledge" payload={{ ids: pending.map((k: any) => k.id) }} confirm={`לאשר ${pending.length} פריטי ידע? מאושרים בלבד נכנסים להקשר של הסוכנים.`}>אשר את כל הידע ({pending.length})</ActionButton>}
+        {!canApprove || !pending.length ? (knowledge.length > 0 && <span className="badge ok">הידע מאושר ✓</span>) : null}
+      </>;
+      return <>
+        {c.profile?.dossier ? <BrandBook client={c} actions={actions} /> : <div className="bb-empty big"><b>עדיין אין תיק לקוח</b><p>הפעל מחקר לקוח מלא: סריקת האתר, הרשתות החברתיות, חיפוש ברשת ו-ChatGPT. התיק נבנה כאן אוטומטית.</p>{running.length > 0 && <span className="badge cyan">המחקר רץ עכשיו · {running.map((t: any) => t.title.split(' · ').pop()).join(' · ')}</span>}</div>}
+        <details className="card" style={{ marginTop: 16 }} open={!c.profile?.dossier}><summary><b>{c.profile?.dossier ? 'הרצת מחקר מחדש' : 'הפעלת מחקר לקוח'}</b></summary>
+          <ResearchPanel clientId={id} name={c.name} industry={c.industry} website={c.profile?.website ?? c.profile?.dossier_extra?.website} socials={c.profile?.socials} /></details>
+        <details className="card" style={{ marginTop: 16 }}><summary><b>פריטי הידע שהסוכנים מקבלים ({knowledge.length}{pending.length ? ` · ${pending.length} ממתינים לאישור` : ''})</b></summary>
+          <div className="grid g2" style={{ marginTop: 12 }}><div><Table head={['כותרת', 'סוג', 'סטטוס', '']} rows={knowledge.map((k: any) => [<details key="d"><summary><b>{k.title}</b></summary><pre className="out" style={{ whiteSpace: 'pre-wrap', maxHeight: 420, overflow: 'auto' }}>{k.body}</pre></details>, k.kind, <Badge key="b" s={k.approval_status} />,
+            k.approval_status === 'pending' && canApprove ? <span key="a" className="row" style={{ gap: 6 }}><ActionButton className="btn sm y" action="approve_knowledge" payload={{ id: k.id }}>אשר</ActionButton><ActionButton className="btn sm ghost" action="approve_knowledge" payload={{ id: k.id, status: 'rejected' }}>דחה</ActionButton></span> : null])} empty="אין ידע ללקוח" />
+            <p className="small muted">פריטים מאושרים בלבד נכנסים להקשר של הסוכנים.</p></div>
+          <div><h3>פריט ידע ידני</h3><ActionForm action="add_knowledge" extra={{ client_id: id, scope: 'client' }} fields={[{ name: 'title', label: 'כותרת', required: true }, { name: 'kind', label: 'סוג', type: 'select', options: [['guideline', 'הנחיה'], ['decision', 'החלטה'], ['fact', 'עובדה'], ['brand', 'מותג'], ['source', 'מקור']] },
+            { name: 'body', label: 'תוכן', type: 'textarea', required: true }, { name: 'source_url', label: 'מקור', ltr: true }, { name: 'valid_until', label: 'בתוקף עד', type: 'date' }]} /></div></div></details>
+      </>;
+    })()}
     {tab === 'work' && <div className="grid g2"><div className="card"><h2>משימות</h2><Table head={['משימה', 'מצב', 'עדכון']} rows={tasks.map((t: any) => [<Link key="l" href={`/tasks/${t.id}`}>{t.title}</Link>, <Badge key="b" s={t.status} />, <When key="w" d={t.updated_at} />])} /></div>
       <div className="card"><h2>תוצרים</h2><Table head={['תוצר', 'סוג', 'גרסה']} rows={arts.map((a: any) => [<Link key="l" href={`/studio/${a.id}`}>{a.title}</Link>, a.kind, a.current_version])} />
         <h2 style={{ marginTop: 16 }}>פריטי תוכן</h2><Table head={['נושא', 'מועד', 'הפקה']} rows={items.map((i: any) => [i.topic, fmtDateTime(i.due_at), <Badge key="b" s={i.production_status} />])} /></div></div>}

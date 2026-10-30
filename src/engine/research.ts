@@ -39,7 +39,16 @@ export async function crawlSite(start: string, maxPages = 10) {
     }
     for (const m of h.matchAll(/<link[^>]+href=["']([^"']+\.css[^"']*)["']/gi)) { const u = abs(m[1], url); if (u) cssUrls.add(u); }
     for (const m of h.matchAll(/fonts\.googleapis\.com\/css2?\?family=([^"'&]+)/gi)) decodeURIComponent(m[1]).split('|').forEach((f) => fontFamilies.set(f.split(':')[0].replace(/\+/g, ' '), (fontFamilies.get(f) ?? 0) + 5));
-    for (const m of h.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)) { const u = abs(m[1], url); if (u && !/data:|\.svg(\?|$)|pixel|tracking|1x1/i.test(u)) images.add(u); }
+    const addImg = (raw?: string) => { if (!raw) return; const u = abs(raw.trim().split(/\s+/)[0], url); if (!u || /^data:/i.test(u)) return;
+      const path = (() => { try { return new URL(u).pathname.toLowerCase(); } catch { return u.toLowerCase(); } })();
+      if (/\.svg$|\.gif$|(^|\/)(tracking|spacer|blank|1x1)[^/]*$|facebook\.com\/tr|google-analytics|doubleclick/.test(path + u) ) return;
+      if (/(-|_)(\d{2,3})x(\d{2,3})\.(png|jpe?g|webp)$/.test(path) && Number(path.match(/(\d{2,3})x\d{2,3}\./)?.[1]) < 150) return;
+      images.add(u); };
+    for (const m of h.matchAll(/<img\b[^>]*>/gi)) { const tag = m[0];
+      addImg(tag.match(/\b(?:data-lazy-src|data-src|data-original)=["']([^"']+)["']/i)?.[1] ?? tag.match(/\bsrc=["']([^"']+)["']/i)?.[1]);
+      const ss = tag.match(/\b(?:data-srcset|srcset)=["']([^"']+)["']/i)?.[1]; if (ss) addImg(ss.split(',').pop()); }
+    for (const m of h.matchAll(/background(?:-image)?\s*:\s*url\((['"]?)([^'")]+)\1\)/gi)) addImg(m[2]);
+    for (const m of h.matchAll(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/gi)) addImg(m[1]);
     for (const m of (h.match(/<style[\s\S]*?<\/style>/gi) ?? []).join(' ').matchAll(/#([0-9a-f]{6}|[0-9a-f]{3})\b/gi)) hex.set(m[1].toLowerCase(), (hex.get(m[1].toLowerCase()) ?? 0) + 1);
   };
   while (queue.length && pages.length < maxPages) {

@@ -33,7 +33,10 @@ export function WorkRoom({ request, tasks, agents, events, artifacts, usage }: {
     <LiveRefresh />
     <div className="room-head"><div className="sp"><small>חדר עבודה</small><h1>{request.text}</h1>
       <div className="small">{done}/{tasks.length} שלבים · {seats.length} סוכנים סביב השולחן · נפתח {t(request.created_at)}</div></div>
+      {request.research && request.client_id && <Link className={`btn ${pct === 100 ? 'y' : 'ghost room-ghost'}`} href={`/clients/${request.client_id}?tab=knowledge`}>{pct === 100 ? 'לתיק המותג המלא ←' : 'תיק הלקוח בבנייה ←'}</Link>}
       <div className="room-pct" style={{ ['--p' as any]: `${pct * 3.6}deg` }}><b>{pct}%</b></div></div>
+    {request.research && request.client_id && pct === 100 && <div className="room-done"><b>המחקר הושלם ✓</b><span>תיק המותג, ספריית התוכן ובנק הנכסים מוכנים לצפייה ולאישור שלך.</span>
+      <Link className="btn y sm" href={`/clients/${request.client_id}?tab=knowledge`}>תיק מותג ומחקר</Link><Link className="btn sm" href={`/clients/${request.client_id}?tab=assets`}>בנק נכסים</Link></div>}
 
     <div className="room-table-wrap">
       <svg className="room-links" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
