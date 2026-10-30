@@ -156,6 +156,23 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     const seenD = new Set<string>(); const plan = parts.length ? { summary: parts.map((x: any) => x.summary).filter(Boolean).join(' '),
       posts: parts.flatMap((x: any) => x.posts ?? []).filter((p: any) => p?.date && (p.post_text || p.idea)).sort((a: any, b: any) => String(a.date).localeCompare(String(b.date))) } : null;
     void seenD;
+    // Gap check: every slot must get a post. A post within ±3 days of a slot covers it (writers may move a slot to a holiday).
+    const slots: string[] = c.task.inputs?.params?.slots ?? [];
+    if (plan && slots.length) {
+      const days = (a: string, b: string) => Math.abs(+new Date(a) - +new Date(b)) / 864e5;
+      const used = new Set<number>(); const missing: string[] = [];
+      for (const sl of slots) { const k = plan.posts.findIndex((p: any, i: number) => !used.has(i) && days(p.date, sl) <= 3); if (k >= 0) used.add(k); else missing.push(sl); }
+      if (missing.length) {
+        await hb('משלים משבצות חסרות', `${missing.length} תאריכים: ${missing.join(', ')}`);
+        try {
+          const fillCtx = { ...c, task: { ...c.task, inputs: { ...c.task.inputs, output_kind: 'content_plan', max_tokens: 7000,
+            instruction: `השלם פוסטים רק לתאריכים החסרים האלה: ${missing.join(', ')} — פוסט אחד בדיוק לכל תאריך (אפשר להזיז ליום חג קרוב מתוך allowed_dates). הפוסטים שכבר נכתבו מופיעים ב-dependencies — אל תחזור על נושאים, כותרות או הוקים שלהם. post_text מלא 250–700 תווים בשפת הלקוח (social_voice), creative_prompt באנגלית בלי טקסט בתמונה.` } }, agent_version: c.agent_version };
+          const { data } = await runModel(fillCtx as any, 'content_plan');
+          plan.posts.push(...(data.posts ?? []).filter((p: any) => p?.date && (p.post_text || p.idea)));
+          plan.posts.sort((a: any, b: any) => String(a.date).localeCompare(String(b.date)));
+        } catch (e: any) { await hb('השלמה נכשלה', String(e?.message ?? e).slice(0, 120)); }
+      }
+    }
     if (!plan?.posts?.length) return void await w('office_worker_block', { p_task: id, p_lease: lease, p_status: 'waiting_input', p_blocker: 'אין תוכנית תוכן לשמירה', p_checkpoint: null });
     await hb('מציב פוסטים בגאנט', `${plan.posts.length} פוסטים`);
     const r = await w('office_worker_save_content_plan', { p_task: id, p_lease: lease, p_plan: plan });
