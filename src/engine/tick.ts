@@ -1,3 +1,4 @@
+import { gcalSync } from './adapters/gcal';
 import 'server-only';
 import { w } from './db';
 import { execute } from './executor';
@@ -72,6 +73,7 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   try { report.automations = await w('office_worker_tick_automations', {}); } catch (e: any) { report.errors.push(e.message); }
   try { report.billing = await w('office_worker_billing_tick', {}); } catch (e: any) { report.errors.push(e.message); }
   try { report.milestones = await w('office_worker_roll_milestones', {}); } catch (e: any) { report.errors.push(e.message); }
+  try { report.calendar = await gcalSync(); } catch (e: any) { report.errors.push(e.message); }
   if (opts.checks) { try { report.checks = await selfChecks(); } catch (e: any) { report.errors.push(e.message); } }
   try { report.outbox += await dispatchOutbox(); } catch (e: any) { report.errors.push(e.message); }
   // A single AI step can take up to ~230s. Only claim new work while at least that much of the 300s function window remains;
