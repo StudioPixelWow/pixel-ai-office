@@ -5,7 +5,7 @@ let cached: { token: string; exp: number } | null = null;
 
 export async function giToken(): Promise<string> {
   if (cached && cached.exp > Date.now() + 60_000) return cached.token;
-  const r = await fetch(`${base()}/account/token`, { method: 'POST', headers: { 'content-type': 'application/json' },
+  const r = await fetch(`${base()}/account/token`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' },
     body: JSON.stringify({ id: (process.env.GREEN_INVOICE_API_ID ?? '').trim(), secret: (process.env.GREEN_INVOICE_API_SECRET ?? '').trim() }) });
   const raw = await r.text(); let j: any = {}; try { j = JSON.parse(raw); } catch { j = { _raw: raw.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 120) }; }
   if (!r.ok || !j.token) { const idv = (process.env.GREEN_INVOICE_API_ID ?? '').trim();
@@ -13,7 +13,12 @@ export async function giToken(): Promise<string> {
     const detail0 = j?._raw ? `תשובה: ${j._raw}` : `תשובה: ${JSON.stringify(j).slice(0, 200)}`; const detail = j?.errorMessage || j?.message || j?.error || (j?.errorCode ? `errorCode ${j.errorCode}` : ''); const e: any = new Error(`HTTP ${r.status}${detail ? ` · ${detail}` : ''}${detail0 ? ` · ${detail0}` : ''} · ${shape}`); e.status = r.status; throw e; }
   cached = { token: j.token, exp: (j.expires ? j.expires * 1000 : Date.now() + 50 * 60_000) }; return j.token;
 }
-export async function giCheck() { try { await giToken(); return { ok: true as const }; } catch (e: any) { return { ok: false as const, status: e.status ?? 0, error: e.message }; } }
+export async function giCheck() { try { await giToken(); return { ok: true as const }; } catch (e: any) {
+  // control probe with a dummy key: tells "the key is rejected" apart from "the endpoint isn't reachable from here"
+  let probe = '';
+  try { const r = await fetch(`${base()}/account/token`, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ id: '00000000-0000-0000-0000-000000000000', secret: 'x'.repeat(32) }) });
+    probe = ` · בדיקת ביקורת (מפתח דמה): HTTP ${r.status} ${(await r.text()).slice(0, 120)}`; } catch (x: any) { probe = ` · בדיקת ביקורת נכשלה: ${x.message}`; }
+  return { ok: false as const, status: e.status ?? 0, error: e.message + probe }; } }
 
 // Payment type codes per Green Invoice: 1 cash, 2 check, 3 credit card, 4 bank transfer, 10 payment app, 11 other
 const PAY: Record<string, number> = { cash: 1, check: 2, credit: 3, transfer: 4, bit: 10, other: 11 };
