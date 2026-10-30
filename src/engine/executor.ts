@@ -7,7 +7,7 @@ import { wpCreateDraft } from './adapters/wordpress';
 import { OUTPUT, SHAPE_HINT, extractJson, toMarkdown, type OutputKind } from './schemas';
 import { composeSvg, FORMATS } from './compose';
 import { ROSTER } from '@/agents/roster';
-import { byNetPriority, crawlSite, socialScan, socialSamples, claudeWebResearch, openaiWebResearch, researchPrompt } from './research';
+import { classifyOwnImages, byNetPriority, crawlSite, socialScan, socialSamples, claudeWebResearch, openaiWebResearch, researchPrompt } from './research';
 
 const LOGO = 'https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-500.webp';
 type Ctx = any;
@@ -161,9 +161,11 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
       sources: Array.from(new Set([...(base.sources ?? []), ...(partB.sources ?? [])])) } : base } : null;
     if (!dos?.data) return void await w('office_worker_block', { p_task: id, p_lease: lease, p_status: 'waiting_input', p_blocker: 'אין תיק מחקר לשמירה', p_checkpoint: null });
     const crawl = depArt(c, 'crawl')?.data ?? {}; const social = depArt(c, 'social')?.data ?? {};
+    await hb('מסווג תמונות', 'משאיר רק תוכן של החברה — בלי לוגואים של לקוחות ושותפים');
+    const own = await classifyOwnImages(crawl.images ?? [], company, crawl.logo);
     const r = await w('office_worker_save_dossier', { p_task: id, p_lease: lease, p_dossier: dos.data,
       p_extra: { website: crawl.url ?? website, socials: (social.profiles ?? []).map((p: any) => ({ network: p.network, url: p.url, status: p.status, followers: p.followers_text })),
-        logo: crawl.logo, og_image: crawl.og_image, images: (crawl.images ?? []).slice(0, 30), colors: crawl.colors, fonts: crawl.fonts,
+        logo: crawl.logo, og_image: crawl.og_image, images: own.keep.slice(0, 30), images_dropped: own.dropped, images_checked: own.checked, colors: crawl.colors, fonts: crawl.fonts,
         samples: social.samples ?? [], sample_gaps: (social.notes ?? []).filter((n: string) => /נדרשת כניסה|דורש חיבור/.test(n)) } });
     return void await w('office_worker_complete', { p_task: id, p_lease: lease, p_result: { outputs: r, summary: `נשמרו ${r.knowledge} פריטי ידע לאישורך` } });
   }

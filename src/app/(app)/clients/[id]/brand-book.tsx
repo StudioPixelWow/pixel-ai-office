@@ -134,7 +134,9 @@ export function BrandBook({ client, actions }: { client: any; actions?: React.Re
 
 export function AssetBank({ client, assets, addForm }: { client: any; assets: any[]; addForm?: React.ReactNode }) {
   const x = client.profile?.dossier_extra ?? {};
-  const imgs: string[] = [...new Set([x.og_image, ...arr(x.images), ...assets.filter((a) => a.kind === 'site_image').map((a) => a.identifier)].filter(Boolean))];
+  // once the vision pass ran, trust its result only (older asset rows may still hold client logos)
+  const dropped = new Set<string>(arr(x.images_dropped));
+  const imgs: string[] = [...new Set((x.images_checked ? [x.og_image, ...arr(x.images)] : [x.og_image, ...arr(x.images), ...assets.filter((a) => a.kind === 'site_image').map((a) => a.identifier)]).filter((u: any) => u && !dropped.has(u)))];
   const logos: string[] = [...new Set([client.profile?.dossier?.brand?.logo_url, x.logo, ...assets.filter((a) => a.kind === 'logo').map((a) => a.identifier)].filter(Boolean))];
   const socials = arr(x.socials).length ? arr(x.socials) : assets.filter((a) => a.kind === 'social_profile').map((a) => ({ network: a.owner_label, url: a.identifier, status: a.access_status }));
   const PRI = ['facebook', 'instagram', 'tiktok', 'youtube', 'linkedin']; const pri = (n: string) => (PRI.indexOf(n) + 1) || 99;
@@ -144,7 +146,7 @@ export function AssetBank({ client, assets, addForm }: { client: any; assets: an
     <Section n="01" title="לוגו ונכסי מותג">
       {logos.length ? <Grid n={logos.length} max={4}>{logos.map((u) => <a key={u} href={u} target="_blank" rel="noreferrer" className="bb-logo-tile"><img src={u} alt="לוגו" /></a>)}</Grid> : <p className="muted small">לא נמצא לוגו</p>}
     </Section>
-    <Section n="02" title={`תמונות מהאתר (${imgs.length})`} sub="לבדיקת זכויות לפני שימוש בפרסום">
+    <Section n="02" title={`תמונות של החברה מהאתר (${imgs.length})`} sub={x.images_checked ? `סוננו אוטומטית — ${arr(x.images_dropped).length} לוגואים של לקוחות/שותפים הוסרו · לבדיקת זכויות לפני שימוש` : 'לבדיקת זכויות לפני שימוש בפרסום'}>
       {imgs.length ? <div className="bb-gallery">{imgs.slice(0, 40).map((u) => <a key={u} href={u} target="_blank" rel="noreferrer"><img src={u} alt="" loading="lazy" /></a>)}</div> : <p className="muted small">לא נאספו תמונות. הרצת מחקר חוזרת תאסוף אותן.</p>}
     </Section>
     <Section n="03" title="פרופילים ברשתות">

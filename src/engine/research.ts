@@ -44,7 +44,11 @@ export async function crawlSite(start: string, maxPages = 10) {
       if (/\.svg$|\.gif$|(^|\/)(tracking|spacer|blank|1x1)[^/]*$|facebook\.com\/tr|google-analytics|doubleclick/.test(path + u) ) return;
       if (/(-|_)(\d{2,3})x(\d{2,3})\.(png|jpe?g|webp)$/.test(path) && Number(path.match(/(\d{2,3})x\d{2,3}\./)?.[1]) < 150) return;
       images.add(u); };
+    const LOGOISH = /logo|client|partner|brand-?s?\b|sponsor|trusted|לקוחות|שותפים|לוגו|ממליצים|עבדנו עם|swiper-slide|carousel|marquee|ticker/i;
     for (const m of h.matchAll(/<img\b[^>]*>/gi)) { const tag = m[0];
+      // third-party logos: the tag itself, or the ~700 chars of markup before it (section heading/classes), look like a logo wall
+      const ctx = h.slice(Math.max(0, (m.index ?? 0) - 700), m.index ?? 0);
+      if (LOGOISH.test(tag.replace(/src=["'][^"']*["']/i, '')) || /(?:לקוחות|שותפים|clients|partners|logos?|עבדנו עם|ממליצים|trusted by)/i.test(ctx.replace(/<[^>]+>/g, ' ').slice(-300)) || /class=["'][^"']*(?:logo|client|partner|brand)[^"']*["']/i.test(ctx.slice(-400))) continue;
       addImg(tag.match(/\b(?:data-lazy-src|data-src|data-original)=["']([^"']+)["']/i)?.[1] ?? tag.match(/\bsrc=["']([^"']+)["']/i)?.[1]);
       const ss = tag.match(/\b(?:data-srcset|srcset)=["']([^"']+)["']/i)?.[1]; if (ss) addImg(ss.split(',').pop()); }
     for (const m of h.matchAll(/background(?:-image)?\s*:\s*url\((['"]?)([^'")]+)\1\)/gi)) addImg(m[2]);
@@ -191,4 +195,27 @@ export async function enrichSample(url: string, extra: { views?: number | null }
       const d = m('og:description') ?? m('og:title'); if (d) { base.text = decode(d).slice(0, 2000); base.enriched = true; } base.thumb = m('og:image') ? decode(m('og:image')!) : null; }
   } catch { /* keep the link */ }
   return base;
+}
+
+// Vision pass: keep only the company's own visual content. Drops third-party/client logos, partner badges, icons and UI screenshots of other brands.
+export async function classifyOwnImages(urls: string[], company: string, ownLogo?: string | null): Promise<{ keep: string[]; dropped: string[]; checked: boolean }> {
+  const list = [...new Set(urls)].filter((u) => /^https:\/\//.test(u) && u !== ownLogo).slice(0, 40);
+  if (!list.length || !process.env.ANTHROPIC_API_KEY) return { keep: list, dropped: [], checked: false };
+  const keep: string[] = []; const dropped: string[] = []; let checked = false;
+  for (let i = 0; i < list.length; i += 12) {
+    const batch = list.slice(i, i + 12);
+    const content: any[] = [];
+    batch.forEach((u, k) => { content.push({ type: 'text', text: `תמונה ${k}:` }); content.push({ type: 'image', source: { type: 'url', url: u } }); });
+    content.push({ type: 'text', text: `אלה תמונות שנאספו מאתר החברה "${company}". סווג כל תמונה: "own" — תוכן של החברה עצמה (תמונות עבודה, צוות, מוצרים/שירותים שלה, קריאייטיב ממותג שלה, אווירה); "third_party_logo" — לוגו של לקוח/שותף/מותג אחר; "icon" — אייקון/גרפיקה קטנה/רקע. החזר JSON בלבד: {"own":[מספרים],"drop":[מספרים]}` });
+    try {
+      const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal: AbortSignal.timeout(45000),
+        headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
+        body: JSON.stringify({ model: process.env.ANTHROPIC_VISION_MODEL || 'claude-haiku-5-5', max_tokens: 400, messages: [{ role: 'user', content }] }) });
+      const j: any = await r.json(); const t = (j.content ?? []).map((c: any) => c.text ?? '').join('');
+      const o = JSON.parse(t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1));
+      const own = new Set<number>((o.own ?? []).map(Number)); checked = true;
+      batch.forEach((u, k) => (own.has(k) ? keep : dropped).push(u));
+    } catch { keep.push(...batch); }
+  }
+  return { keep, dropped, checked };
 }
