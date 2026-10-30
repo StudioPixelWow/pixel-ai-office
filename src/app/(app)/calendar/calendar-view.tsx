@@ -10,14 +10,14 @@ const TZ = 'Asia/Jerusalem';
 const key = (d: Date | string) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(d));
 const f = (d: string | Date, o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('he-IL', { timeZone: TZ, ...o }).format(new Date(d));
 const time = (d: string) => f(d, { hour: '2-digit', minute: '2-digit' });
-const TYPE: Record<string, [string, string]> = { meeting: ['פגישה', '●'], loud: ['הקלטת LOUD', '🎙'], todo: ['משימה', '☐'], milestone: ['אבן דרך', '◆'], post: ['פוסט', '▦'] };
+const TYPE: Record<string, [string, string]> = { holiday: ['חגים ומועדים', '✡'], meeting: ['פגישה', '●'], loud: ['הקלטת LOUD', '🎙'], todo: ['משימה', '☐'], milestone: ['אבן דרך', '◆'], post: ['פוסט', '▦'] };
 const DOW = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 function tzOff(date: string) { const p = new Intl.DateTimeFormat('en-US', { timeZone: TZ, timeZoneName: 'shortOffset' }).formatToParts(new Date(`${date}T12:00:00Z`)).find((x) => x.type === 'timeZoneName')?.value ?? 'GMT+2'; const h = Number(p.match(/GMT([+-]\d+)/)?.[1] ?? 2); return `${h >= 0 ? '+' : '-'}${String(Math.abs(h)).padStart(2, '0')}:00`; }
 const iso = (date: string, t: string) => new Date(`${date}T${t}:00${tzOff(date)}`).toISOString();
 
 export function CalendarView({ anchor, view, items, google, gConfigured, gFlash, feed, clients, canConnect }:
   { anchor: string; view: 'month' | 'week' | 'agenda'; items: any[]; google: any; gConfigured: boolean; gFlash: string | null; feed: string | null; clients: { id: string; name: string }[]; canConnect: boolean }) {
-  const r = useRouter(); const [show, setShow] = useState<Record<string, boolean>>({ meeting: true, loud: true, todo: true, milestone: true, post: false });
+  const r = useRouter(); const [show, setShow] = useState<Record<string, boolean>>({ holiday: true, meeting: true, loud: true, todo: true, milestone: true, post: false });
   const [edit, setEdit] = useState<any | null>(null); const [peek, setPeek] = useState<any | null>(null); const [gPanel, setGPanel] = useState(!!gFlash); const [copied, setCopied] = useState(false); const [syncing, setSyncing] = useState(false);
   const vis = items.filter((x) => show[x.type]);
   const byDay = useMemo(() => { const m = new Map<string, any[]>(); for (const x of vis) { const k = key(x.start); m.set(k, [...(m.get(k) ?? []), x]); } return m; }, [vis]);
@@ -46,9 +46,9 @@ export function CalendarView({ anchor, view, items, google, gConfigured, gFlash,
 
     {view !== 'agenda' ? <div className={`cal-grid ${view}`}>
       {DOW.map((d) => <div key={d} className="cal-dow">{d}</div>)}
-      {days.map((d) => { const k = key(d); const list = (byDay.get(k) ?? []).sort((x, y) => (x.all_day === y.all_day ? x.start.localeCompare(y.start) : x.all_day ? -1 : 1)); const out = view === 'month' && d.getUTCMonth() !== a.getUTCMonth();
+      {days.map((d) => { const k = key(d); const list = (byDay.get(k) ?? []).sort((x, y) => (x.type === 'holiday' ? -1 : y.type === 'holiday' ? 1 : x.all_day === y.all_day ? x.start.localeCompare(y.start) : x.all_day ? -1 : 1)); const hol = list.find((x) => x.type === 'holiday'); const out = view === 'month' && d.getUTCMonth() !== a.getUTCMonth();
         const max = view === 'month' ? 4 : 40;
-        return <div key={k} className={`cal-day${k === today ? ' today' : ''}${out ? ' out' : ''}${d.getUTCDay() === 6 ? ' sat' : ''}`} onDoubleClick={() => newItem(k)}>
+        return <div key={k} className={`cal-day${k === today ? ' today' : ''}${out ? ' out' : ''}${d.getUTCDay() === 6 ? ' sat' : ''}${hol ? (hol.no_marketing ? ' memorial' : ' hol') : ''}`} onDoubleClick={() => newItem(k)}>
           <header><span>{f(d, { day: 'numeric' })}</span><button className="cal-plus" onClick={() => newItem(k)} aria-label="הוספה">＋</button></header>
           {list.slice(0, max).map((x) => <button key={x.type + x.id} className={`cal-ev t-${x.type}${x.overdue ? ' late' : ''}${x.status === 'done' ? ' done' : ''}`} onClick={() => setPeek(x)} title={x.title}>
             <i>{TYPE[x.type]?.[1]}</i>{!x.all_day && <em>{time(x.start)}</em>}<span>{x.title}</span></button>)}
@@ -65,6 +65,7 @@ export function CalendarView({ anchor, view, items, google, gConfigured, gFlash,
       {peek.client && <p>👤 {peek.client_id ? <Link href={`/clients/${peek.client_id}`}>{peek.client}</Link> : peek.client}</p>}
       {peek.location && <p>📍 {peek.location}</p>}{peek.service && <p>שירות: {peek.service}</p>}
       {(peek.description || peek.notes) && <p style={{ whiteSpace: 'pre-wrap' }}>{peek.description || peek.notes}</p>}
+      {peek.type === 'holiday' && <>{peek.hebrew && <p>{peek.hebrew}</p>}{peek.no_marketing ? <p className="ldo-flash bad">יום זיכרון / יום ללא שיווק — לא מתזמנים פוסטים שיווקיים</p> : <p className="small muted">{peek.kind === 'marketing' ? 'יום שיווקי — הזדמנות לתוכן' : 'חג / מועד'}</p>}{peek.memo && <p>{peek.memo}</p>}</>}
       {peek.source === 'google' && <p className="small muted">מגיע מ-Google Calendar</p>}
       {peek.sync === 'error' && <p className="small" style={{ color: 'var(--bad)' }}>הסנכרון ל-Google נכשל — ננסה שוב</p>}
       <div className="row" style={{ marginTop: 12 }}>

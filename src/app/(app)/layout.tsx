@@ -5,7 +5,7 @@ import { LiveRefresh } from '@/components/client';
 
 export const dynamic = 'force-dynamic';
 const ROLE: Record<string, string> = { owner: 'Owner', admin: 'מנהל מערכת', account_manager: 'מנהל לקוח', employee: 'עובד', viewer: 'צופה' };
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children, modal }: { children: React.ReactNode; modal: React.ReactNode }) {
   const [m, t] = await Promise.all([me(), today()]); const d = { waiting_me: Number(t?.action_count ?? 0) }; const liveN = (t?.live ?? []).length;
   return <div className="shell">
     <MobileBar waiting={d.waiting_me} />
@@ -19,6 +19,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <LiveRefresh />
         <span className="who">{m.email} · {ROLE[m.role]} · <a href="/auth/signout">יציאה</a></span>
       </header>
-      <main className="page" id="main">{children}</main>
+      <main className="page" id="main">{children}</main>{modal}
     </div></div>;
 }
