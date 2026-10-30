@@ -17,7 +17,7 @@ export function QuickProposal({ lead, terms, packages = [] }: { lead: Lead; term
   const [kind, setKind] = useState<'retainer' | 'one_time'>(init.some((k) => SERVICE_BY_KEY[k].kind === 'one_time') && !init.some((k) => SERVICE_BY_KEY[k].kind === 'retainer') ? 'one_time' : 'retainer');
   const [svc, setSvc] = useState<string[]>(init); const [busy, setBusy] = useState(false); const [msg, setMsg] = useState('');
   const [pkg, setPkg] = useState<string | null>(null); const [price, setPrice] = useState(''); const [vat, setVat] = useState('plus_vat'); const [addon, setAddon] = useState({ t: '', p: '' });
-  const pick = (p: Pkg) => { setPkg(p.id); setKind(p.kind); setSvc(p.services.filter((k) => SERVICE_BY_KEY[k])); if (p.price) setPrice(String(p.price)); setVat(p.vat_mode || 'plus_vat'); setAddon({ t: p.addon_title ?? '', p: p.addon_price ? String(p.addon_price) : '' }); };
+  const pick = (p: Pkg) => { setPkg(p.id); setKind(p.kind); setSvc(p.services.filter((k) => SERVICE_BY_KEY[k])); setVat(p.vat_mode || 'plus_vat'); setAddon({ t: p.addon_title ?? '', p: '' }); };
   const shown = useMemo(() => SERVICES.filter((s) => s.kind === kind || svc.includes(s.key)), [kind, svc]);
   const defSub = kind === 'retainer'
     ? `כל הפעילות השיווקית תחת צוות אחד: ${svc.map((k) => SERVICE_BY_KEY[k]?.label).filter(Boolean).join(', ')}. המטרה: שלקוחות יכירו, יסמכו ויפנו.`
@@ -41,7 +41,7 @@ export function QuickProposal({ lead, terms, packages = [] }: { lead: Lead; term
   }
   return <form className="f" onSubmit={submit}>
     {packages.length > 0 && <div className="pkg-pick"><span className="small muted">חבילה מוכנה (ממלא שירותים ומחיר — אפשר לשנות)</span>
-      <div className="pkg-row">{packages.map((p) => <button type="button" key={p.id} className={`pkg ${pkg === p.id ? 'on' : ''}`} onClick={() => pick(p)}><b>{p.name}</b><small>{p.price ? `₪${Number(p.price).toLocaleString('he-IL')}${p.kind === 'retainer' ? '/ח׳' : ''}` : 'מחיר לפי הצעה'}</small></button>)}</div></div>}
+      <div className="pkg-row">{packages.map((p) => <button type="button" key={p.id} className={`pkg ${pkg === p.id ? 'on' : ''}`} onClick={() => pick(p)}><b>{p.name}</b><small>{p.services.length} שירותים · מחיר ידני</small></button>)}</div></div>}
     <div className="row" role="radiogroup">{(['retainer', 'one_time'] as const).map((k) => <button type="button" key={k} className={`btn ${kind === k ? 'y' : ''}`} aria-pressed={kind === k} onClick={() => setKind(k)}>{k === 'retainer' ? 'ריטיינר חודשי' : 'פרויקט חד-פעמי'}</button>)}</div>
     <fieldset className="chips"><legend className="small muted">שירותים בהצעה *</legend>
       {shown.map((s) => <label key={s.key} className={`chip ${svc.includes(s.key) ? 'on' : ''}`}><input type="checkbox" checked={svc.includes(s.key)} onChange={() => setSvc((x) => x.includes(s.key) ? x.filter((y) => y !== s.key) : [...x, s.key])} />{s.label}</label>)}</fieldset>
