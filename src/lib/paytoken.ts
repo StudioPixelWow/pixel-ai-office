@@ -1,8 +1,8 @@
 import 'server-only';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-// Signed, non-guessable reference for the public payment page. k = 'pmt' (billing payment id) | 'prp' (proposal public token).
-type P = { k: 'pmt' | 'prp'; id: string };
-const key = () => `${process.env.CRON_SECRET ?? ''}:pay-page:v1`;
+// Signed, non-guessable public references. k = 'pmt' (billing payment id) | 'prp' (proposal public token) | 'pod' (LOUD studio booking).
+type P = { k: 'pmt' | 'prp' | 'pod'; id: string };
+const key = () => { const s = process.env.CRON_SECRET; if (!s) throw new Error('CRON_SECRET missing'); return `${s}:pay-page:v1`; };
 const b64 = (s: string) => Buffer.from(s).toString('base64url');
 export function signPay(p: P) { const body = b64(JSON.stringify(p)); const sig = createHmac('sha256', key()).update(body).digest('base64url').slice(0, 32); return `${body}.${sig}`; }
 export function verifyPay(t: string): P | null {

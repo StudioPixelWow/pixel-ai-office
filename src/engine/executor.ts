@@ -178,6 +178,12 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     const r = await w('office_worker_save_content_plan', { p_task: id, p_lease: lease, p_plan: plan });
     return void await w('office_worker_complete', { p_task: id, p_lease: lease, p_result: { outputs: r, summary: `${r.posts} פוסטים הוצבו בגאנט לאישורך` } });
   }
+  if (kind === 'tool:save_interview') {
+    const kit = (c.dependencies ?? []).flatMap((d: any) => d.artifacts ?? []).find((a: any) => a.kind === 'interview_kit')?.data;
+    if (!kit) return void await w('office_worker_block', { p_task: id, p_lease: lease, p_status: 'waiting_input', p_blocker: 'אין קובץ שאלות לשמירה', p_checkpoint: null });
+    const r = await w('office_worker_save_interview', { p_task: id, p_lease: lease, p_kit: kit });
+    return void await w('office_worker_complete', { p_task: id, p_lease: lease, p_result: { outputs: r, summary: `קובץ שאלות (${r.questions} שאלות) ממתין לאישורך בלשונית LOUD` } });
+  }
   if (kind === 'tool:save_dossier') {
     const partA = depArt(c, 'dossier')?.data; const partB = depArt(c, 'library')?.data;
     const anyD = (c.dependencies ?? []).flatMap((d: any) => d.artifacts ?? []).find((a: any) => a.kind === 'client_dossier')?.data;

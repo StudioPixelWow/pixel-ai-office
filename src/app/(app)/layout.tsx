@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { me, rpc } from '@/lib/api';
-import { Nav } from '@/components/nav';
+import { Nav, MobileBar, LOGO_WHITE } from '@/components/nav';
 import { LiveRefresh } from '@/components/client';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +9,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const m = await me();
   const t = await rpc<any>('office_today').catch(() => null); const d = { waiting_me: Number(t?.action_count ?? 0) }; const liveN = (t?.live ?? []).length;
   return <div className="shell">
-    <aside className="side"><div className="logo"><img src="https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-500.webp" alt="Pixel Digital" /><b>AI OFFICE</b></div>
+    <MobileBar waiting={d.waiting_me} />
+    <aside className="side" id="side"><div className="logo"><img src={LOGO_WHITE} alt="Pixel Digital" /><b>AI OFFICE</b></div>
       <Nav waiting={Number(d.waiting_me ?? 0)} /></aside>
     <div className="main">
       <header className="top">

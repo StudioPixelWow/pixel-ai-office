@@ -40,6 +40,12 @@ export const OUTPUT = {
   content_plan: z.object({ summary: z.string().default(''), posts: z.array(z.object({ date: z.string(), title: z.string(), slot_kind: z.string().default('regular'), marker: z.string().nullable().optional(),
     rtm_id: z.string().nullable().optional(), pillar: z.string().default(''), format: z.string().default('פוסט'), platforms: z.array(z.string()).default([]), idea: z.string().default(''), hook: z.string().default(''),
     post_text: z.string().default(''), hashtags: z.array(z.string()).default([]), cta: z.string().default(''), creative_prompt: z.string().default(''), why: z.string().default(''), time: z.string().optional() })).min(1) }),
+  interview_kit: z.object({ summary: z.string().default(''), guest_bio: z.string().default(''), angle: z.string().default(''),
+    opener: z.string().default(''),
+    segments: z.array(z.object({ title: z.string(), minutes: z.coerce.number().default(10), goal: z.string().default(''), key_point: z.string().nullable().optional(),
+      questions: z.array(z.object({ q: z.string(), followups: z.array(z.string()).default([]), note: z.string().default('') })).min(1) })).min(3),
+    closer: z.string().default(''), cta: z.string().default(''), clip_ideas: z.array(z.string()).default([]), avoid: z.array(z.string()).default([]),
+    research_notes: z.array(z.string()).default([]), sources: z.array(z.string()).default([]) }),
 } as const;
 export type OutputKind = keyof typeof OUTPUT;
 
@@ -56,6 +62,7 @@ export const SHAPE_HINT: Record<OutputKind, string> = {
   article: '{"title","slug","excerpt","body_markdown","sources":[...],"faq":[{"q","a"}]}',
   client_dossier: '{"summary","brand":{"voice","tone_words":[],"values":[],"differentiators":[],"messages":[],"colors":[{"hex","role"}],"fonts":[],"logo_url"},"business":{"about","services":[{"name","description"}],"faq":[{"q","a"}],"locations":[],"contact":{"phones":[],"emails":[],"address"}},"audiences":[{"name","pains":[],"motivations":[],"channels":[]}],"competitors":[{"name","url","strengths","gap"}],"digital_presence":[{"network","url","status","notes","recommendation"}],"social_voice":{"style","caption_length","emoji_use","hashtags":[],"hooks":[],"formats_that_work":[],"visual_style","do":[],"dont":[],"top_examples":[{"url","why"}]},"reputation":{"summary","rating","themes_positive":[],"themes_negative":[]},"content_library":{"pillars":[{"name","description"}],"post_ideas":[{"title","format","pillar","hook"}] (30),"seo_keywords":[],"aeo_questions":[]},"opportunities":[],"open_questions":[],"sources":[]}',
   content_plan: '{"summary","posts":[{"date":"YYYY-MM-DD מתוך allowed_dates","title":"כותרת קצרה לפוסט","slot_kind":"regular|holiday|rtm","marker":"שם החג/האירוע או null","rtm_id","pillar","format":"רילס|קרוסלה|פוסט תמונה|סטורי","platforms":["facebook","instagram"],"idea":"רעיון בשורה-שתיים","hook":"משפט פתיחה","post_text":"טקסט מלא מוכן לפרסום בשפת הלקוח","hashtags":[],"cta","creative_prompt":"English visual description, no text in image","why":"למה זה מתאים"}]} — פוסט אחד לכל משבצת',
+  interview_kit: '{"summary":"שורה-שתיים על הפרק","guest_bio":"פסקה על האורח/ת והעסק מהמחקר","angle":"הזווית המרכזית של הפרק","opener":"פתיח של המראיין (2-3 משפטים)","segments":[{"title","minutes","goal","key_point":"אחת מ-3 נקודות המפתח או null","questions":[{"q":"שאלה פתוחה","followups":["שאלת המשך"],"note":"למראיין: עובדה מהמחקר / מה לחפש"}]}],"closer":"סגירה","cta":"קריאה לפעולה לסיום","clip_ideas":["רעיון לקטע קצר"],"avoid":["נושא להימנע"],"research_notes":["עובדה חשובה מהמחקר"],"sources":["url"]}',
   proposal_doc: '{"need","services":[],"deliverables":[],"phases":[{"title","detail"}],"timeline","assumptions":[],"items":[{"kind":"setup|retainer|addon|media","title","quantity","unit_price?","description"}],"html?"}',
 };
 
@@ -82,6 +89,7 @@ export function toMarkdown(kind: OutputKind, d: any): string {
     case 'proposal_doc': return `## הבנת הצורך\n${d.need}\n\n## שירותים\n${d.services.map((s: string) => `- ${s}`).join('\n')}\n\n## תוצרים\n${d.deliverables.map((s: string) => `- ${s}`).join('\n')}\n\n## שלבים\n${d.phases.map((p: any) => `- **${p.title}:** ${p.detail}`).join('\n')}\n\n## לוח זמנים\n${d.timeline}\n\n## הנחות יסוד\n${d.assumptions.map((s: string) => `- ${s}`).join('\n')}`;
     case 'client_dossier': return dossierMarkdown(d);
     case 'content_plan': return `${d.summary}\n\n${d.posts.map((x: any) => `### ${x.date} · ${x.title}${x.marker ? ` · ${x.marker}` : ''}\n_${x.format} · ${(x.platforms ?? []).join(', ')}_\n\n${x.post_text}\n\n${(x.hashtags ?? []).join(' ')}`).join('\n\n')}`;
+    case 'interview_kit': return `# ${d.angle || 'קובץ שאלות'}\n${d.summary}\n\n**על האורח/ת:** ${d.guest_bio}\n\n**פתיח:** ${d.opener}\n\n${d.segments.map((sg: any, i: number) => `## ${i + 1}. ${sg.title} · ${sg.minutes} דק׳\n_${sg.goal}_\n${sg.questions.map((q: any) => `- ${q.q}${q.followups?.length ? `\n  - ${q.followups.join('\n  - ')}` : ''}${q.note ? `\n  > ${q.note}` : ''}`).join('\n')}`).join('\n\n')}\n\n**סגירה:** ${d.closer}\n**CTA:** ${d.cta}\n\n**רעיונות לקליפים:**\n${(d.clip_ideas ?? []).map((x: string) => `- ${x}`).join('\n')}`;
     case 'plan': return `${d.answer ?? d.summary ?? ''}\n\n${(d.tasks ?? []).map((t: any) => `- ${t.title} → ${t.agent_id}`).join('\n')}`;
   }
 }

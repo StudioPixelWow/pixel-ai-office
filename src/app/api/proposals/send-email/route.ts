@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   const v = (vs as any[] ?? []).find((x) => x.version_no === (p as any).current_version); const cl = v?.content?.client ?? {};
   const company = cl.company ?? (p as any).title; const first = String(cl.contact_name ?? '').split(' ')[0];
   const html = `<div dir="rtl" style="font-family:Assistant,Arial,sans-serif;background:#F4F8FB;padding:24px"><div style="max-width:560px;margin:auto;background:#fff;border-radius:20px;overflow:hidden">
-<div style="background:#0B1320;padding:24px 28px"><img src="https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-500.webp" alt="Pixel Digital" style="height:34px;background:#fff;border-radius:10px;padding:6px"></div>
+<div style="background:#0B1320;padding:24px 28px"><img src="https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-white-500.webp" alt="Pixel Digital" style="height:34px"></div>
 <div style="padding:28px;color:#0B1320;font-size:16px;line-height:1.7"><p>היי ${esc(first)},</p><p>מצורפת הצעת המחיר של Studio Pixel עבור <b>${esc(company)}</b>.</p>
 <p>אפשר לעיין בהצעה, לחתום עליה דיגיטלית ולשלם — הכל בקישור אחד:</p>
 <p style="text-align:center;margin:26px 0"><a href="${u.toString()}" style="background:#E8F401;color:#0B1320;font-weight:800;text-decoration:none;border-radius:999px;padding:14px 30px;display:inline-block">לצפייה וחתימה על ההצעה</a></p>
