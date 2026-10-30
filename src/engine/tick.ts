@@ -10,7 +10,7 @@ import { klingConfigured, checkAuth } from './adapters/kling';
 import { waConfigured, waCheck, waSendText } from './adapters/whatsapp';
 import { growCheck, growIsSandbox, growConfigured } from './adapters/grow';
 import { greenInvoiceConfigured, giCheck } from './adapters/greeninvoice';
-import { gmailConfigured, gmailCheck } from './adapters/gmail';
+import { gmailConfigured, gmailCheck, gmailSend } from './adapters/gmail';
 
 export async function selfChecks() {
   const out: any = {};
@@ -53,9 +53,21 @@ export async function selfChecks() {
   return out;
 }
 
+// approved messages also go by email when the contact has one (WhatsApp Cloud may not be connected yet)
+async function alsoEmail(dispatchId: string) {
+  if (!gmailConfigured()) return null;
+  const e: any = await w('office_worker_dispatch_email', { p_dispatch: dispatchId }).catch(() => null); if (!e?.email) return null;
+  const loud = e.ref_type === 'studio_booking'; const esc = (x: string) => String(x).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as any)[c]);
+  const body = esc(e.body).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" style="color:inherit;font-weight:bold">$1</a>').replace(/\n/g, '<br>');
+  const head = loud ? `<div style="background:#100F0D;padding:18px 24px"><img src="${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/brand/loud-on-dark.png" alt="LOUD Podcast Studio" style="height:46px"></div>`
+    : `<div style="background:#0B1320;padding:18px 24px"><img src="https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-white-500.webp" alt="Pixel Digital" style="height:28px"></div>`;
+  const subject = loud ? ({ loud_kit: 'קובץ השאלות לראיון שלך מוכן 🎙️', loud_reminder: 'תזכורת: מחר מקליטים באולפן LOUD', loud_thanks: 'איזה כיף היה באולפן 🎧', loud_materials: 'החומרים מהפרק שלך מוכנים 🎙️', loud_pay: 'עוד צעד אחד לפרק שלך', loud_slot: 'בוחרים מועד להקלטה' } as any)[e.kind] ?? 'הודעה מאולפן LOUD' : 'הודעה מ-Pixel Digital';
+  return gmailSend({ to: e.email, subject, text: e.body, html: `<div dir="rtl" style="font-family:Arial,sans-serif;background:${loud ? '#1C1A17' : '#F7FBFF'};padding:24px"><div style="max-width:560px;margin:auto;background:#fff;border-radius:20px;overflow:hidden">${head}<div style="padding:22px 24px;color:#100F0D;font-size:15px;line-height:1.7">${body}</div></div></div>` });
+}
 async function dispatchOutbox() {
   const items: any[] = await w('office_worker_outbox_claim', { p_max: 5 });
   for (const it of items) {
+    await alsoEmail(it.dispatch_id).catch(() => null);
     if (it.provider === 'whatsapp_sandbox') {
       const r = await w('office_worker_sandbox_send', { p_dispatch: it.dispatch_id });
       await w('office_worker_outbox_result', { p_dispatch: it.dispatch_id, p_outcome: 'accepted', p_provider_id: r.provider_message_id, p_error: null });
