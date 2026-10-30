@@ -123,8 +123,8 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   if (new Date().getUTCMinutes() % 5 === 1) { try { report.care = await w('office_worker_care_tick', {}); } catch (e: any) { report.errors.push(e.message); } }
   const mi = new Date().getUTCMinutes();
   if (mi % 20 === 13) { try { report.sites = await siteChecks(); } catch (e: any) { report.errors.push(e.message); } }
-  // autopilot (owner switches in settings): research new clients, monthly gantts, RTM — once an hour
-  if (mi === 17) { try { report.autopilot = await w('office_worker_autopilot', {}); } catch (e: any) { report.errors.push(e.message); } }
+  // autopilot (owner switches in settings): research new clients, monthly gantts, RTM — every 20 minutes (each step is idempotent)
+  if (mi % 20 === 17) { try { report.autopilot = await w('office_worker_autopilot', {}); } catch (e: any) { report.errors.push(e.message); } }
   if (mi % 15 === 7) { try { report.prep = await meetingPrep(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi % 10 === 3) { try { report.ads = await adsSync(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi === 29) { try { report.retention = await retentionReview(); } catch (e: any) { report.errors.push(e.message); } }
