@@ -8,7 +8,7 @@ export default async function PayPage({ params }: { params: Promise<{ t: string 
   const { t } = await params; const c = await payContext(t);
   return <main className="pay" dir="rtl">
     <div className="pay-card">
-      <div className="pay-brand"><i aria-hidden /><b>Pixel</b><span>Digital</span></div>
+      <div className="pay-brand"><img src="https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-500.webp" alt="Pixel Digital" /></div>
       {!c ? <><h1>הקישור אינו בתוקף</h1><p className="pay-sub">ייתכן שפג תוקפו. אפשר לפנות אלינו ונשלח קישור חדש.</p></>
         : c.closed ? <><h1>התשלום כבר הוסדר ✓</h1><p className="pay-sub">תודה! אין צורך בפעולה נוספת.</p></>
         : <>
