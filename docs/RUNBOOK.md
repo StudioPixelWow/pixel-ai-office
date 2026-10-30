@@ -6,10 +6,11 @@ cp .env.example .env.local   # fill NEXT_PUBLIC_*; server secrets only if needed
 npm run dev
 ```
 ## Deploy (Vercel project `pixel-ai-office`, team office-7152's projects)
-- Env (Production, **Sensitive**): WORKER_SECRET, CRON_SECRET, ANTHROPIC_API_KEY, OPENAI_API_KEY, KLING_*, WHATSAPP_*.
+- Env (Production, **Sensitive**, set by Tal only): CRON_SECRET (32+ random chars), ANTHROPIC_API_KEY, OPENAI_API_KEY, KLING_*, WHATSAPP_*. WORKER_SECRET is optional and defaults to CRON_SECRET.
+- After the first deploy: log in as Owner → dashboard checklist → "רשום Worker". The server hashes CRON_SECRET and only the hash is stored (`office_register_worker_secret`).
 - Public env: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, NEXT_PUBLIC_SITE_URL.
 - Cron: vercel.json → `/api/worker/tick` every minute (Authorization: Bearer CRON_SECRET).
-- Rotate WORKER_SECRET: set new env, then `update office.system_secrets set sha256 = encode(digest('<new>','sha256'),'hex') where name='worker'`.
+- Rotate the worker secret: change CRON_SECRET in Vercel, redeploy, then press "רשום Worker" again. No secret value ever passes through chat, repo or logs.
 ## DNS (uPress, zone s-pixel.co.il)
 - `manage` → CNAME `cname.vercel-dns.com` (replace the A 88.218.117.132). Do not touch MX or other records.
 - Rollback: delete CNAME, restore A 88.218.117.132 (the empty WP install is still on uPress).

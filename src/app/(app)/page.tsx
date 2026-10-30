@@ -7,6 +7,7 @@ import { SetupChecklist } from './setup-checklist';
 export default async function Home() {
   const m = await me();
   const d = await rpc<any>('office_dashboard');
+  const ws = await rpc<any>('office_worker_secret_status').catch(() => ({ registered: false }));
   const [waiting, stuck, due, conns, agents] = await Promise.all([
     safeList('task_runs', { status: 'waiting_approval' }, 8), safeList('task_runs', { status: ['waiting_connection', 'waiting_input', 'waiting_local', 'failed', 'uncertain'] }, 8),
     safeList('content_items', { _active: true }, 200), safeList('connections', {}, 50), safeList('agent_definitions', {}, 100),
@@ -15,7 +16,7 @@ export default async function Home() {
   return <>
     <Hero title={<>בוקר טוב, <span className="mark">PIXEL AI OFFICE</span></>} sub="מה ממתין לך, מה תקוע, מה יוצא השבוע — הכל נגזר מרשומות העבודה בפועל.">
       <Link className="btn k" href="/talk">דבר עם המשרד</Link></Hero>
-    {m.role === 'owner' && <SetupChecklist agents={agents.length} conns={conns} />}
+    {m.role === 'owner' && <SetupChecklist agents={agents.length} conns={conns} worker={!!ws.registered} />}
     <div className="grid g4">
       <Stat n={d.waiting_me} label="ממתין לאישור שלי" href="/approvals" />
       <Stat n={d.stuck} label="משימות תקועות" href="/tasks?f=stuck" />
