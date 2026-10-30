@@ -1,3 +1,4 @@
+import { jsonrepair } from 'jsonrepair';
 import { z } from 'zod';
 // Structured output contracts, validated in code before anything is saved or any external step runs.
 const msg = z.object({ contact_id: z.string().uuid(), body: z.string().min(2).max(1500), reason: z.string().max(400), kind: z.string().default('followup'),
@@ -56,8 +57,11 @@ export const SHAPE_HINT: Record<OutputKind, string> = {
 
 export function extractJson(text: string): unknown {
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/); const raw = fence ? fence[1] : text;
-  const s = raw.indexOf('{'); const e = raw.lastIndexOf('}'); if (s < 0 || e < s) throw new Error('no_json');
-  return JSON.parse(raw.slice(s, e + 1));
+  const s = raw.indexOf('{'); const e = raw.lastIndexOf('}'); if (s < 0) throw new Error('no_json');
+  const slice = e > s ? raw.slice(s, e + 1) : raw.slice(s);
+  try { return JSON.parse(slice); }
+  // Hebrew abbreviations (בע"מ, ת"א) often leave unescaped quotes; long outputs may be cut — repair before giving up.
+  catch { return JSON.parse(jsonrepair(e > s ? raw.slice(s) : slice)); }
 }
 
 export function toMarkdown(kind: OutputKind, d: any): string {
