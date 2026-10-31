@@ -85,9 +85,13 @@ async function handle(msg: any, me: string): Promise<string> {
 כללים: actionable=false למייל שהוא רק "תודה"/אישור קבלה/מידע ללא בקשה. priority=high לתלונה, דחיפות מפורשת, דדליין היום/מחר, או בעיה בקמפיין/אתר שלא עובד.
 new_lead=true רק כשזו פנייה של עסק/אדם חדש שמתעניין בשירותים. אל תמציא לקוח — client_guess רק מתוך הרשימה.`;
   const user = `מאת: ${fromName} <${fromEmail}>\nנושא: ${subject}\n${match.client_id ? `(שויך כבר ללקוח לפי ${match.by})` : `לקוחות המשרד: ${list.map((c) => `${c.id}=${c.name}${c.site ? ` (${c.site})` : ''}`).join(' | ')}`}\n\nתוכן:\n${snippet || '(ריק)'}`;
-  const r = await claude({ model: MODEL, system, user, maxTokens: 500 });
+  const r = await claude({ model: MODEL, system: system + '\nהחזר/י אובייקט JSON יחיד בלבד, בלי טקסט לפניו או אחריו.', user, maxTokens: 700 });
   await w('office_worker_log_usage', { p_client: match.client_id ?? null, p_agent: 'inbox_triage', p_model: r.model, p_in: r.usage.input, p_out: r.usage.output, p_cost: tokenCost(r.model, r.usage.input, r.usage.output), p_note: 'סיווג מייל נכנס' }).catch(() => null);
-  const c: Cls = extractJson(r.text) as any;
+  let c: Cls;
+  try { c = extractJson(r.text) as any; }
+  catch { console.error('[inbox] unparsable classification', r.text.slice(0, 300));
+    // never lose an email over a formatting hiccup: keep it for a human to look at
+    c = { kind: 'info', actionable: !!match.client_id, action: subject ? `לבדוק מייל: ${subject}`.slice(0, 80) : 'לבדוק מייל', summary: snippet.slice(0, 200), due: '', priority: 'normal', client_guess: null, confidence: 0, new_lead: false }; }
   const guess = !match.client_id && c?.client_guess && list.some((x) => x.id === c.client_guess) && Number(c.confidence) >= 0.6 ? c.client_guess : null;
   const actionable = !!c?.actionable || c?.kind === 'complaint';
   const status = !actionable ? 'info' : match.client_id ? 'task' : c?.new_lead ? 'lead' : 'needs_match';
