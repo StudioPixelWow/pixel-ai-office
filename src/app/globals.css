@@ -1200,3 +1200,8 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .qa-i:hover i{background:var(--grad);border-color:transparent}
 .mtabs a i{display:grid;place-items:center;height:24px}.mtabs a.on i{color:var(--cyan-deep,#00A8D6)}
 .mbar-btn svg{display:block}
+/* inbox */
+.ib-list{display:flex;flex-direction:column;gap:10px}.ib{padding:14px 16px}.ib.hot{border-color:#F3C9C9;background:#FFF9F9}
+.ib-h{display:flex;gap:8px;align-items:flex-start}.ib-h small{display:block;color:var(--muted,#5b6b80)}.ib-sum{margin:8px 0;font-size:14.5px}
+.ib-f{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.ib-f select{width:auto;min-width:200px}.ib-todo{color:var(--ok)}
+@media (max-width:760px){.ib-h{flex-direction:column;align-items:center;text-align:center}.ib-sum{text-align:center}.ib-f{flex-direction:column;align-items:stretch}.ib-f select{width:100%}.ib-f .sp{display:none}}

@@ -9,7 +9,7 @@ import { Menu, X } from 'lucide-react';
 export const LOGO_WHITE = 'https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-white-500.webp';
 
 const NAV: [string, string, string, string][] = [
-  ['היום', '/', 'home', 'מרכז בקרה'], ['היום', '/week', 'week', 'מצב שבוע'], ['היום', '/approvals', 'approvals', 'לטיפולי'], ['היום', '/calendar', 'calendar', 'יומן'], ['היום', '/talk', 'talk', 'תן משימה לסוכנים'],
+  ['היום', '/', 'home', 'מרכז בקרה'], ['היום', '/week', 'week', 'מצב שבוע'], ['היום', '/approvals', 'approvals', 'לטיפולי'], ['היום', '/inbox', 'inbox', 'דואר נכנס'], ['היום', '/calendar', 'calendar', 'יומן'], ['היום', '/talk', 'talk', 'תן משימה לסוכנים'],
   ['לקוחות וכסף', '/clients', 'clients', 'לקוחות'], ['לקוחות וכסף', '/leads', 'leads', 'לידים'], ['לקוחות וכסף', '/winback', 'winback', 'החזרת לקוחות עבר'], ['לקוחות וכסף', '/proposals', 'proposals', 'הצעות מחיר'], ['לקוחות וכסף', '/payments', 'payments', 'הנהלת חשבונות'], ['לקוחות וכסף', '/forecast', 'forecast', 'תחזית הכנסות'],
   ['תוכן ועבודה', '/content', 'content', 'גאנט תוכן'], ['תוכן ועבודה', '/winners', 'winners', 'פוסטים מנצחים'], ['תוכן ועבודה', '/loud', 'loud', 'אולפן LOUD'], ['תוכן ועבודה', '/tasks', 'tasks', 'משימות'], ['תוכן ועבודה', '/studio', 'studio', 'סטודיו קריאייטיב'],
   ['תוכן ועבודה', '/research', 'research', 'מחקר ו-RTM'], ['תוכן ועבודה', '/planning', 'planning', 'פרויקטים ויומן'], ['תוכן ועבודה', '/media', 'media', 'מדיה ומדידה'], ['תוכן ועבודה', '/conversations', 'conversations', 'שיחות'],
