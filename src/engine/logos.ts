@@ -54,7 +54,7 @@ async function toPng(buf: Buffer, max = 600) {
   const img = sharp(buf, { density: 300, failOn: 'none' });
   let p = await img.png().toBuffer();
   try { p = await sharp(p).trim({ threshold: 8 }).toBuffer(); } catch { /* nothing to trim */ }
-  return sharp(p).resize({ width: max, height: max, fit: 'inside', withoutEnlargement: false }).png().toBuffer();
+  return sharp(p).resize({ width: max, height: max, fit: 'inside', withoutEnlargement: true }).png().toBuffer();
 }
 // light logo on transparency → needs a dark tile
 async function bgFor(png: Buffer): Promise<'light' | 'dark'> {
