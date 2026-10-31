@@ -71,9 +71,12 @@ async function handle(msg: any, me: string): Promise<string> {
     attachments: (parsed?.attachments ?? []).filter((a: any) => a.contentDisposition !== 'inline').map((a: any) => ({ name: a.filename, type: a.contentType, size: a.size })).slice(0, 20) };
   // free filters — no AI spend on noise
   const dom = fromEmail.split('@')[1] ?? '';
-  const noise = !fromEmail || fromEmail === me || NOISE_FROM.test(fromEmail) || NOISE_DOMAINS.test(dom) || h?.has('list-unsubscribe') || h?.has('list-id')
+  // platform alerts that cost money or stop ads are never noise (suspension, disapproval, failed payment, policy, hacked/locked)
+  const critical = /(google\.com|facebookmail\.com|meta\.com|support\.facebook\.com|business\.facebook\.com)$/i.test(dom)
+    && /(הושעה|השעיה|מושעה|suspend|disapprov|נדח|לא אושר|policy|מדיניות|payment|תשלום|חיוב|billing|declined|failed|נכשל|restricted|מוגבל|disabled|הושבת|hacked|security alert|התראת אבטחה|unusual activity)/i.test(subject);
+  const noise = !critical && (!fromEmail || fromEmail === me) ||  !critical && ( NOISE_FROM.test(fromEmail) || NOISE_DOMAINS.test(dom) || h?.has('list-unsubscribe') || h?.has('list-id')
     || /bulk|list|junk/i.test(String(h?.get('precedence') ?? '')) || (h?.has('auto-submitted') && String(h.get('auto-submitted')) !== 'no')
-    || /^(invitation|updated invitation|הזמנה|הזמנה מעודכנת|accepted|declined)[:：]/i.test(subject) || (parsed?.attachments ?? []).some((a: any) => /calendar/.test(a.contentType ?? ''));
+    || /^(invitation|updated invitation|הזמנה|הזמנה מעודכנת|accepted|declined)[:：]/i.test(subject) || (parsed?.attachments ?? []).some((a: any) => /calendar/.test(a.contentType ?? '')));
   if (noise) { await w('office_worker_inbox_save', { p_mail: { ...base, ...full, snippet: snippet.slice(0, 300), status: 'skipped', classification: { kind: 'noise' } } }); return 'skipped'; }
 
   const match: any = await w('office_worker_inbox_match', { p_email: fromEmail });
@@ -82,6 +85,7 @@ async function handle(msg: any, me: string): Promise<string> {
   const system = `את/ה איריס, סוכנת הדואר הנכנס של משרד הפרסום Pixel Digital. קוראת מייל אחד ומחליטה אם הוא דורש פעולה מהמשרד.
 החזר/י JSON בלבד:
 {"kind":"request|approval|feedback|complaint|payment|meeting|lead|info","actionable":true/false,"action":"משימת מעקב קצרה בציווי בעברית (עד 10 מילים), למשל 'לשלוח לפסגות את ההצעה המעודכנת'","summary":"1–2 משפטים מה ביקשו/מה קרה","due":"YYYY-MM-DD אם צוין או משתמע (היום ${today}), אחרת ריק","priority":"low|normal|high","client_guess":"id של לקוח מהרשימה אם ברור מהתוכן שהמייל קשור אליו, אחרת null","confidence":0-1,"new_lead":true/false}
+התראה ממערכת פרסום (Google Ads / Meta) על השעיה, דחייה, תשלום שנכשל או הגבלה = actionable=true, kind=payment או complaint, priority=high, ונסה לזהות את הלקוח לפי מספר החשבון/שם בתוכן.
 כללים: actionable=false למייל שהוא רק "תודה"/אישור קבלה/מידע ללא בקשה. priority=high לתלונה, דחיפות מפורשת, דדליין היום/מחר, או בעיה בקמפיין/אתר שלא עובד.
 new_lead=true רק כשזו פנייה של עסק/אדם חדש שמתעניין בשירותים. אל תמציא לקוח — client_guess רק מתוך הרשימה.`;
   const user = `מאת: ${fromName} <${fromEmail}>\nנושא: ${subject}\n${match.client_id ? `(שויך כבר ללקוח לפי ${match.by})` : `לקוחות המשרד: ${list.map((c) => `${c.id}=${c.name}${c.site ? ` (${c.site})` : ''}`).join(' | ')}`}\n\nתוכן:\n${snippet || '(ריק)'}`;
