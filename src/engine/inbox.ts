@@ -16,11 +16,27 @@ const NOISE_DOMAINS = /(facebookmail\.com|google\.com|googlemail\.com|youtube\.c
 
 type Cls = { kind: string; actionable: boolean; action: string; summary: string; due: string; priority: 'low' | 'normal' | 'high'; client_guess: string | null; confidence: number; new_lead: boolean };
 
+export type Account = { user: string; pass: string };
+// office@ (GMAIL_USER) + an optional second mailbox (MAIL2_USER / MAIL2_APP_PASSWORD, set by the owner in Vercel)
+export function mailAccounts(): Account[] {
+  const a: Account[] = [];
+  if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) a.push({ user: process.env.GMAIL_USER.toLowerCase(), pass: process.env.GMAIL_APP_PASSWORD });
+  if (process.env.MAIL2_USER && process.env.MAIL2_APP_PASSWORD) a.push({ user: process.env.MAIL2_USER.toLowerCase(), pass: process.env.MAIL2_APP_PASSWORD });
+  return a;
+}
+export function accountFor(mailbox: string) { return mailAccounts().find((a) => a.user === String(mailbox).toLowerCase()) ?? null; }
+
 export async function inboxTick() {
   if (!gmailConfigured() || !anthropicConfigured()) return { skipped: 'not_configured' };
-  const me = String(process.env.GMAIL_USER).toLowerCase();
-  const st: any = await w('office_worker_inbox_state', { p_op: 'get', p_mailbox: null, p_uid: null, p_validity: null });
-  const cli = new ImapFlow({ host: 'imap.gmail.com', port: 993, secure: true, auth: { user: process.env.GMAIL_USER!, pass: process.env.GMAIL_APP_PASSWORD! }, logger: false });
+  const res: Record<string, any> = {};
+  for (const acc of mailAccounts()) { try { res[acc.user] = await tickOne(acc); } catch (e: any) { res[acc.user] = { error: String(e?.message ?? e).slice(0, 200) }; } }
+  return res;
+}
+
+async function tickOne(acc: Account) {
+  const me = acc.user;
+  const st: any = await w('office_worker_inbox_state', { p_op: 'get', p_mailbox: me, p_uid: null, p_validity: null });
+  const cli = new ImapFlow({ host: 'imap.gmail.com', port: 993, secure: true, auth: { user: acc.user, pass: acc.pass }, logger: false });
   const out = { new: 0, tasks: 0, info: 0, skipped: 0, needs_match: 0, errors: [] as string[] };
   await cli.connect(); const lock = await cli.getMailboxLock('INBOX');
   try {
@@ -32,7 +48,7 @@ export async function inboxTick() {
     }
     const from = Number(st.last_uid) + 1; if (from >= next) return out;
     let last = Number(st.last_uid); let n = 0;
-    for await (const msg of cli.fetch(`${from}:*`, { uid: true, envelope: true, threadId: true, internalDate: true, source: { start: 0, maxLength: 160_000 } } as any, { uid: true })) {
+    for await (const msg of cli.fetch(`${from}:*`, { uid: true, envelope: true, threadId: true, internalDate: true, source: { start: 0, maxLength: 400_000 } } as any, { uid: true })) {
       if (Number(msg.uid) <= last) continue; if (n++ >= MAX_PER_TICK) break; last = Number(msg.uid);
       try { const r = await handle(msg, me); (out as any)[r] = ((out as any)[r] ?? 0) + 1; out.new++; }
       catch (e: any) { out.errors.push(String(e?.message ?? e).slice(0, 160)); }
@@ -49,12 +65,17 @@ async function handle(msg: any, me: string): Promise<string> {
   const parsed = await simpleParser(msg.source).catch(() => null as any);
   const h = parsed?.headers; const text = String(parsed?.text ?? '').replace(/\n{3,}/g, '\n\n').trim();
   const snippet = stripQuoted(text).slice(0, 1500);
+  const addr = (x: any) => (x?.value ?? []).map((a: any) => a.name ? `${a.name} <${a.address}>` : a.address).join(', ');
+  const full = { to_list: addr(parsed?.to), cc_list: addr(parsed?.cc), body_text: text.slice(0, 80000), in_reply_to: parsed?.inReplyTo ?? null,
+    refs: Array.isArray(parsed?.references) ? parsed.references.join(' ') : parsed?.references ?? null,
+    attachments: (parsed?.attachments ?? []).filter((a: any) => a.contentDisposition !== 'inline').map((a: any) => ({ name: a.filename, type: a.contentType, size: a.size })).slice(0, 20) };
   // free filters — no AI spend on noise
   const dom = fromEmail.split('@')[1] ?? '';
-  const noise = !fromEmail || fromEmail === me || NOISE_FROM.test(fromEmail) || NOISE_DOMAINS.test(dom) || h?.has('list-unsubscribe') || h?.has('list-id')
+  const own = mailAccounts().map((a) => a.user);
+  const noise = !fromEmail || own.includes(fromEmail) || NOISE_FROM.test(fromEmail) || NOISE_DOMAINS.test(dom) || h?.has('list-unsubscribe') || h?.has('list-id')
     || /bulk|list|junk/i.test(String(h?.get('precedence') ?? '')) || (h?.has('auto-submitted') && String(h.get('auto-submitted')) !== 'no')
     || /^(invitation|updated invitation|הזמנה|הזמנה מעודכנת|accepted|declined)[:：]/i.test(subject) || (parsed?.attachments ?? []).some((a: any) => /calendar/.test(a.contentType ?? ''));
-  if (noise) { await w('office_worker_inbox_save', { p_mail: { ...base, snippet: '', status: 'skipped', classification: { kind: 'noise' } } }); return 'skipped'; }
+  if (noise) { await w('office_worker_inbox_save', { p_mail: { ...base, ...full, snippet: snippet.slice(0, 300), status: 'skipped', classification: { kind: 'noise' } } }); return 'skipped'; }
 
   const match: any = await w('office_worker_inbox_match', { p_email: fromEmail });
   const list: { id: string; name: string; site?: string }[] = match.clients ?? [];
@@ -71,7 +92,7 @@ new_lead=true רק כשזו פנייה של עסק/אדם חדש שמתעניי�
   const guess = !match.client_id && c?.client_guess && list.some((x) => x.id === c.client_guess) && Number(c.confidence) >= 0.6 ? c.client_guess : null;
   const actionable = !!c?.actionable || c?.kind === 'complaint';
   const status = !actionable ? 'info' : match.client_id ? 'task' : c?.new_lead ? 'lead' : 'needs_match';
-  await w('office_worker_inbox_save', { p_mail: { ...base, snippet, status, client_id: match.client_id ?? null, lead_id: match.lead_id ?? null, match_by: match.by ?? null, suggested_client: guess, classification: c ?? {} } });
+  await w('office_worker_inbox_save', { p_mail: { ...base, ...full, snippet, status, client_id: match.client_id ?? null, lead_id: match.lead_id ?? null, match_by: match.by ?? null, suggested_client: guess, classification: c ?? {} } });
   return status === 'task' || status === 'lead' ? 'tasks' : status;
 }
 
