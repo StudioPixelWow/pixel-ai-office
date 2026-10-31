@@ -1,4 +1,5 @@
 import { fmtDateTime } from '@/lib/format';
+import { logoOf } from '@/lib/logo';
 
 // Layout rule (Tal): a group is either all in one row or all stacked — never 2+1. Pick a column count that divides the group,
 // otherwise fall back to a single horizontal rail. Mobile always stacks (see .bb-grid in globals.css).
@@ -27,10 +28,10 @@ export function BrandBook({ client, actions }: { client: any; actions?: React.Re
   const colors: { hex: string; role?: string }[] = (arr(brand.colors).length ? arr(brand.colors) : arr(x.colors)).filter((c: any) => /^#?[0-9a-f]{3,8}$/i.test(String(c.hex ?? '').trim())); const nc = colors.length >= 8 ? 8 : colors.length >= 6 ? 6 : Math.min(colors.length, 4); colors.splice(nc);
   const swCols = nc === 8 ? 4 : nc === 6 ? 3 : Math.max(nc, 1);
   const fonts: string[] = [...new Set([...arr(brand.fonts), ...arr(x.fonts)].filter((f: string) => f && !/^-|system|sans-serif|serif$/i.test(f)))].slice(0, 4);
-  const logo = brand.logo_url || x.logo;
+  const lg = logoOf(client.profile); const logo = lg.src;
   return <div className="bb">
     <div className="bb-hero">
-      <div className="bb-logo">{logo ? <img src={logo} alt={`לוגו ${client.name}`} /> : <span>{client.name?.[0]}</span>}</div>
+      <div className={`bb-logo${lg.dark ? ' dk' : ''}`}>{logo ? <img src={logo} alt={`לוגו ${client.name}`} /> : <span>{client.name?.[0]}</span>}</div>
       <div className="bb-hero-txt">
         <small>תיק לקוח · מחקר אוטומטי{client.profile?.research_at ? ` · ${fmtDateTime(client.profile.research_at)}` : ''}</small>
         <h2>{client.name}</h2>
@@ -137,7 +138,7 @@ export function AssetBank({ client, assets, addForm }: { client: any; assets: an
   // once the vision pass ran, trust its result only (older asset rows may still hold client logos)
   const dropped = new Set<string>(arr(x.images_dropped));
   const imgs: string[] = [...new Set((x.images_checked ? [x.og_image, ...arr(x.images)] : [x.og_image, ...arr(x.images), ...assets.filter((a) => a.kind === 'site_image').map((a) => a.identifier)]).filter((u: any) => u && !dropped.has(u)))];
-  const logos: string[] = [...new Set([client.profile?.dossier?.brand?.logo_url, x.logo, ...assets.filter((a) => a.kind === 'logo').map((a) => a.identifier)].filter(Boolean))];
+  const logos: string[] = [...new Set([logoOf(client.profile).src, client.profile?.dossier?.brand?.logo_url, x.logo, ...assets.filter((a) => a.kind === 'logo').map((a) => a.identifier)].filter(Boolean))];
   const socials = arr(x.socials).length ? arr(x.socials) : assets.filter((a) => a.kind === 'social_profile').map((a) => ({ network: a.owner_label, url: a.identifier, status: a.access_status }));
   const PRI = ['facebook', 'instagram', 'tiktok', 'youtube', 'linkedin']; const pri = (n: string) => (PRI.indexOf(n) + 1) || 99;
   const samples = (arr(x.samples).length ? arr(x.samples) : assets.filter((a) => a.kind === 'social_sample').map((a) => ({ network: a.owner_label, url: a.identifier, text: a.notes }))).slice().sort((a: any, b: any) => pri(a.network) - pri(b.network) || (Number(b.views ?? b.likes ?? 0) - Number(a.views ?? a.likes ?? 0)));

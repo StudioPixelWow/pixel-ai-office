@@ -5,6 +5,7 @@ import { SheetButton } from '@/components/sheet';
 import { DEPT_HE, fmtMoney } from '@/lib/format';
 import { OnboardForm } from './onboard-form';
 import { KIND_HE, serviceLabel } from '@/lib/services';
+import { logoOf } from '@/lib/logo';
 const DEPTS = Object.entries(DEPT_HE) as [string, string][];
 const ST: Record<string, [string, string]> = { onboarding: ['בהקמה', 'warn'], active: ['פעיל', 'ok'], paused: ['מושהה', 'muted'], ended: ['הסתיים', 'muted'] };
 export default async function Clients({ searchParams }: { searchParams: Promise<{ q?: string; s?: string; d?: string; new?: string }> }) {
@@ -32,10 +33,10 @@ export default async function Clients({ searchParams }: { searchParams: Promise<
       <div className="chips">{([[undefined, 'הכל'], ['active', 'פעילים'], ['onboarding', 'בהקמה'], ['paused', 'מושהים']] as const).map(([v, l]) => <Link key={l} href={href({ s: v })} className={s === v ? 'on' : ''}>{l}</Link>)}</div>
       <div className="chips">{DEPTS.map(([k, l]) => <Link key={k} href={href({ d: d === k ? undefined : k })} className={d === k ? 'on' : ''}>{l}</Link>)}</div>
     </div>
-    {clients.length ? <div className="cgrid">{clients.map((c) => { const ps = planOf(c.id); const logo = c.profile?.dossier?.brand?.logo_url ?? c.profile?.dossier_extra?.logo; const st = ST[c.status] ?? [c.status, 'muted'];
+    {clients.length ? <div className="cgrid">{clients.map((c) => { const ps = planOf(c.id); const lg = logoOf(c.profile); const logo = lg.src; const st = ST[c.status] ?? [c.status, 'muted'];
       const svc = [...new Set([...ps.flatMap((b: any) => b.services ?? []), ...(Array.isArray(c.profile?.services) ? c.profile.services : [])])].map(serviceLabel);
       return <Link key={c.id} href={`/clients/${c.id}`} className="ccard">
-        <div className="bc-h"><span className="av">{logo ? <img src={logo} alt="" /> : (c.name ?? '?').slice(0, 1)}</span><div><b>{c.name}</b><small>{DEPT_HE[c.department] ?? c.department}{c.industry ? ` · ${c.industry}` : ''}</small></div></div>
+        <div className="bc-h"><span className={`av${lg.dark ? ' dk' : ''}`}>{logo ? <img src={logo} alt="" /> : (c.name ?? '?').slice(0, 1)}</span><div><b>{c.name}</b><small>{DEPT_HE[c.department] ?? c.department}{c.industry ? ` · ${c.industry}` : ''}</small></div></div>
         {svc.length > 0 && <div className="bc-tags">{svc.slice(0, 4).map((x) => <span key={x}>{x}</span>)}</div>}
         <div className="cc-meta"><span className={`badge ${st[1]}`}>{st[0]}</span>
           {fin && ps.length > 0 && <span>{ps.map((b: any) => `${fmtMoney(b.amount)}${b.kind === 'retainer' ? '/ח׳' : ''}`).join(' + ')}</span>}</div>

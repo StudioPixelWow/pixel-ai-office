@@ -18,6 +18,7 @@ import { DocsPanel } from './docs-panel';
 import { ReportsPanel } from './reports-panel';
 import { ClientSources } from '@/components/data-sources';
 import { Opportunities } from '@/components/opportunities';
+import { AdsTable } from '@/components/ads-table';
 
 
 const ONB_Q: Record<string, string> = { unique: 'מה מייחד', audience: 'קהל', competitors: 'מתחרים', goals: 'מטרות ל-3 חודשים', tone: 'טון', avoid: 'להימנע', dates: 'תאריכים חשובים' };
@@ -31,7 +32,8 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const ents = engagements.length ? await safeList('service_entitlements', { engagement_id: engagements.map((e: any) => e.id) }) : [];
   const quota = periods[0] ? await rpc<any[]>('office_quota', { p_period: periods[0].id }).catch(() => []) : [];
   const [portal, opps, site] = await Promise.all([rpc<string>('office_portal_link', { p_client: id }).catch(() => ''), tab === 'overview' ? rpc<any[]>('office_opportunities', { p_client: id }).catch(() => []) : Promise.resolve([] as any[]), tab === 'overview' ? rpc<any>('office_site_check', { p_client: id }).catch(() => null) : Promise.resolve(null)]);
-  const [steps, onb] = await Promise.all([rpc<Record<string, any>>('office_next_steps').catch(() => ({} as any)), tab === 'overview' ? rpc<any>('office_client_onboarding', { p_client: id }).catch(() => null) : Promise.resolve(null)]);
+  const [steps, onb, ads] = await Promise.all([rpc<Record<string, any>>('office_next_steps').catch(() => ({} as any)), tab === 'overview' ? rpc<any>('office_client_onboarding', { p_client: id }).catch(() => null) : Promise.resolve(null), tab === 'overview' ? rpc<any>('office_ads_overview', { p_month: null }).catch(() => null) : Promise.resolve(null)]);
+  const adRow = (ads?.rows ?? []).find((x: any) => x.id === id);
   const ns = steps?.[id];
   const base = `/clients/${id}?tab=`; const fin = ['owner', 'admin'].includes(m.role);
   const [plans, pays, terms] = fin && tab === 'billing' ? await Promise.all([safeList<any>('billing_plans', { client_id: id }), safeList<any>('payments', { client_id: id }, 500), safeList<any>('terms_templates')]) : [[], [], []];
@@ -52,6 +54,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
           <ul className="onb-steps">{(onb.steps ?? []).map((x: any) => <li key={x.key} className={x.done ? 'ok' : ''}>{x.done ? '✓' : '○'} {x.label}{x.note ? <small> · {x.note}</small> : null}
             {(x.files ?? []).map((f: any) => <a key={f.blob} href={`/api/files/${f.blob}?download=${encodeURIComponent(f.name ?? 'file')}`}> 📎 {f.name}</a>)}</li>)}</ul>
           {onb.answers && Object.keys(onb.answers).length > 0 && <details><summary className="small"><b>תשובות השאלון</b></summary><dl className="onb-ans">{Object.entries(onb.answers).flatMap(([k, v]) => [<dt key={k + 'k'}>{ONB_Q[k] ?? k}</dt>, <dd key={k + 'v'}>{String(v)}</dd>])}</dl></details>}</div>}
+        {adRow && <div className="card ad-one"><div className="row"><h2 className="sp">ביצועי פרסום החודש</h2><Link className="btn sm ghost" href="/ads">כל הלקוחות</Link></div><AdsTable rows={[adRow]} single /></div>}
         {portal && <PortalCard clientId={id} url={portal} onb={!!onb?.started} />}
         {site && <div className="card sc"><h2>{site.ok ? '✅' : '🔧'} בריאות האתר</h2><p className="small muted">בדיקה אחרונה {fmtDateTime(site.at)} · {site.result?.ms ? `${Math.round(site.result.ms / 100) / 10} שנ׳` : ''}{site.result?.https ? ' · HTTPS ✓' : ''}{site.result?.form ? ' · טופס ✓' : ''}</p>
           {(site.result?.pixels ?? []).length > 0 && <p className="small">מדידה: {site.result.pixels.join(' · ')}</p>}
