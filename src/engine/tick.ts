@@ -5,7 +5,7 @@ import { siteChecks, meetingPrep, retentionReview } from './smart-agents';
 import { adsSync } from './ads-sync';
 import { inboxTick } from './inbox';
 import { logoTick } from './logos';
-import { inboxSelfTest } from './mail-reply';
+import { inboxSelfTest, pendingReport } from './mail-reply';
 import 'server-only';
 import { w } from './db';
 import { execute } from './executor';
@@ -132,7 +132,7 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   // איריס — inbox agent (read-only) every 10 minutes
   if (mi % 4 === 2) { try { report.logos = await logoTick(3); console.log('[logos]', JSON.stringify(report.logos)); } catch (e: any) { report.errors.push(`logos: ${e.message}`); } }
   if (mi % 5 === 4) { try { report.inbox = await inboxTick(); console.log('[inbox]', JSON.stringify(report.inbox)); } catch (e: any) { report.errors.push(`inbox: ${e.message}`); }
-    try { const t = await inboxSelfTest(); if (t) console.log('[inbox-selftest]', JSON.stringify(t)); } catch (e: any) { report.errors.push(`inbox: ${e.message}`); } }
+    try { const t = await inboxSelfTest(); if (t) console.log('[inbox-selftest]', JSON.stringify(t)); const rp = await pendingReport(); if (rp) console.log('[report]', JSON.stringify(rp)); } catch (e: any) { report.errors.push(`inbox: ${e.message}`); } }
   if (mi % 15 === 7) { try { report.prep = await meetingPrep(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi % 10 === 3) { try { report.ads = await adsSync(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi === 29) { try { report.retention = await retentionReview(); } catch (e: any) { report.errors.push(e.message); } }

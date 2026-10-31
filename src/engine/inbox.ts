@@ -38,9 +38,12 @@ async function tickOne(acc: Account) {
   const st: any = await w('office_worker_inbox_state', { p_op: 'get', p_mailbox: me, p_uid: null, p_validity: null });
   const cli = new ImapFlow({ host: 'imap.gmail.com', port: 993, secure: true, auth: { user: acc.user, pass: acc.pass }, logger: false });
   const out = { new: 0, tasks: 0, info: 0, skipped: 0, needs_match: 0, errors: [] as string[] };
-  await cli.connect(); const lock = await cli.getMailboxLock('INBOX');
+  await cli.connect();
+  // read "All Mail" (Gmail special-use \All) so mail that a filter or a quick archive moved out of the inbox is still seen; fall back to INBOX
+  const boxes: any[] = await cli.list().catch(() => []); const all = boxes.find((b) => b.specialUse === '\\All')?.path;
+  const lock = await cli.getMailboxLock(all ?? 'INBOX');
   try {
-    const mb: any = cli.mailbox; const validity = Number(mb.uidValidity); const next = Number(mb.uidNext);
+    const mb: any = cli.mailbox; const validity = Number(mb.uidValidity) + (all ? 1_000_000_000 : 0); const next = Number(mb.uidNext);
     // first run (or mailbox reset): start from NOW — never read backwards
     if (!st?.last_uid || Number(st.uidvalidity) !== validity) {
       await w('office_worker_inbox_state', { p_op: 'set', p_mailbox: me, p_uid: next - 1, p_validity: validity });
@@ -77,6 +80,7 @@ async function handle(msg: any, me: string): Promise<string> {
   const noise = !critical && (!fromEmail || fromEmail === me) ||  !critical && ( NOISE_FROM.test(fromEmail) || NOISE_DOMAINS.test(dom) || h?.has('list-unsubscribe') || h?.has('list-id')
     || /bulk|list|junk/i.test(String(h?.get('precedence') ?? '')) || (h?.has('auto-submitted') && String(h.get('auto-submitted')) !== 'no')
     || /^(invitation|updated invitation|הזמנה|הזמנה מעודכנת|accepted|declined)[:：]/i.test(subject) || (parsed?.attachments ?? []).some((a: any) => /calendar/.test(a.contentType ?? '')));
+  if (fromEmail === me) return 'skipped';   // our own sent mail (All Mail includes it) — not an incoming email
   if (noise) { await w('office_worker_inbox_save', { p_mail: { ...base, ...full, snippet: snippet.slice(0, 300), status: 'skipped', classification: { kind: 'noise' } } }); return 'skipped'; }
 
   const match: any = await w('office_worker_inbox_match', { p_email: fromEmail });

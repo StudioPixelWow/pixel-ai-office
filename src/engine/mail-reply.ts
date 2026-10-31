@@ -35,3 +35,14 @@ export async function inboxSelfTest() {
   }
   return null;
 }
+
+// One-shot internal report (setting inbox_selftest_report): sent to office@ once, then marked sent.
+export async function pendingReport() {
+  const v = await w<string | null>('office_worker_kv', { p_key: 'inbox_selftest_report', p_value: null, p_set: false });
+  if (!v || v.startsWith('sent:')) return null;
+  const office = mailAccounts()[0]?.user; if (!office) return null;
+  const [subject, ...rest] = v.split('\n');
+  await sendFromMailbox(office, { to: [office], subject: subject.slice(0, 200), text: rest.join('\n').trim() });
+  await w('office_worker_kv', { p_key: 'inbox_selftest_report', p_value: `sent:${new Date().toISOString()}`, p_set: true });
+  return { report: 'sent' };
+}
