@@ -71,8 +71,7 @@ async function handle(msg: any, me: string): Promise<string> {
     attachments: (parsed?.attachments ?? []).filter((a: any) => a.contentDisposition !== 'inline').map((a: any) => ({ name: a.filename, type: a.contentType, size: a.size })).slice(0, 20) };
   // free filters — no AI spend on noise
   const dom = fromEmail.split('@')[1] ?? '';
-  const own = mailAccounts().map((a) => a.user);
-  const noise = !fromEmail || own.includes(fromEmail) || NOISE_FROM.test(fromEmail) || NOISE_DOMAINS.test(dom) || h?.has('list-unsubscribe') || h?.has('list-id')
+  const noise = !fromEmail || fromEmail === me || NOISE_FROM.test(fromEmail) || NOISE_DOMAINS.test(dom) || h?.has('list-unsubscribe') || h?.has('list-id')
     || /bulk|list|junk/i.test(String(h?.get('precedence') ?? '')) || (h?.has('auto-submitted') && String(h.get('auto-submitted')) !== 'no')
     || /^(invitation|updated invitation|הזמנה|הזמנה מעודכנת|accepted|declined)[:：]/i.test(subject) || (parsed?.attachments ?? []).some((a: any) => /calendar/.test(a.contentType ?? ''));
   if (noise) { await w('office_worker_inbox_save', { p_mail: { ...base, ...full, snippet: snippet.slice(0, 300), status: 'skipped', classification: { kind: 'noise' } } }); return 'skipped'; }

@@ -5,6 +5,7 @@ import { siteChecks, meetingPrep, retentionReview } from './smart-agents';
 import { adsSync } from './ads-sync';
 import { inboxTick } from './inbox';
 import { logoTick } from './logos';
+import { inboxSelfTest } from './mail-reply';
 import 'server-only';
 import { w } from './db';
 import { execute } from './executor';
@@ -95,7 +96,7 @@ async function alsoEmail(dispatchId: string) {
   const head = loud ? `<div style="background:#100F0D;padding:18px 24px"><img src="${process.env.NEXT_PUBLIC_SITE_URL ?? ''}/brand/loud-on-dark.png" alt="LOUD Podcast Studio" style="height:46px"></div>`
     : `<div style="background:#0B1320;padding:18px 24px"><img src="https://s-pixel.co.il/wp-content/uploads/2026/07/Asset-1.png" alt="Pixel Digital" height="28" style="height:28px;width:auto;display:block;border:0"></div>`;
   const subject = loud ? ({ loud_kit: 'קובץ השאלות לראיון שלך מוכן 🎙️', loud_reminder: 'תזכורת: מחר מקליטים באולפן LOUD', loud_thanks: 'איזה כיף היה באולפן 🎧', loud_materials: 'החומרים מהפרק שלך מוכנים 🎙️', loud_pay: 'עוד צעד אחד לפרק שלך', loud_slot: 'בוחרים מועד להקלטה' } as any)[e.kind] ?? 'הודעה מאולפן LOUD' : (({ care_lead_ack: 'קיבלנו את הפנייה שלך 🙌', care_proposal_fu: 'לגבי ההצעה שלנו', care_payment: 'תזכורת תשלום — Pixel Digital', care_welcome: 'ברוכים הבאים ל-Pixel Digital 🎉', care_milestone: 'עדכון התקדמות בפרויקט ✅', care_content: 'תוכן מחכה לאישורך 📅', care_monthly: 'הסיכום החודשי שלך 📊', care_holiday: 'חג שמח מ-Pixel Digital 🌟', care_anniversary: 'שנה שאנחנו עובדים יחד 🎂', care_nps: 'שאלה קצרה אחת 🙏', care_meeting_fu: 'תודה על הפגישה' } as any)[e.kind] ?? 'הודעה מ-Pixel Digital');
-  return gmailSend({ to: e.email, subject, text: e.body, html: `<div dir="rtl" style="font-family:Arial,sans-serif;background:${loud ? '#1C1A17' : '#F7FBFF'};padding:24px"><div style="max-width:560px;margin:auto;background:#fff;border-radius:20px;overflow:hidden">${head}<div style="padding:22px 24px;color:#100F0D;font-size:15px;line-height:1.7">${body}</div></div></div>` });
+  return gmailSend({ to: e.email, subject, text: e.body, html: `<div dir="rtl" style="font-family:Arial,sans-serif;background:${loud ? '#1C1A17' : '#F7FBFF'};padding:24px"><div style="max-width:560px;margin:auto;background:#fff;border-radius:20px;overflow:hidden">${head}<div style="padding:22px 24px;color:#100F0D;font-size:15px;line-height:1.7">${body}<!--sig--></div></div></div>` });
 }
 async function dispatchOutbox() {
   const items: any[] = await w('office_worker_outbox_claim', { p_max: 5 });
@@ -130,7 +131,8 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   if (mi % 20 === 17) { try { report.autopilot = await w('office_worker_autopilot', {}); } catch (e: any) { report.errors.push(e.message); } }
   // איריס — inbox agent (read-only) every 10 minutes
   if (mi % 4 === 2) { try { report.logos = await logoTick(3); console.log('[logos]', JSON.stringify(report.logos)); } catch (e: any) { report.errors.push(`logos: ${e.message}`); } }
-  if (mi % 10 === 4) { try { report.inbox = await inboxTick(); console.log('[inbox]', JSON.stringify(report.inbox)); } catch (e: any) { report.errors.push(`inbox: ${e.message}`); } }
+  if (mi % 5 === 4) { try { report.inbox = await inboxTick(); console.log('[inbox]', JSON.stringify(report.inbox)); } catch (e: any) { report.errors.push(`inbox: ${e.message}`); }
+    try { const t = await inboxSelfTest(); if (t) console.log('[inbox-selftest]', JSON.stringify(t)); } catch (e: any) { report.errors.push(`inbox: ${e.message}`); } }
   if (mi % 15 === 7) { try { report.prep = await meetingPrep(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi % 10 === 3) { try { report.ads = await adsSync(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi === 29) { try { report.retention = await retentionReview(); } catch (e: any) { report.errors.push(e.message); } }

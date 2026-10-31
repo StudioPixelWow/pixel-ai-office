@@ -120,7 +120,8 @@ export async function logoTick(limit = 3) {
   const done: any[] = [];
   for (const c of q) {
     try {
-      const r = await findLogo(c);
+      const r: any = c.manual ? await (async () => { const raw = await fetchB(c.manual); if (!raw) return { ok: false, note: 'לא הצלחתי להוריד את הלוגו שנבחר ידנית' };
+        const png = await toPng(raw); return { ok: true, png, bg: await bgFor(png), src: c.manual, note: 'לוגו שנבחר ידנית ע״י טל' }; })() : await findLogo(c);
       if (r.ok) await w('office_worker_logo_set', { p_client: c.id, p_mime: 'image/png', p_b64: r.png.toString('base64'), p_bg: r.bg, p_src: r.src, p_note: r.note });
       else await w('office_worker_logo_set', { p_client: c.id, p_mime: null, p_b64: null, p_bg: null, p_src: null, p_note: r.note });
       done.push({ name: c.name, ok: r.ok, note: r.note });
