@@ -46,7 +46,7 @@ async function tickOne(acc: Account) {
       await w('office_worker_inbox_state', { p_op: 'set', p_mailbox: me, p_uid: next - 1, p_validity: validity });
       return { initialized: true, from_uid: next };
     }
-    const from = Number(st.last_uid) + 1; if (from >= next) return out;
+    const from = Number(st.last_uid) + 1; (out as any).from = from; (out as any).uidnext = next;   // don't trust UIDNEXT alone (Gmail can lag) — always ask for from:*
     let last = Number(st.last_uid); let n = 0;
     for await (const msg of cli.fetch(`${from}:*`, { uid: true, envelope: true, threadId: true, internalDate: true, source: { start: 0, maxLength: 400_000 } } as any, { uid: true })) {
       if (Number(msg.uid) <= last) continue; if (n++ >= MAX_PER_TICK) break; last = Number(msg.uid);
