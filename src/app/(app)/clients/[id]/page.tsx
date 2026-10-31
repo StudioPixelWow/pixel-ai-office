@@ -19,6 +19,8 @@ import { ReportsPanel } from './reports-panel';
 import { ClientSources } from '@/components/data-sources';
 import { Opportunities } from '@/components/opportunities';
 import { AdsTable } from '@/components/ads-table';
+import { ProjectsPanel } from './projects-panel';
+import { ClientLinks } from './client-links';
 
 
 const ONB_Q: Record<string, string> = { unique: 'מה מייחד', audience: 'קהל', competitors: 'מתחרים', goals: 'מטרות ל-3 חודשים', tone: 'טון', avoid: 'להימנע', dates: 'תאריכים חשובים' };
@@ -34,15 +36,13 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const [portal, opps, site] = await Promise.all([rpc<string>('office_portal_link', { p_client: id }).catch(() => ''), tab === 'overview' ? rpc<any[]>('office_opportunities', { p_client: id }).catch(() => []) : Promise.resolve([] as any[]), tab === 'overview' ? rpc<any>('office_site_check', { p_client: id }).catch(() => null) : Promise.resolve(null)]);
   const [steps, onb, ads] = await Promise.all([rpc<Record<string, any>>('office_next_steps').catch(() => ({} as any)), tab === 'overview' ? rpc<any>('office_client_onboarding', { p_client: id }).catch(() => null) : Promise.resolve(null), tab === 'overview' ? rpc<any>('office_ads_overview', { p_month: null }).catch(() => null) : Promise.resolve(null)]);
   const adRow = (ads?.rows ?? []).find((x: any) => x.id === id);
+  const pj = tab === 'projects' ? await rpc<any>('office_client_projects', { p_client: id }).catch(() => null) : null;
   const ns = steps?.[id];
   const base = `/clients/${id}?tab=`; const fin = ['owner', 'admin'].includes(m.role);
   const [plans, pays, terms] = fin && tab === 'billing' ? await Promise.all([safeList<any>('billing_plans', { client_id: id }), safeList<any>('payments', { client_id: id }, 500), safeList<any>('terms_templates')]) : [[], [], []];
   return <>
     <div className="hero"><div className="row"><div className="sp"><h1>{c.name}</h1><p>{DEPT_HE[c.department] ?? c.department} · {c.industry ?? 'תחום לא הוגדר'} {c.is_test && '· [בדיקה]'}</p>
-      {(() => { const web: string | undefined = c.profile?.website; const so: Record<string, string> = c.profile?.socials ?? {}; const other: string[] = c.profile?.other_sites ?? [];
-        const L: [string, string][] = [['facebook', 'פייסבוק'], ['instagram', 'אינסטגרם'], ['linkedin', 'לינקדאין'], ['tiktok', 'טיקטוק'], ['youtube', 'יוטיוב']];
-        const links = [...(web ? [['🌐 ' + web.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), web]] : []), ...other.map((u) => ['🌐 ' + u.replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, ''), u]), ...L.filter(([k]) => so[k]).map(([k, l]) => [l, so[k]])];
-        return links.length ? <div className="cl-links">{links.map(([l, u]) => <a key={u} href={u} target="_blank" rel="noreferrer">{l}</a>)}</div> : <div className="cl-links muted">אין עדיין אתר ורשתות בכרטיס</div>; })()}</div><Badge s={c.status} /></div></div>
+      <ClientLinks clientId={id} clientName={c.name} profile={c.profile} contacts={contacts} /></div><Badge s={c.status} /></div></div>
     {ns && <div className={`next-step big ${ns.tone}`}><i>➜</i><span className="sp"><small>הצעד הבא</small>{ns.text}</span>{ns.link && <Link className="btn sm" href={ns.link}>לטיפול</Link>}</div>}
     <JourneyBar j={journey} />
     <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'milestones', 'אבני דרך'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'docs', 'מסמכים וחוזים'], [base + 'reports', 'דוחות'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
@@ -95,10 +95,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       <div className="card"><h2>מכסות התקופה {periods[0] ? `(${periods[0].period_start})` : ''}</h2>
         <Table head={['שירות', 'התחייבות', 'מוקצה', 'בתהליך', 'נמסר', 'יתרה']} rows={quota.map((q: any) => [q.title, q.committed, q.allocated, q.in_progress, q.delivered, <b key="a">{q.available}</b>])} empty="אין תקופה פתוחה" />
         <p className="small muted">{quota[0]?.rule}</p></div></div>}
-    {tab === 'projects' && <div className="grid g2"><Table head={['שם', 'סוג', 'אתר']} rows={projects.map((p: any) => [p.name, p.kind, p.site_url ?? '—'])} empty="אין פרויקטים" />
-      <div className="card"><h2>פרויקט / מותג חדש</h2><ActionForm action="create_project" extra={{ client_id: id }} fields={[{ name: 'name', label: 'שם', required: true },
-        { name: 'kind', label: 'סוג', type: 'select', options: [['project', 'פרויקט'], ['brand', 'מותג'], ['real_estate_project', 'פרויקט נדל״ן'], ['campaign', 'קמפיין']] }, { name: 'site_url', label: 'אתר', ltr: true },
-        { name: 'details', label: 'פרטים (JSON: קהל, מסרים, עובדות מאומתות)', type: 'textarea', json: true, ltr: true }]} /></div></div>}
+    {tab === 'projects' && <ProjectsPanel clientId={id} data={pj} />}
     {tab === 'contacts' && <div className="grid g2"><Table head={['שם', 'תפקיד', 'טלפון', 'אומת', '']} rows={contacts.map((x: any) => [x.name, x.role_title ?? '—', <span key="p" dir="ltr">{x.phone_e164 ?? '—'}</span>, x.phone_verified ? '✓' : '—',
       !x.phone_verified && x.phone_e164 && ['owner', 'admin'].includes(m.role) ? <ActionButton key="v" className="btn sm" action="verify_contact_phone" payload={{ id: x.id }} confirm="אימתת שזה המספר הנכון של איש הקשר?">סמן כמאומת</ActionButton> : null])} empty="אין אנשי קשר" />
       <div className="card"><h2>איש קשר</h2><ActionForm action="create_contact" extra={{ client_id: id }} fields={[{ name: 'name', label: 'שם', required: true }, { name: 'role_title', label: 'תפקיד' },
