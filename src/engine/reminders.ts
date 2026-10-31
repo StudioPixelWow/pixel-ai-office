@@ -19,7 +19,7 @@ export async function meetingReminders() {
     const subject = `תזכורת: ${m.title} · מחר ${f(m.starts_at, { hour: '2-digit', minute: '2-digit' })}`;
     const text = `שלום,\n\nתזכורת לפגישה שלנו מחר:\n${m.title}\n${when}\n${isLink ? 'קישור' : 'מיקום'}: ${where}\n\nאם משהו השתנה — אפשר להשיב למייל הזה.\n\nבברכה,\nטל זטלמן · Pixel Digital`;
     const html = `<div dir="rtl" style="font-family:Arial,sans-serif;background:#F7FBFF;padding:24px"><div style="max-width:560px;margin:auto;background:#fff;border-radius:20px;overflow:hidden;border:1px solid #E6EEF4">
-<div style="background:#0B1320;padding:20px 24px"><img src="https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-white-500.webp" alt="Pixel Digital" style="height:30px"></div>
+<div style="background:#0B1320;padding:20px 24px"><img src="https://s-pixel.co.il/wp-content/uploads/2026/07/Asset-1.png" alt="Pixel Digital" height="30" style="height:30px;width:auto;display:block;border:0"></div>
 <div style="padding:24px"><p style="margin:0 0 6px;color:#5C6776">שלום,</p><h2 style="margin:0 0 14px;color:#0B1320">תזכורת לפגישה שלנו מחר</h2>
 <div style="background:linear-gradient(135deg,#4BE7FF,#00CFFF 45%,#0094BD);border-radius:16px;padding:16px 18px;color:#0B1320"><b style="font-size:18px">${esc(m.title)}</b><br>${esc(when)}<br>${isLink ? `<a href="${esc(where)}" style="color:#0B1320;font-weight:bold">לקישור לפגישה</a>` : `📍 ${esc(where)}`}</div>
 <p style="color:#2A3445;margin:16px 0 0">אם משהו השתנה — אפשר פשוט להשיב למייל הזה.</p><p style="color:#2A3445;margin:16px 0 0">בברכה,<br><b>טל זטלמן</b> · Pixel Digital</p></div></div></div>`;
