@@ -6,6 +6,8 @@ import { extractJson } from './schemas';
 // let Claude vision pick the real brand logo (not partners/clients walls), rasterize to a clean trimmed PNG and store it as a blob.
 // SVGs are rasterized on purpose: an uploaded SVG served from our origin could carry script.
 
+// our own agency mark (Studio Pixel / Pixel Digital credit in client footers) is never a client's logo
+const OURS = /s-pixel|studio-?pixel|pixel-?digital|סטודיו[\s-]?פיקסל|פיקסל[\s-]?דיגיטל/i;
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const VISION = process.env.ANTHROPIC_VISION_MODEL_LOGO || 'claude-sonnet-5-5';
 const dec = (s: string) => s.replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;/g, "'");
@@ -27,7 +29,7 @@ const srcOf = (tag: string, base: string) => {
 
 export function logoCandidates(html: string, base: string): { url?: string; svg?: string; why: string }[] {
   const out: { url?: string; svg?: string; why: string }[] = []; const seen = new Set<string>();
-  const add = (u: string | null | undefined, why: string) => { if (u && /^https?:/.test(u) && !seen.has(u)) { seen.add(u); out.push({ url: u, why }); } };
+  const add = (u: string | null | undefined, why: string) => { if (u && /^https?:/.test(u) && !OURS.test(u) && !seen.has(u)) { seen.add(u); out.push({ url: u, why }); } };
   for (const m of html.matchAll(/<script[^>]+application\/ld\+json[^>]*>([\s\S]*?)<\/script>/gi)) {
     for (const l of m[1].matchAll(/"logo"\s*:\s*(?:\{[^}]*?"url"\s*:\s*)?"([^"]+)"/g)) add(abs(l[1].replace(/\\\//g, '/'), base), 'json-ld');
   }
@@ -36,14 +38,17 @@ export function logoCandidates(html: string, base: string): { url?: string; svg?
   for (const m of html.matchAll(/<img[^>]+>/gi)) {
     const tag = m[0]; const at = m.index ?? 0; const ctx = html.slice(Math.max(0, at - 600), at);
     const isLogo = /logo|site-?brand|navbar-brand|custom-logo/i.test(tag) || /class=["'][^"']*(?:logo|site-brand|navbar-brand|header__brand)[^"']*["'][^<]*$/i.test(ctx.slice(-300));
-    if (!isLogo) continue; if (at > headEnd && WALL.test(ctx.replace(/<[^>]+>/g, ' ').slice(-300))) continue;
+    if (!isLogo || OURS.test(tag)) continue; if (at > headEnd && WALL.test(ctx.replace(/<[^>]+>/g, ' ').slice(-300))) continue;
+    // footers carry "site by" agency credits (incl. ours) — only use body/footer logos when the header has none
+    if (at > headEnd && out.some((x) => x.why === 'header-img' || x.why === 'json-ld')) continue;
+    if (/<footer[\s>]/i.test(html.slice(0, at)) && /(?:בניית אתרים|עיצוב ובניית|נבנה ע|powered by|designed by|developed by|site by|קרדיט)/i.test(html.slice(Math.max(0, at - 1500), at + 400).replace(/<[^>]+>/g, ' '))) continue;
     add(srcOf(tag, base), at <= headEnd ? 'header-img' : 'img');
     if (out.length > 8) break;
   }
   // inline svg logo in the header
   const hdr = html.slice(0, headEnd + 2000);
   const sv = hdr.match(/<(?:a|div|span)[^>]+(?:class|id)=["'][^"']*logo[^"']*["'][^>]*>\s*(?:<a[^>]*>\s*)?(<svg[\s\S]*?<\/svg>)/i)?.[1];
-  if (sv && sv.length < 200_000) out.push({ svg: sv, why: 'inline-svg' });
+  if (sv && sv.length < 200_000 && !OURS.test(sv)) out.push({ svg: sv, why: 'inline-svg' });
   for (const m of html.matchAll(/<link[^>]+rel=["'](?:apple-touch-icon|icon|shortcut icon)["'][^>]*>/gi)) { const h = m[0].match(/href=["']([^"']+)/i)?.[1]; if (h && !/\.ico(\?|$)/i.test(h)) add(abs(h, base), 'icon'); }
   const og = html.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1] ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]*property=["']og:image["']/i)?.[1];
   add(og ? abs(og, base) : null, 'og:image');
@@ -72,7 +77,7 @@ async function pick(company: string, imgs: { png: Buffer; why: string }[]) {
     const tile = await sharp({ create: { width: 640, height: 640, channels: 4, background: { r: 150, g: 150, b: 150, alpha: 1 } } }).composite([{ input: x.png, gravity: 'center' }]).jpeg({ quality: 80 }).toBuffer();
     content.push({ type: 'text', text: `תמונה ${k} (מקור: ${x.why}):` }, { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: tile.toString('base64') } });
   }
-  content.push({ type: 'text', text: `אלה מועמדים ללוגו של העסק "${company}" שנאספו מהאתר והרשתות שלו (רקע אפור נוסף לתצוגה בלבד). בחר את הלוגו הראשי של העסק עצמו: עדיף לוגו מלא עם שם על פני אייקון בלבד, ועדיף גרסה צבעונית/כהה על פני לבנה אם שתיהן קיימות. פסול: לוגו של לקוח/שותף/ספק אחר, תמונת אווירה/צילום, באנר, אייקון גנרי. אם אף אחד אינו הלוגו של העסק, pick=null. החזר JSON בלבד: {"pick": מספר או null, "reason": "קצר"}` });
+  content.push({ type: 'text', text: `אלה מועמדים ללוגו של העסק "${company}" שנאספו מהאתר והרשתות שלו (רקע אפור נוסף לתצוגה בלבד). בחר את הלוגו הראשי של העסק עצמו: עדיף לוגו מלא עם שם על פני אייקון בלבד, ועדיף גרסה צבעונית/כהה על פני לבנה אם שתיהן קיימות. פסול: הלוגו של "סטודיו פיקסל" / "Studio Pixel" / "Pixel Digital" (זו סוכנות הפרסום שבנתה את האתר, לא העסק), לוגו של לקוח/שותף/ספק אחר, תמונת אווירה/צילום, באנר, אייקון גנרי, ותמונה שבה הטקסט מוצג הפוך/במראה או עם תווים שבורים (תקלת המרה). אם יש גם גרסה תקינה של אותו לוגו, בחר בה. אם אף אחד אינו הלוגו של העסק, pick=null. החזר JSON בלבד: {"pick": מספר או null, "reason": "קצר"}` });
   const r = await fetch('https://api.anthropic.com/v1/messages', { method: 'POST', signal: AbortSignal.timeout(60000),
     headers: { 'x-api-key': process.env.ANTHROPIC_API_KEY!, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({ model: VISION, max_tokens: 300, messages: [{ role: 'user', content }] }) });

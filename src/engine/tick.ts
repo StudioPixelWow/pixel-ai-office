@@ -129,8 +129,8 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   // autopilot (owner switches in settings): research new clients, monthly gantts, RTM — every 20 minutes (each step is idempotent)
   if (mi % 20 === 17) { try { report.autopilot = await w('office_worker_autopilot', {}); } catch (e: any) { report.errors.push(e.message); } }
   // איריס — inbox agent (read-only) every 10 minutes
-  if (mi % 4 === 2) { try { report.logos = await logoTick(3); } catch (e: any) { report.errors.push(`logos: ${e.message}`); } }
-  if (mi % 10 === 4) { try { report.inbox = await inboxTick(); } catch (e: any) { report.errors.push(`inbox: ${e.message}`); } }
+  if (mi % 4 === 2) { try { report.logos = await logoTick(3); console.log('[logos]', JSON.stringify(report.logos)); } catch (e: any) { report.errors.push(`logos: ${e.message}`); } }
+  if (mi % 10 === 4) { try { report.inbox = await inboxTick(); console.log('[inbox]', JSON.stringify(report.inbox)); } catch (e: any) { report.errors.push(`inbox: ${e.message}`); } }
   if (mi % 15 === 7) { try { report.prep = await meetingPrep(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi % 10 === 3) { try { report.ads = await adsSync(); } catch (e: any) { report.errors.push(e.message); } }
   if (mi === 29) { try { report.retention = await retentionReview(); } catch (e: any) { report.errors.push(e.message); } }

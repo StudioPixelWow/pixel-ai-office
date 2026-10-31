@@ -51,7 +51,7 @@ async function tickOne(acc: Account) {
     for await (const msg of cli.fetch(`${from}:*`, { uid: true, envelope: true, threadId: true, internalDate: true, source: { start: 0, maxLength: 400_000 } } as any, { uid: true })) {
       if (Number(msg.uid) <= last) continue; if (n++ >= MAX_PER_TICK) break; last = Number(msg.uid);
       try { const r = await handle(msg, me); (out as any)[r] = ((out as any)[r] ?? 0) + 1; out.new++; }
-      catch (e: any) { out.errors.push(String(e?.message ?? e).slice(0, 160)); }
+      catch (e: any) { console.error('[inbox] uid', msg.uid, e?.stack ?? e); out.errors.push(String(e?.message ?? e).slice(0, 160)); }
     }
     await w('office_worker_inbox_state', { p_op: 'set', p_mailbox: me, p_uid: last, p_validity: validity });
   } finally { lock.release(); await cli.logout().catch(() => null); }
