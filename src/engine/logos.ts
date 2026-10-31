@@ -100,7 +100,10 @@ export async function findLogo(c: { name: string; website?: string | null; other
     if (imgs.length >= 8) break;
     try {
       const raw = x.svg ? Buffer.from(x.svg.includes('xmlns') ? x.svg : x.svg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"')) : await fetchB(x.url!);
-      if (!raw) continue; const png = await toPng(raw); const meta = await sharp(png).metadata();
+      if (!raw) continue;
+      // SVG with live Hebrew <text> renders mirrored on the server (no bidi shaping) — skip it, a raster/outlined version is safer
+      const head = raw.subarray(0, 400_000).toString('utf8'); if (/<svg[\s>]/i.test(head) && /<text[\s>][\s\S]*?[\u0590-\u05FF]/.test(head)) continue;
+      const png = await toPng(raw); const meta = await sharp(png).metadata();
       if ((meta.width ?? 0) < 24 || (meta.height ?? 0) < 12) continue;
       imgs.push({ png, why: x.why, src: x.url ?? 'inline-svg' });
     } catch { /* unreadable image */ }
