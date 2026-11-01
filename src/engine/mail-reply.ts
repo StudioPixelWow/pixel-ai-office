@@ -41,8 +41,11 @@ export async function pendingReport() {
   const v = await w<string | null>('office_worker_kv', { p_key: 'inbox_selftest_report', p_value: null, p_set: false });
   if (!v || v.startsWith('sent:')) return null;
   const office = mailAccounts()[0]?.user; if (!office) return null;
-  const [subject, ...rest] = v.split('\n');
-  await sendFromMailbox(office, { to: [office], subject: subject.slice(0, 200), text: rest.join('\n').trim() });
+  let lines = v.split('\n'); let to = office;
+  // optional first line "TO:someone@x" — internal team mail only (set by the owner's request, never by content)
+  const m = lines[0].match(/^TO:([^\s@]+@[^\s@]+\.[^\s@]+)$/); if (m) { to = m[1].toLowerCase(); lines = lines.slice(1); }
+  const [subject, ...rest] = lines;
+  await sendFromMailbox(office, { to: [to], subject: subject.slice(0, 200), text: rest.join('\n').trim() });
   await w('office_worker_kv', { p_key: 'inbox_selftest_report', p_value: `sent:${new Date().toISOString()}`, p_set: true });
   return { report: 'sent' };
 }
