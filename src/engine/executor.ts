@@ -145,6 +145,32 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
     return void await done(`מחקר רשת (Claude) · ${company}`, { urls: r.urls, model: r.model }, `${r.text}\n\n**מקורות:**\n${r.urls.map((u) => `- ${u}`).join('\n')}`,
       [{ provider: 'anthropic', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output, r.usage.searches), note: `tokens + ${r.usage.searches} web searches` }], `${r.urls.length} מקורות`);
   }
+  if (kind === 'tool:content_revise') {
+    const items: { id: string; note: string }[] = c.task.inputs?.params?.items ?? [];
+    let ok = 0, failed = 0; const lines: string[] = []; const costs: any[] = [];
+    for (const [n, x] of items.entries()) {
+      await hb(`מתקנת פוסט ${n + 1} מתוך ${items.length}`, x.note.slice(0, 90));
+      try {
+        const g: any = await w('office_worker_content_get', { p_task: id, p_lease: lease, p_id: x.id }); const i = g.item; const cl = g.client;
+        const system = `את/ה קופירייטר/ית סושיאל בכיר/ה במשרד Pixel Digital. קיבלת הערה ממנהל המשרד על פוסט בגאנט. כתוב/כתבי פוסט חדש שמחליף את הקיים ומיישם את ההערה במלואה ובדיוק.
+מה שההערה לא נוגעת בו — שמור/י על הכיוון. שפת המותג של הלקוח, עברית טבעית, בלי קלישאות. החזר/י JSON בלבד:
+{"topic":"כותרת קצרה","idea":"מה רואים בפוסט (ויזואל)","hook":"פתיח","post_text":"טקסט הפוסט המלא","cta":"קריאה לפעולה","hashtags":["#.."],"creative_prompt":"הנחיה לעיצוב/צילום","format":"פוסט תמונה/קרוסלה/רילס/סטורי"}`;
+        const user = `הלקוח: ${cl.name}${cl.industry ? ` (${cl.industry})` : ''}\n${cl.brand ? `מותג: ${JSON.stringify(cl.brand).slice(0, 700)}\n` : ''}${cl.social_voice ? `קול ברשתות: ${JSON.stringify(cl.social_voice).slice(0, 600)}\n` : ''}
+הפוסט הנוכחי (${i.format ?? 'פוסט'}, ${new Date(i.due_at).toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' })}):
+${JSON.stringify({ topic: i.topic, idea: i.idea, hook: i.hook, post_text: i.post_text, cta: i.cta, hashtags: i.hashtags, creative_prompt: i.creative_prompt, format: i.format })}
+
+ההערה של מנהל המשרד: ${x.note}`;
+        const r = await claude({ model: process.env.REVISE_MODEL || 'claude-sonnet-5-5', system, user, maxTokens: 1800 });
+        costs.push({ provider: 'anthropic', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output), note: 'תיקון פוסט לפי הערה' });
+        const o: any = extractJson(r.text);
+        if (Array.isArray(o.hashtags)) o.hashtags = o.hashtags.map((h: string) => (String(h).startsWith('#') ? h : `#${h}`));
+        await w('office_worker_content_revise_save', { p_task: id, p_lease: lease, p_id: x.id, p_post: o });
+        ok++; lines.push(`### ✓ ${o.topic ?? i.topic}\n**ההערה:** ${x.note}\n\n${o.post_text ?? ''}`);
+      } catch (e: any) { failed++; lines.push(`### ✗ פוסט ${x.id.slice(0, 8)}\n${String(e?.message ?? e).slice(0, 160)}`); }
+    }
+    await w('office_worker_content_revise_done', { p_task: id, p_lease: lease, p_ok: ok, p_failed: failed }).catch(() => null);
+    return void await done(`תיקון פוסטים · ${company}`, { ok, failed }, lines.join('\n\n'), costs, `${ok} תוקנו${failed ? ` · ${failed} נכשלו` : ''}`);
+  }
   if (kind === 'tool:rtm_scan') {
     await hb('סורק מה קורה היום בארץ ובעולם', 'אירועים, טרנדים ומועדים שרלוונטיים ללקוח — רעיון מתאים נכנס לגאנט לאישור');
     const today = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });

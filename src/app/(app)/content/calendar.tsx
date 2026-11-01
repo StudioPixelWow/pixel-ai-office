@@ -177,10 +177,10 @@ function ReviewBoard({ items, clientName, onClose }: { items: Item[]; clientName
     setBusy(true); setMsg(null);
     try {
       if (okIds.length) await callAction('content_set_status', { ids: okIds, status: 'approved' });
-      let rev = { ok: 0, failed: 0, results: [] as any[] };
-      if (noteList.length) { const res = await fetch('/api/content/revise', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: noteList }) }); const j = await res.json(); if (!res.ok) throw new Error(j.error); rev = j; }
-      const d: Record<string, string> = {}; okIds.forEach((id) => (d[id] = 'אושר ✓')); rev.results.forEach((x: any) => (d[x.id] = x.ok ? 'תוקן לפי ההערה ✓ (ממתין לאישורך שוב)' : `התיקון נכשל: ${x.error}`)); setDone(d);
-      setMsg({ ok: !rev.failed, t: `${okIds.length} אושרו · ${rev.ok} תוקנו לפי ההערות${rev.failed ? ` · ${rev.failed} נכשלו` : ''}` });
+      let note = '';
+      if (noteList.length) { const x = await callAction('content_request_changes', { items: noteList }); note = x?.note ?? ''; }
+      const d: Record<string, string> = {}; okIds.forEach((id) => (d[id] = 'אושר ✓')); noteList.forEach((x) => (d[x.id] = '✍️ קליופי כותבת פוסט חדש לפי ההערה — יחזור לגאנט לאישורך')); setDone(d);
+      setMsg({ ok: true, t: `${okIds.length ? `${okIds.length} אושרו. ` : ''}${note}` });
       setDec({}); setNotes({});
     } catch (e) { setMsg({ ok: false, t: heError(e) }); } finally { setBusy(false); }
   };
@@ -204,6 +204,6 @@ function ReviewBoard({ items, clientName, onClose }: { items: Item[]; clientName
           </div></article>; })}</div>
       <div className="rv-foot">{msg && <span className={`badge ${msg.ok ? 'ok' : 'bad'}`}>{msg.t}</span>}<span className="sp" />
         <span className="small muted">{okIds.length} לאישור · {noteList.length} עם הערות</span>
-        <button className="btn y" disabled={busy || (!okIds.length && !noteList.length)} onClick={submit}>{busy ? (noteList.length ? 'קליופי מתקנת לפי ההערות…' : 'שומר…') : `שליחה${noteList.length ? ' ותיקון' : ''}`}</button></div>
+        <button className="btn y" disabled={busy || (!okIds.length && !noteList.length)} onClick={submit}>{busy ? 'שולח…' : `שליחה${noteList.length ? ' ותיקון' : ''}`}</button></div>
     </div></div>;
 }
