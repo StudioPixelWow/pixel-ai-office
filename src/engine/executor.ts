@@ -146,14 +146,14 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
       [{ provider: 'anthropic', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output, r.usage.searches), note: `tokens + ${r.usage.searches} web searches` }], `${r.urls.length} מקורות`);
   }
   if (kind === 'tool:rtm_scan') {
-    await hb('סורק מה קורה היום בארץ ובעולם', 'אירועים, טרנדים ומועדים שרלוונטיים ללקוח');
+    await hb('סורק מה קורה היום בארץ ובעולם', 'אירועים, טרנדים ומועדים שרלוונטיים ללקוח — רעיון מתאים נכנס לגאנט לאישור');
     const today = new Date().toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const d = c.client?.profile?.dossier ?? {};
     const prompt = `אתה סוכן RTM (Real-Time Marketing) במשרד פרסום ישראלי. היום ${today}.
 הלקוח: "${company}"${website ? ` (${website})` : ''}${c.client?.industry ? `, תחום: ${c.client.industry}` : ''}.${d.business?.summary ? `\nעל העסק: ${String(d.business.summary).slice(0, 600)}` : ''}${d.audience ? `\nקהל: ${JSON.stringify(d.audience).slice(0, 400)}` : ''}
 חפש ברשת מה קורה היום ומחר: חדשות, טרנדים ברשתות בישראל, אירועי ספורט/תרבות, מזג אוויר חריג, מועדים וימים מיוחדים, ודברים בתחום של הלקוח.
 בחר רק 0–2 אירועים שבאמת מתאימים ללקוח הזה לתגובת תוכן מהירה. דלג על נושאים רגישים (מלחמה, אסונות, פוליטיקה, מוות) אלא אם יש זווית רגישה ומכבדת שמתאימה למותג. אל תמציא אירועים.
-החזר JSON בלבד: {"items":[{"event_title":"כותרת קצרה של האירוע","source_url":"קישור למקור שמצאת","relevance":"למה זה רלוונטי ללקוח","idea":"רעיון התגובה: מה מפרסמים, בטון של המותג, כולל טקסט מוצע","format":"פוסט/סטורי/רילס","window_hours":24,"sensitivities":"מה להיזהר"}]} — ואם אין היום משהו שבאמת מתאים: {"items":[]}`;
+החזר JSON בלבד: {"items":[{"event_title":"כותרת קצרה של האירוע","source_url":"קישור למקור שמצאת","relevance":"למה זה רלוונטי ללקוח","idea":"רעיון התגובה: מה מפרסמים ואיך זה נראה (ויזואל)","post_text":"טקסט הפוסט המלא לפרסום, בטון של המותג, עם קריאה לפעולה","format":"פוסט/סטורי/רילס","best_day":"today או tomorrow","window_hours":24,"sensitivities":"מה להיזהר"}]} — ואם אין היום משהו שבאמת מתאים: {"items":[]}`;
     const r = await claudeWebResearch(prompt, process.env.RTM_MODEL ?? 'claude-sonnet-5-5');
     let items: any[] = []; try { items = (extractJson(r.text) as any)?.items ?? []; } catch { items = []; }
     const saved: any = await w('office_worker_rtm_save', { p_client: c.client?.id ?? c.task?.client_id, p_items: items }).catch((e) => ({ error: String(e.message) }));
