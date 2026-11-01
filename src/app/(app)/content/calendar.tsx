@@ -28,7 +28,7 @@ function toIso(day: string, from: string) {
 export function ContentCalendar({ month, clients, client, markers, items, canEdit }: { month: string; clients: { id: string; name: string; retainer: boolean }[];
   client: { id: string; name: string; logo: string | null; hasDossier: boolean } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
   const r = useRouter(); const [sel, setSel] = useState<string | null>(null); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [busy, setBusy] = useState('');
-  const [ppw, setPpw] = useState(3); const [review, setReview] = useState(false);
+  const ppw = 2; const [review, setReview] = useState(false);
   const [y, mo] = month.split('-').map(Number);
   const first = new Date(Date.UTC(y, mo - 1, 1)); const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   const cells = useMemo(() => { const lead = first.getUTCDay(); const n = Math.ceil((lead + days) / 7) * 7;
@@ -71,7 +71,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
         {clients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.retainer ? ' · ריטיינר' : ''}</option>)}</select>
         : <div className="cg-empty"><b>עוד אין לקוחות במערכת</b><span>גאנט תוכן נבנה ללקוח — לקוח נפתח אוטומטית כשליד חותם על הצעה, או ידנית.</span><a className="btn y sm" href="/clients?new=1">＋ לקוח חדש</a><a className="btn sm ghost" href="/leads?new=1">＋ ליד חדש</a></div>}
       {canEdit && client && <>
-        <label className="cg-ppw">פוסטים בשבוע<select value={ppw} onChange={(e) => setPpw(Number(e.target.value))}>{[2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
+        <span className="badge" title="כלל המשרד: פרסום בימי שני וחמישי. חגים ו-RTM יכולים להוסיף יום ספציפי.">📅 פרסום בימי ב׳ וה׳</span>
         <button className="btn y" disabled={!!busy} onClick={plan}>{busy === 'plan' ? 'מתחיל…' : items.length ? 'בנה מחדש את החודש' : 'צור גאנט לחודש'}</button>
         {items.length > 0 && <button className="btn" onClick={() => setReview(true)}>📝 סקירה והערות ({items.length})</button>}
         {pending.length > 0 && <button className="btn c" disabled={!!busy} onClick={() => run('appr', () => callAction('content_set_status', { ids: pending.map((p) => p.id), status: 'approved' }), `${pending.length} פוסטים אושרו`)}>אשר את כל החודש ({pending.length})</button>}
