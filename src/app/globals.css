@@ -1286,3 +1286,14 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .cv-msgs{list-style:none;margin:0 0 10px;padding:0;display:flex;flex-direction:column;gap:6px}.cv-msgs li{display:flex;gap:10px;align-items:flex-start;padding:8px 12px;border-radius:12px;background:#F7F9FC}
 .cv-msgs li.out{background:#F2FBF6}.cv-msgs li .sp{display:flex;flex-direction:column;min-width:0}.cv-msgs small{color:var(--muted,#5b6b80)}.cv-dir{font-weight:700;font-size:13px;min-width:90px}
 @media (max-width:760px){.cv-h{flex-wrap:wrap;justify-content:center}.cv-msgs li{flex-direction:column}}
+/* content review board */
+.rv-back{position:fixed;inset:0;z-index:120;background:rgba(11,19,32,.55);display:grid;place-items:center;padding:16px}
+.rv{background:#fff;border-radius:24px;width:min(980px,100%);height:min(92vh,100%);display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.3)}
+.rv-h{display:flex;gap:8px;align-items:center;padding:16px 20px;border-bottom:1px solid #EDF1F6}.rv-h h2{margin:0;font-size:20px}.rv-h small{color:var(--muted,#5b6b80)}
+.rv-list{flex:1;overflow:auto;padding:14px 20px;display:flex;flex-direction:column;gap:12px;background:#F7F9FC}
+.rv-card{display:flex;gap:14px;background:#fff;border:1px solid #E6EDF5;border-radius:16px;padding:14px;transition:.15s}.rv-card.ok{border-color:#9ED9B5;background:#F6FCF8}.rv-card.note{border-color:#F2D46B;background:#FFFCF0}
+.rv-side{width:110px;flex:none;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}.rv-side img,.rv-side .cg-noimg{width:96px;height:96px;border-radius:12px;object-fit:cover;display:grid;place-items:center;background:#0B1320;color:#56CCF2;font-size:26px}
+.rv-side small{color:var(--muted,#5b6b80)}.rv-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px}.rv-body h3{margin:0;font-size:16px}.rv-hook{font-weight:700;margin:0}
+.rv-text{white-space:pre-wrap;margin:0;line-height:1.7;font-size:14.5px}.rv-tags{color:#2D9CDB}.rv-act{display:flex;gap:8px}.rv-body textarea{width:100%}.rv-done{color:var(--ok,#1E8E5A);font-weight:700;margin:0}
+.rv-foot{display:flex;gap:10px;align-items:center;padding:12px 20px;border-top:1px solid #EDF1F6}
+@media (max-width:760px){.rv-back{padding:0}.rv{height:100%;border-radius:0}.rv-card{flex-direction:column;align-items:center;text-align:center}.rv-act{justify-content:center}.rv-act .btn{flex:1}.rv-foot{flex-wrap:wrap;justify-content:center}.rv-foot .sp{display:none}.rv-foot .btn{width:100%}}

@@ -1,5 +1,7 @@
 const MAP: [RegExp, string][] = [
   [/not_authenticated/, 'נדרשת התחברות'],
+  [/day_taken/, 'כבר יש פוסט ביום הזה — מותר פוסט אחד ביום ללקוח'],
+  [/review_in_progress/, 'התיקונים כבר רצים — המתן לסיום'],
   [/no_membership|not_invited/, 'למשתמש הזה אין הרשאה למשרד'],
   [/owner_already_set/, 'כבר הוגדר Owner למשרד'],
   [/forbidden:([a-z_]+)/, 'אין לך הרשאה לפעולה הזו'],

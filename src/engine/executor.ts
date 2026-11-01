@@ -217,6 +217,18 @@ ${names.length ? `המתחרים המרכזיים: ${names.join(', ')}.` : 'זה
       }
       void missing;
     }
+    // hard rule (Tal): never two posts on the same day — move a clashing post to the nearest free weekday (±3 days, not Shabbat), else drop it
+    if (plan?.posts?.length) {
+      const taken = new Set<string>(); const keep: any[] = [];
+      const iso = (d: Date) => d.toISOString().slice(0, 10);
+      for (const p of plan.posts) {
+        const d0 = String(p.date).slice(0, 10); let pick: string | null = null;
+        for (const off of [0, 1, -1, 2, -2, 3, -3]) { const d = new Date(d0 + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + off); const k = iso(d);
+          if (d.getUTCDay() !== 6 && !taken.has(k) && k.slice(0, 7) === d0.slice(0, 7)) { pick = k; break; } }
+        if (!pick) continue; taken.add(pick); keep.push({ ...p, date: pick + String(p.date).slice(10) });
+      }
+      plan.posts = keep;
+    }
     if (!plan?.posts?.length) return void await w('office_worker_block', { p_task: id, p_lease: lease, p_status: 'waiting_input', p_blocker: 'אין תוכנית תוכן לשמירה', p_checkpoint: null });
     await hb('מציב פוסטים בגאנט', `${plan.posts.length} פוסטים`);
     const r = await w('office_worker_save_content_plan', { p_task: id, p_lease: lease, p_plan: plan });

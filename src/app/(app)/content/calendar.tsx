@@ -5,7 +5,7 @@ import { callAction } from '@/components/client';
 import { heError } from '@/lib/errors';
 
 type Item = { id: string; version: number; topic: string; idea?: string; post_text?: string; hook?: string; cta?: string; pillar?: string; hashtags: string[]; format?: string; platforms: string[];
-  creative_prompt?: string; creative?: string | null; slot_kind?: string; marker?: string | null; due_at: string; status: string; published_url?: string | null; is_winner?: boolean; win_note?: string | null; published_at?: string | null; why?: string | null };
+  creative_prompt?: string; creative?: string | null; slot_kind?: string; marker?: string | null; due_at: string; status: string; published_url?: string | null; is_winner?: boolean; win_note?: string | null; published_at?: string | null; why?: string | null; review_log?: { at: string; note: string; result?: string }[] };
 type Marker = { date: string; title: string; kind: string; no_marketing: boolean };
 
 export const STATUS: Record<string, { he: string; cls: string }> = {
@@ -28,7 +28,7 @@ function toIso(day: string, from: string) {
 export function ContentCalendar({ month, clients, client, markers, items, canEdit }: { month: string; clients: { id: string; name: string; retainer: boolean }[];
   client: { id: string; name: string; logo: string | null; hasDossier: boolean } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
   const r = useRouter(); const [sel, setSel] = useState<string | null>(null); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [busy, setBusy] = useState('');
-  const [ppw, setPpw] = useState(3);
+  const [ppw, setPpw] = useState(3); const [review, setReview] = useState(false);
   const [y, mo] = month.split('-').map(Number);
   const first = new Date(Date.UTC(y, mo - 1, 1)); const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   const cells = useMemo(() => { const lead = first.getUTCDay(); const n = Math.ceil((lead + days) / 7) * 7;
@@ -73,6 +73,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
       {canEdit && client && <>
         <label className="cg-ppw">פוסטים בשבוע<select value={ppw} onChange={(e) => setPpw(Number(e.target.value))}>{[2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}</select></label>
         <button className="btn y" disabled={!!busy} onClick={plan}>{busy === 'plan' ? 'מתחיל…' : items.length ? 'בנה מחדש את החודש' : 'צור גאנט לחודש'}</button>
+        {items.length > 0 && <button className="btn" onClick={() => setReview(true)}>📝 סקירה והערות ({items.length})</button>}
         {pending.length > 0 && <button className="btn c" disabled={!!busy} onClick={() => run('appr', () => callAction('content_set_status', { ids: pending.map((p) => p.id), status: 'approved' }), `${pending.length} פוסטים אושרו`)}>אשר את כל החודש ({pending.length})</button>}
       </>}
       {client && !client.hasDossier && <span className="badge warn">אין עדיין תיק מותג — הפוסטים ייכתבו בלי כיול שפה. מומלץ להריץ מחקר לקוח קודם.</span>}
@@ -100,6 +101,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
         </div>; })}
     </div>
 
+    {review && client && <ReviewBoard items={[...items].sort((a, b) => a.due_at.localeCompare(b.due_at))} clientName={client.name} onClose={() => { setReview(false); r.refresh(); }} />}
     {cur && <PostDrawer key={cur.id} item={cur} client={client!} canEdit={canEdit} onClose={() => setSel(null)} run={run} busy={busy} />}
   </div>;
 }
@@ -162,4 +164,46 @@ function PostDrawer({ item, client, canEdit, onClose, run, busy }: { item: Item;
       </div>}
     </>}
   </aside>;
+}
+
+// Review round: see the whole month in one scroll, approve some, comment on others — the copywriter rewrites the commented posts to match.
+function ReviewBoard({ items, clientName, onClose }: { items: Item[]; clientName: string; onClose: () => void }) {
+  const [dec, setDec] = useState<Record<string, 'ok' | 'note' | undefined>>({}); const [notes, setNotes] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [done, setDone] = useState<Record<string, string>>({});
+  const okIds = items.filter((i) => dec[i.id] === 'ok').map((i) => i.id);
+  const noteList = items.filter((i) => dec[i.id] === 'note' && (notes[i.id] ?? '').trim()).map((i) => ({ id: i.id, note: notes[i.id].trim() }));
+  const allOk = () => setDec(Object.fromEntries(items.filter((i) => !['published', 'approved', 'scheduled'].includes(i.status)).map((i) => [i.id, dec[i.id] === 'note' ? 'note' : 'ok'])));
+  const submit = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      if (okIds.length) await callAction('content_set_status', { ids: okIds, status: 'approved' });
+      let rev = { ok: 0, failed: 0, results: [] as any[] };
+      if (noteList.length) { const res = await fetch('/api/content/revise', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ items: noteList }) }); const j = await res.json(); if (!res.ok) throw new Error(j.error); rev = j; }
+      const d: Record<string, string> = {}; okIds.forEach((id) => (d[id] = 'אושר ✓')); rev.results.forEach((x: any) => (d[x.id] = x.ok ? 'תוקן לפי ההערה ✓ (ממתין לאישורך שוב)' : `התיקון נכשל: ${x.error}`)); setDone(d);
+      setMsg({ ok: !rev.failed, t: `${okIds.length} אושרו · ${rev.ok} תוקנו לפי ההערות${rev.failed ? ` · ${rev.failed} נכשלו` : ''}` });
+      setDec({}); setNotes({});
+    } catch (e) { setMsg({ ok: false, t: heError(e) }); } finally { setBusy(false); }
+  };
+  const d = (iso: string) => new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', weekday: 'short', day: '2-digit', month: '2-digit' }).format(new Date(iso));
+  return <div className="rv-back" role="dialog" aria-modal="true" aria-label="סקירת החודש">
+    <div className="rv">
+      <div className="rv-h"><div className="sp"><small>סקירת גאנט</small><h2>{clientName} · {items.length} פוסטים</h2></div>
+        <button className="btn sm" onClick={allOk} disabled={busy}>✓ סמן הכל לאישור</button><button className="btn sm ghost" onClick={onClose} disabled={busy}>סגירה</button></div>
+      <div className="rv-list">{items.map((i) => { const st = dec[i.id]; const locked = ['published', 'scheduled'].includes(i.status);
+        return <article key={i.id} className={`rv-card ${st ?? ''}`}>
+          <div className="rv-side">{i.creative ? <img src={`/api/files/${i.creative}`} alt="" loading="lazy" /> : <span className="cg-noimg">{i.format?.includes('רילס') ? '▶' : '❝'}</span>}
+            <b>{d(i.due_at)}</b><small>{i.format ?? 'פוסט'}</small><i className={`cg-st ${STATUS[i.status]?.cls}`}>{STATUS[i.status]?.he ?? i.status}</i></div>
+          <div className="rv-body"><h3>{i.topic}</h3>{i.hook && <p className="rv-hook">{i.hook}</p>}
+            {i.post_text ? <p className="rv-text">{i.post_text}</p> : i.idea ? <p className="rv-text muted">{i.idea}</p> : null}
+            {i.cta && <p className="small"><b>CTA:</b> {i.cta}</p>}{(i.hashtags ?? []).length > 0 && <p className="small rv-tags" dir="auto">{i.hashtags.join(' ')}</p>}
+            {(i.review_log ?? []).length > 0 && <details className="small"><summary>היסטוריית הערות ({i.review_log!.length})</summary>{i.review_log!.map((x, k) => <p key={k}>• {x.note}</p>)}</details>}
+            {done[i.id] ? <p className="rv-done">{done[i.id]}</p> : !locked && <>
+              <div className="rv-act"><button className={`btn sm ${st === 'ok' ? 'c' : 'ghost'}`} disabled={busy} onClick={() => setDec({ ...dec, [i.id]: st === 'ok' ? undefined : 'ok' })}>✓ מאשר</button>
+                <button className={`btn sm ${st === 'note' ? 'y' : 'ghost'}`} disabled={busy} onClick={() => setDec({ ...dec, [i.id]: st === 'note' ? undefined : 'note' })}>💬 הערה לתיקון</button></div>
+              {st === 'note' && <textarea rows={2} autoFocus value={notes[i.id] ?? ''} onChange={(e) => setNotes({ ...notes, [i.id]: e.target.value })} placeholder="מה לשנות? למשל: פחות רשמי, להוסיף את המבצע של החודש, לקצר לשתי שורות, לשנות לרילס" />}</>}
+          </div></article>; })}</div>
+      <div className="rv-foot">{msg && <span className={`badge ${msg.ok ? 'ok' : 'bad'}`}>{msg.t}</span>}<span className="sp" />
+        <span className="small muted">{okIds.length} לאישור · {noteList.length} עם הערות</span>
+        <button className="btn y" disabled={busy || (!okIds.length && !noteList.length)} onClick={submit}>{busy ? (noteList.length ? 'קליופי מתקנת לפי ההערות…' : 'שומר…') : `שליחה${noteList.length ? ' ותיקון' : ''}`}</button></div>
+    </div></div>;
 }
