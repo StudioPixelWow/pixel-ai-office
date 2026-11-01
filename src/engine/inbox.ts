@@ -94,7 +94,7 @@ async function handle(msg: any, me: string): Promise<string> {
 new_lead=true רק כשזו פנייה של עסק/אדם חדש שמתעניין בשירותים. אל תמציא לקוח — client_guess רק מתוך הרשימה.`;
   const user = `מאת: ${fromName} <${fromEmail}>\nנושא: ${subject}\n${match.client_id ? `(שויך כבר ללקוח לפי ${match.by})` : `לקוחות המשרד: ${list.map((c) => `${c.id}=${c.name}${c.site ? ` (${c.site})` : ''}`).join(' | ')}`}\n\nתוכן:\n${snippet || '(ריק)'}`;
   const r = await claude({ model: MODEL, system: system + '\nהחזר/י אובייקט JSON יחיד בלבד, בלי טקסט לפניו או אחריו.', user, maxTokens: 700 });
-  await w('office_worker_log_usage', { p_client: match.client_id ?? null, p_agent: 'inbox_triage', p_model: r.model, p_in: r.usage.input, p_out: r.usage.output, p_cost: tokenCost(r.model, r.usage.input, r.usage.output), p_note: 'סיווג מייל נכנס' }).catch(() => null);
+  await w('office_worker_log_usage', { p_client: match.client_id ?? null, p_agent: 'comms_manager', p_model: r.model, p_in: r.usage.input, p_out: r.usage.output, p_cost: tokenCost(r.model, r.usage.input, r.usage.output), p_note: 'סיווג מייל נכנס' }).catch(() => null);
   let c: Cls;
   try { c = extractJson(r.text) as any; }
   catch { console.error('[inbox] unparsable classification', r.text.slice(0, 300));

@@ -1,5 +1,5 @@
 import { DataConnections } from '@/components/data-sources';
-import { safeList, me } from '@/lib/api';
+import { rpc, safeList, me } from '@/lib/api';
 import { Hero, Table, Badge, When, Contract } from '@/components/ui';
 import { ActionButton, ActionForm } from '@/components/client';
 import { CheckNow } from './check-now';
@@ -11,10 +11,15 @@ const CATALOG: [string, string, string, string][] = [
 ];
 export default async function Connections() {
   const m = await me(); const [conns, caps, checks, runners, clients] = await Promise.all([safeList('connections', {}, 200), safeList('connection_capabilities', {}, 1000), safeList('connection_checks', {}, 60), safeList('local_runners'), safeList('clients', { _active: true })]);
+  const boxes: any[] = await rpc<any[]>('office_mailboxes').catch(() => []);
+  const latest = checks.filter((c: any, i: number) => checks.findIndex((x: any) => x.connection_id === c.connection_id && x.capability === c.capability) === i);
   const cn = Object.fromEntries(clients.map((c: any) => [c.id, c.name]));
   return <>
     <Hero title={<>חיבורים, <span className="mark">הרשאות ותקינות</span></>} sub="חיבור מסומן פעיל רק אחרי בדיקה אמיתית. שמירת כתובת או מפתח אינה הוכחת יכולת. ChatGPT בדפדפן ו-OpenAI API הם חיבורים נפרדים.">{['owner', 'admin'].includes(m.role) && <CheckNow />}</Hero>
     <DataConnections />
+    <div className="card" style={{ marginBottom: 12 }}><div className="row"><h2 className="sp">תיבות דואר (איריס)</h2><a className="btn sm ghost" href="/inbox">לדואר הנכנס</a></div>
+      <p className="small muted">קריאה כל 5 דקות (כולל מיילים שאורכבו), שליחה רק בלחיצה. סיסמאות האפליקציה שמורות ב-Vercel בלבד.</p>
+      <Table head={['תיבה', 'פעילה מ-', 'נבדקה לאחרונה', 'נכנסו (7 ימים)', 'נשלחו מהמערכת (7 ימים)']} rows={boxes.map((b: any) => [<span key="m" dir="ltr">{b.mailbox}</span>, <When key="s" d={b.started_at} />, <When key="c" d={b.checked_at} />, b.in_7d, b.sent_7d])} empty="אין תיבות מחוברות" /></div>
     {conns.map((c: any) => <div key={c.id} className="card" style={{ marginBottom: 12 }}>
       <div className="row"><h3 className="sp">{c.label} <span className="small muted">({c.provider} · {c.access_method})</span></h3><Badge s={c.status} />
         {!c.disconnected_at && c.access_method !== 'builtin' && <ActionButton className="btn danger sm" action="disconnect_connection" payload={{ id: c.id }} confirm="לנתק? משימות תלויות יעברו להמתנה.">נתק</ActionButton>}</div>
@@ -33,7 +38,7 @@ export default async function Connections() {
           !r.revoked_at && m.role === 'owner' ? <ActionButton key="x" className="btn danger sm" action="revoke_local_runner" payload={{ id: r.id }}>נתק</ActionButton> : null])} />
         {m.role === 'owner' && <ActionForm action="create_local_runner" submit="צור קוד pairing" fields={[{ name: 'name', label: 'שם המחשב', defaultValue: 'MacBook Pro' }]} />}
         <p className="small muted">הרצה: <code dir="ltr">npm run runner -- --pair CODE</code> בתיקיית הפרויקט (ראה RUNBOOK).</p></div></div>
-    <div className="card" style={{ marginTop: 16 }}><h2>בדיקות אחרונות</h2><Table head={['חיבור', 'יכולת', 'תוצאה', 'פרטים', 'מתי']} rows={checks.map((c: any) => [conns.find((x: any) => x.id === c.connection_id)?.label ?? '—', c.capability, <Badge key="b" s={c.result} />, <span key="d" className="small">{c.details}</span>, <When key="w" d={c.checked_at} />])} /></div>
+    <div className="card" style={{ marginTop: 16 }}><h2>בדיקה אחרונה לכל יכולת</h2><Table head={['חיבור', 'יכולת', 'תוצאה', 'פרטים', 'מתי']} rows={latest.map((c: any) => [conns.find((x: any) => x.id === c.connection_id)?.label ?? '—', c.capability, <Badge key="b" s={c.result} />, <span key="d" className="small">{c.details}</span>, <When key="w" d={c.checked_at} />])} /></div>
     <Contract source="connections, connection_capabilities, connection_checks, local_runners" actions="חיבור, ניתוק, pairing" perms="Owner/מנהל" empty="רשימת חיבורים מובנים בהמתנה לבדיקה" />
   </>;
 }

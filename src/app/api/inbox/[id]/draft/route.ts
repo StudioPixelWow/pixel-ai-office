@@ -18,7 +18,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const user = `${(d as any).client ? `לקוח: ${(d as any).client}\n` : ''}מאת: ${e.from_name ?? ''} <${e.from_email}>\nנושא: ${e.subject ?? ''}\n\nהמייל:\n${String(e.body_text ?? e.snippet ?? '').slice(0, 6000)}${thread ? `\n\nהתכתבות קודמת בשרשור:\n${thread}` : ''}${b.hint ? `\n\nהנחיה ממני לתשובה: ${String(b.hint).slice(0, 800)}` : ''}`;
   try {
     const r = await claude({ model: process.env.INBOX_DRAFT_MODEL || 'claude-sonnet-5-5', system, user, maxTokens: 900 });
-    await w('office_worker_log_usage', { p_client: e.client_id ?? null, p_agent: 'inbox_triage', p_model: r.model, p_in: r.usage.input, p_out: r.usage.output, p_cost: tokenCost(r.model, r.usage.input, r.usage.output), p_note: 'טיוטת תשובה למייל' }).catch(() => null);
+    await w('office_worker_log_usage', { p_client: e.client_id ?? null, p_agent: 'comms_manager', p_model: r.model, p_in: r.usage.input, p_out: r.usage.output, p_cost: tokenCost(r.model, r.usage.input, r.usage.output), p_note: 'טיוטת תשובה למייל' }).catch(() => null);
     return NextResponse.json({ text: r.text.trim() });
   } catch (x: any) { return NextResponse.json({ error: String(x?.message ?? x).slice(0, 160) }, { status: 500 }); }
 }
