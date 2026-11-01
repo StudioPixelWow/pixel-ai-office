@@ -153,14 +153,14 @@ async function researchStep(c: Ctx, kind: string, hb: (s: string, a?: string) =>
       try {
         const g: any = await w('office_worker_content_get', { p_task: id, p_lease: lease, p_id: x.id }); const i = g.item; const cl = g.client;
         const system = `את/ה קופירייטר/ית סושיאל בכיר/ה במשרד Pixel Digital. קיבלת הערה ממנהל המשרד על פוסט בגאנט. כתוב/כתבי פוסט חדש שמחליף את הקיים ומיישם את ההערה במלואה ובדיוק.
-מה שההערה לא נוגעת בו — שמור/י על הכיוון. שפת המותג של הלקוח, עברית טבעית, בלי קלישאות. החזר/י JSON בלבד:
+מה שההערה לא נוגעת בו — שמור/י על הכיוון. שפת המותג של הלקוח, עברית טבעית, בלי קלישאות. בתוך ערכי הטקסט אל תשתמש/י במירכאות כפולות רגילות (") — לקיצורים ולציטוטים השתמש/י ב-״ (גרשיים עבריים) או במירכאות בודדות. החזר/י JSON תקין בלבד:
 {"topic":"כותרת קצרה","idea":"מה רואים בפוסט (ויזואל)","hook":"פתיח","post_text":"טקסט הפוסט המלא","cta":"קריאה לפעולה","hashtags":["#.."],"creative_prompt":"הנחיה לעיצוב/צילום","format":"פוסט תמונה/קרוסלה/רילס/סטורי"}`;
         const user = `הלקוח: ${cl.name}${cl.industry ? ` (${cl.industry})` : ''}\n${cl.brand ? `מותג: ${JSON.stringify(cl.brand).slice(0, 700)}\n` : ''}${cl.social_voice ? `קול ברשתות: ${JSON.stringify(cl.social_voice).slice(0, 600)}\n` : ''}
 הפוסט הנוכחי (${i.format ?? 'פוסט'}, ${new Date(i.due_at).toLocaleDateString('he-IL', { timeZone: 'Asia/Jerusalem' })}):
 ${JSON.stringify({ topic: i.topic, idea: i.idea, hook: i.hook, post_text: i.post_text, cta: i.cta, hashtags: i.hashtags, creative_prompt: i.creative_prompt, format: i.format })}
 
 ההערה של מנהל המשרד: ${x.note}`;
-        const r = await claude({ model: process.env.REVISE_MODEL || 'claude-sonnet-5-5', system, user, maxTokens: 1800 });
+        const r = await claude({ model: process.env.REVISE_MODEL || 'claude-sonnet-5-5', system, user, maxTokens: 4000 });
         costs.push({ provider: 'anthropic', model: r.model, cost_kind: 'estimate', input_units: r.usage.input, output_units: r.usage.output, cost_usd: tokenCost(r.model, r.usage.input, r.usage.output), note: 'תיקון פוסט לפי הערה' });
         const o: any = extractJson(r.text);
         if (Array.isArray(o.hashtags)) o.hashtags = o.hashtags.map((h: string) => (String(h).startsWith('#') ? h : `#${h}`));
@@ -179,7 +179,7 @@ ${JSON.stringify({ topic: i.topic, idea: i.idea, hook: i.hook, post_text: i.post
 הלקוח: "${company}"${website ? ` (${website})` : ''}${c.client?.industry ? `, תחום: ${c.client.industry}` : ''}.${d.business?.summary ? `\nעל העסק: ${String(d.business.summary).slice(0, 600)}` : ''}${d.audience ? `\nקהל: ${JSON.stringify(d.audience).slice(0, 400)}` : ''}
 חפש ברשת מה קורה היום ומחר: חדשות, טרנדים ברשתות בישראל, אירועי ספורט/תרבות, מזג אוויר חריג, מועדים וימים מיוחדים, ודברים בתחום של הלקוח.
 בחר רק 0–2 אירועים שבאמת מתאימים ללקוח הזה לתגובת תוכן מהירה. דלג על נושאים רגישים (מלחמה, אסונות, פוליטיקה, מוות) אלא אם יש זווית רגישה ומכבדת שמתאימה למותג. אל תמציא אירועים.
-החזר JSON בלבד: {"items":[{"event_title":"כותרת קצרה של האירוע","source_url":"קישור למקור שמצאת","relevance":"למה זה רלוונטי ללקוח","idea":"רעיון התגובה: מה מפרסמים ואיך זה נראה (ויזואל)","post_text":"טקסט הפוסט המלא לפרסום, בטון של המותג, עם קריאה לפעולה","format":"פוסט/סטורי/רילס","best_day":"today או tomorrow","window_hours":24,"sensitivities":"מה להיזהר"}]} — ואם אין היום משהו שבאמת מתאים: {"items":[]}`;
+בתוך ערכי הטקסט אל תשתמש/י במירכאות כפולות רגילות (") — לקיצורים ולציטוטים השתמש/י ב-״ (גרשיים עבריים) או במירכאות בודדות. החזר JSON בלבד: {"items":[{"event_title":"כותרת קצרה של האירוע","source_url":"קישור למקור שמצאת","relevance":"למה זה רלוונטי ללקוח","idea":"רעיון התגובה: מה מפרסמים ואיך זה נראה (ויזואל)","post_text":"טקסט הפוסט המלא לפרסום, בטון של המותג, עם קריאה לפעולה","format":"פוסט/סטורי/רילס","best_day":"today או tomorrow","window_hours":24,"sensitivities":"מה להיזהר"}]} — ואם אין היום משהו שבאמת מתאים: {"items":[]}`;
     const r = await claudeWebResearch(prompt, process.env.RTM_MODEL ?? 'claude-sonnet-5-5');
     let items: any[] = []; try { items = (extractJson(r.text) as any)?.items ?? []; } catch { items = []; }
     const saved: any = await w('office_worker_rtm_save', { p_client: c.client?.id ?? c.task?.client_id, p_items: items }).catch((e) => ({ error: String(e.message) }));
