@@ -2,6 +2,7 @@ import 'server-only';
 import sharp from 'sharp';
 import { w } from './db';
 import { extractJson } from './schemas';
+import { metaPagePictures, metaConfigured } from './adapters/meta';
 // Logo pass: find each client's own logo on their site (header/JSON-LD/site-logo/icons, plus social og:image as fallback),
 // let Claude vision pick the real brand logo (not partners/clients walls), rasterize to a clean trimmed PNG and store it as a blob.
 // SVGs are rasterized on purpose: an uploaded SVG served from our origin could carry script.
@@ -86,7 +87,7 @@ async function pick(company: string, imgs: { png: Buffer; why: string }[]) {
   return { pick: o?.pick === null || o?.pick === undefined ? -1 : Number(o.pick), reason: String(o?.reason ?? '').slice(0, 200) };
 }
 
-export async function findLogo(c: { name: string; website?: string | null; other_sites?: any; socials?: Record<string, string> | null; known?: (string | null)[] }) {
+export async function findLogo(c: { name: string; website?: string | null; other_sites?: any; socials?: Record<string, string> | null; known?: (string | null)[]; meta?: string | null }) {
   const cands: { url?: string; svg?: string; why: string }[] = [];
   const sites = [c.website, ...(Array.isArray(c.other_sites) ? c.other_sites : [])].filter((x): x is string => !!x).slice(0, 2);
   for (const s of sites) { const h = await fetchT(s.startsWith('http') ? s : `https://${s}`); if (h.text) cands.push(...logoCandidates(h.text, h.url)); }
@@ -95,6 +96,8 @@ export async function findLogo(c: { name: string; website?: string | null; other
     const u = c.socials?.[net]; if (!u) continue; const h = await fetchT(u, 8000);
     const og = h.text.match(/<meta[^>]+property=["']og:image["'][^>]*content=["']([^"']+)/i)?.[1]; if (og) cands.push({ url: dec(og), why: `${net} profile` });
   }
+  // the client's Facebook page picture (via the connected Meta ad account) is usually the clean brand logo
+  if (c.meta && await metaConfigured().catch(() => false)) for (const p of await metaPagePictures(c.meta)) cands.unshift({ url: p.url, why: `facebook page "${p.name}"` });
   const imgs: { png: Buffer; why: string; src: string }[] = [];
   for (const x of cands) {
     if (imgs.length >= 8) break;

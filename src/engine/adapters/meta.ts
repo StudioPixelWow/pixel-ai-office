@@ -64,3 +64,15 @@ export async function metaDaily(account: string, days = 8) {
   const acc = await g(`act_${account.replace(/^act_/, '')}`, { fields: 'account_status,disable_reason,spend_cap,amount_spent,name' });
   return { days: (j.data ?? []).map((d: any) => ({ date: d.date_start, spend: Number(d.spend ?? 0), leads: (d.actions ?? []).filter((a: any) => LEAD.slice(0, 3).includes(a.action_type)).reduce((s: number, a: any) => s + Number(a.value), 0) })), account: acc };
 }
+
+// Facebook pages an ad account promotes, with their profile picture (usually the brand logo) — used by the logo pass.
+export async function metaPagePictures(accounts: string): Promise<{ name: string; url: string }[]> {
+  const out: { name: string; url: string }[] = [];
+  for (const a of String(accounts).split(',').map((x) => x.trim().replace(/^act_/, '')).filter(Boolean).slice(0, 3)) {
+    try {
+      const j = await g(`act_${a}/promote_pages`, { fields: 'name,picture.width(720).height(720){url,is_silhouette}', limit: '5' });
+      for (const p of j.data ?? []) if (p.picture?.data?.url && !p.picture.data.is_silhouette) out.push({ name: p.name, url: p.picture.data.url });
+    } catch { /* account without pages or no access */ }
+  }
+  return out;
+}
