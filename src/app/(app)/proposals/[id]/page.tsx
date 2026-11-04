@@ -25,9 +25,9 @@ export default async function Proposal({ params }: { params: Promise<{ id: strin
       {views?.count > 0 ? <p className="prop-views">👁 נצפתה {views.count} פעמים · לאחרונה {ago(views.last)} · זמן קריאה כולל {Math.round(views.seconds / 60)} דק׳</p> : p.share_token_hash ? <p className="prop-views muted">👁 הלקוח עוד לא פתח את ההצעה</p> : null}</div><Badge s={p.status} />
       {cur?.review_status === 'approved' && <PdfButton id={id} />}
 </div></div>
-    <JourneyBar j={journey} />
+    <JourneyBar j={journey} here={`/proposals/${id}`} action={m.role === 'owner' && cur && cur.review_status !== 'approved' ? <ActionButton className="btn y" action="approve_proposal" payload={{ version_id: cur.id }}>לאשר את ההצעה ✓</ActionButton> : undefined} />
     {!['accepted', 'declined', 'archived'].includes(p.status) && <Critique id={p.id} initial={p.critique ?? null} />}
-    {branded && <div className="grid g2" style={{ marginBottom: 16 }}>
+    {branded && <div id="prop-actions" className="grid g2" style={{ marginBottom: 16, scrollMarginTop: 90 }}>
       <div className="card"><h2>שליחה לחתימה</h2>
         {sig ? <><p><span className="badge ok">נחתם</span> על ידי <b>{sig.signer_name}</b>{sig.signer_title ? ` (${sig.signer_title})` : ''} · {fmtDateTime(sig.signed_at)}</p>
           {sig.signature_blob_id && <img src={`/api/files/${sig.signature_blob_id}`} alt="חתימה" style={{ maxHeight: 80, background: '#fff', border: '1px solid var(--line,#e3eaf2)', borderRadius: 12 }} />}

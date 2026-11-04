@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 // Where a lead/client stands on the way: lead → proposal → signature → deal → client → research → milestones → active.
 type J = any;
 export function journeySteps(j: J) {
@@ -28,12 +29,13 @@ export function nextStep(j: J): { t: string; d: string; href?: string } | null {
   if (j?.milestones?.overdue) return { t: `${j.milestones.overdue} אבני דרך באיחור`, d: 'עדכן סטטוס או תאריך.', href: `/clients/${C!.id}?tab=milestones` };
   return null;
 }
-export function JourneyBar({ j, compact }: { j: J; compact?: boolean }) {
+// here = the page this bar is on: a next step that points to it gets the real action (or a jump to it) instead of a link to itself
+export function JourneyBar({ j, compact, here, action }: { j: J; compact?: boolean; here?: string; action?: ReactNode }) {
   if (!j) return null; const { steps, cur } = journeySteps(j); const n = nextStep(j);
   return <section className={`jr${compact ? ' compact' : ''}`} aria-label="מסלול הלקוח">
     <ol className="jr-steps">{steps.map((s: any, i) => { const cls = s.done ? 'ok' : i === cur ? 'on' : '';
       const inner = <><b>{s.done ? '✓' : s.running ? '●' : i + 1}</b><span>{s.l}{s.partial && !s.done ? <em>{s.partial}</em> : null}</span></>;
       return <li key={s.k} className={`${cls}${s.running ? ' run' : ''}`}>{s.href ? <Link href={s.href}>{inner}</Link> : <div>{inner}</div>}</li>; })}</ol>
-    {n && !compact && <div className="jr-next"><div><small>הצעד הבא</small><b>{n.t}</b><span>{n.d}</span></div>{n.href && <Link className="btn y" href={n.href}>{n.t} ←</Link>}</div>}
+    {n && !compact && <div className="jr-next"><div><small>הצעד הבא</small><b>{n.t}</b><span>{n.d}</span></div>{n.href && (here && n.href.split('#')[0] === here ? (action ?? <a className="btn y" href="#prop-actions">{n.t} ↓</a>) : <Link className="btn y" href={n.href}>{n.t} ←</Link>)}</div>}
   </section>;
 }

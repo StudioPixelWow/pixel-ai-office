@@ -15,7 +15,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: ctx, error } = await sb.rpc('office_proposal_revise_ctx', { p_proposal: id });
   if (error || !ctx) return NextResponse.json({ error: heError(error?.message ?? 'not_found') }, { status: 400 });
   const cr = ctx.critique ?? {};
-  const fixes = (Array.isArray(b.fixes) ? b.fixes : []).map((i: number) => cr.fixes?.[i]).filter(Boolean);
+  const norm = (f: any) => typeof f === 'string' ? { section: '', issue: f, rewrite: '' } : { section: f.section ?? f.field ?? '', issue: f.issue ?? f.problem ?? f.note ?? '', rewrite: f.rewrite ?? f.suggestion ?? '' };
+  const fixes = (Array.isArray(b.fixes) ? b.fixes : []).map((i: number) => cr.fixes?.[i]).filter(Boolean).map(norm);
   const risks = (Array.isArray(b.risks) ? b.risks : []).map((i: number) => cr.risks?.[i]).filter(Boolean);
   const extra = String(b.extra ?? '').trim().slice(0, 2000);
   if (!fixes.length && !risks.length && !extra) return NextResponse.json({ error: 'בחר לפחות הערה אחת לתיקון' }, { status: 400 });
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await sb.rpc('office_log_usage', { p_client: null, p_agent: 'proposal_critic', p_model: r.model, p_in: r.usage.input, p_out: r.usage.output, p_cost: tokenCost(r.model, r.usage.input, r.usage.output), p_note: 'תיקון הצעה לפי הערות' });
     const out: any = extractJson(r.text);
     if (!out?.content || typeof out.content !== 'object' || !Object.keys(out.content).length) throw new Error('התיקון לא התקבל — נסה שוב');
-    const { data: saved, error: e2 } = await sb.rpc('office_proposal_revise_save', { p_proposal: id, p_content: out.content, p_summary: out.summary ?? '', p_applied: [...fixes.map((f: any) => f.section + ': ' + f.issue), ...risks, ...(extra ? [extra] : [])] });
+    const { data: saved, error: e2 } = await sb.rpc('office_proposal_revise_save', { p_proposal: id, p_content: out.content, p_summary: out.summary ?? '', p_applied: [...fixes.map((f: any) => [f.section, f.issue].filter(Boolean).join(': ')), ...risks, ...(extra ? [extra] : [])] });
     if (e2) throw new Error(e2.message);
     let critique: any = null; try { critique = await runCritique(sb, id); } catch { /* the new version is saved even if the re-score fails */ }
     return NextResponse.json({ ok: true, version: saved?.version_no, summary: out.summary, critique, prev_score: cr.score ?? null });
