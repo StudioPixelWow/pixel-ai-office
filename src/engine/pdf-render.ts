@@ -21,7 +21,10 @@ export async function renderDocPdf(page: any): Promise<Uint8Array> {
     await Promise.all(Array.from(wrap.querySelectorAll('img')).map((im: any) => im.complete ? null : new Promise((r) => { im.onload = im.onerror = r; })));
     return wrap.querySelectorAll('.pq-page').length;
   });
-  if (!n) throw new Error('no_document');
+  if (!n) { // older proposals without the branded document: plain A4 of the print view
+    await page.emulateMediaType('print');
+    return page.pdf({ format: 'A4', printBackground: true, displayHeaderFooter: false, margin: { top: '12mm', bottom: '12mm', left: '12mm', right: '12mm' } });
+  }
   const out = await PDFDocument.create();
   for (let i = 0; i < n; i++) {
     const box: { w: number; h: number } = await page.evaluate((k: number) => {

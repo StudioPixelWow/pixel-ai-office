@@ -15,12 +15,15 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     const origin = req.nextUrl.origin; const host = new URL(origin).hostname;
     await browser.setCookie(...req.cookies.getAll().map((c) => ({ name: c.name, value: c.value, domain: host, path: '/', secure: origin.startsWith('https'), httpOnly: true })));
     const page = await browser.newPage();
-    await page.goto(`${origin}/proposals/${id}/print`, { waitUntil: 'networkidle0', timeout: 40000 });
+    // the app keeps a live events poll open, so the network never goes idle: wait for the document itself instead
+    await page.goto(`${origin}/proposals/${id}/print`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    await page.waitForSelector('.pq-page, .print-doc, form input[type=password]', { timeout: 30000 });
     if (new URL(page.url()).pathname !== `/proposals/${id}/print`) throw new Error('auth');
     const pdf = await renderDocPdf(page);
     const name = `הצעת מחיר ${p.number ?? ''} ${String(p.title ?? '').replace(/^הצעת מחיר\s*[—-]\s*/, '')}`.replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim();
     return new NextResponse(Buffer.from(pdf), { headers: { 'content-type': 'application/pdf', 'content-disposition': `attachment; filename="proposal.pdf"; filename*=UTF-8''${encodeURIComponent(name)}.pdf`, 'cache-control': 'no-store' } });
   } catch (e: any) {
+    console.error('[proposal-pdf]', id, String(e?.message ?? e).slice(0, 300));
     return NextResponse.json({ error: e?.message === 'auth' ? 'נדרשת התחברות' : 'יצירת ה-PDF נכשלה, נסה שוב' }, { status: 502 });
   } finally { await browser.close().catch(() => {}); }
 }
