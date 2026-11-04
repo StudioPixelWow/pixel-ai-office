@@ -48,6 +48,11 @@ export function Portal({ t, d }: { t: string; d: any }) {
   const img = (id: string) => `/api/public/portal/${t}/img/${id}`;
   const months = [...new Set(monthly.map((x) => x.month))].sort().reverse().slice(0, 2);
 
+  if (GANTT_ONLY) return <main className="pgx-page">
+    {msg && <div className={`pt-toast ${msg.ok ? 'ok' : 'bad'}`} role="status">{msg.t}</div>}
+    <PortalGantt client={d.client} plan={d.plan ?? []} img={img} busy={busy} act={(op, id, text) => act(op, id, text ?? '')} />
+    <footer className="pgx-foot">Pixel Digital · משרד פרסום ודיגיטל · 052-448-8187</footer>
+  </main>;
   return <main className="pt">
     <header className="pt-hero">
       <div className="pt-top"><img src="https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-white-500.webp" alt="Pixel Digital" className="pt-logo" /><span>הפורטל של {d.client.name}</span></div>
@@ -66,11 +71,7 @@ export function Portal({ t, d }: { t: string; d: any }) {
 
     <section id="approve" className="pt-sec">
       <h2>גאנט התוכן שלכם</h2>
-      <p className="pt-sub">כל התוכן שאנחנו מתכננים לכם השנה. לחיצה על פוסט פותחת אותו: אפשר לאשר או לכתוב לנו הערה, ואנחנו מעדכנים.</p>
-      <PortalGantt plan={d.plan ?? []} img={img} busy={busy} act={(op, id, text) => act(op, id, text ?? '')} />
-      {monthNote ? <div className="pt-ch"><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="הערה כללית על התוכן: מסרים, מבצעים, אירועים, דברים שחשוב לכם…" rows={3} autoFocus />
-        <div className="pt-btns"><button className="pt-btn y" disabled={!!busy || !note.trim()} onClick={async () => { if (await act('month_note', null, note)) { setMonthNote(null); setNote(''); } }}>{busy ? 'שולח…' : 'שליחת ההערה'}</button><button className="pt-btn ghost" onClick={() => setMonthNote(null)}>ביטול</button></div></div>
-      : <button className="pt-btn ghost pt-mnote" onClick={() => { setMonthNote('all'); setNote(''); }}>💬 הערה כללית על התוכן</button>}
+      <PortalGantt client={d.client} plan={d.plan ?? []} img={img} busy={busy} act={(op, id, text) => act(op, id, text ?? '')} />
     </section>
 
     {!GANTT_ONLY && <>
