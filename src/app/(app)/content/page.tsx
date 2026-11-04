@@ -17,11 +17,12 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
   const items = client ? await safeList<any>('content_items', { client_id: client.id }, 1000) : [];
   const inMonth = items.filter((i) => !i.archived_at && i.due_at && new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit' }).format(new Date(i.due_at)).slice(0, 7) === month);
   const logo = logoOf(client?.profile).src;
+  const contacts = client ? await safeList<any>('contacts', { client_id: client.id }, 50) : [];
   return <ContentCalendar month={month} canEdit={['owner', 'admin', 'account_manager'].includes(m.role)}
     clients={sorted.map((c) => ({ id: c.id, name: c.name, retainer: retainer.has(c.id) }))}
-    client={client ? { id: client.id, name: client.name, logo, hasDossier: !!client.profile?.dossier, ppw: Number(client.profile?.content_ppw ?? 2), brief: client.profile?.content_brief ?? null } : null}
+    client={client ? { id: client.id, name: client.name, logo, hasDossier: !!client.profile?.dossier, ppw: Number(client.profile?.content_ppw ?? 2), brief: client.profile?.content_brief ?? null, email: contacts.find((x: any) => x.email)?.email ?? client.profile?.email ?? null, contact: contacts.find((x: any) => x.email)?.name ?? null } : null}
     markers={markers.filter((x) => String(x.date).slice(0, 7) === month).map((x) => ({ date: String(x.date).slice(0, 10), title: x.title, kind: x.kind, no_marketing: !!x.no_marketing }))}
     items={inMonth.map((i) => ({ id: i.id, version: i.version, topic: i.topic, idea: i.idea, post_text: i.post_text, hook: i.hook, cta: i.cta, pillar: i.pillar, hashtags: i.hashtags ?? [], format: i.format,
       platforms: i.platforms?.length ? i.platforms : i.channel ? [i.channel] : [], creative_prompt: i.creative_prompt, creative: i.creative_blob_id, slot_kind: i.slot_kind, marker: i.marker_title,
-      due_at: i.due_at, status: i.social_status ?? 'idea', published_url: i.published_url, published_at: i.published_at, why: i.brief, is_winner: !!i.is_winner, win_note: i.win_note, review_log: i.review_log ?? [] }))} />;
+      due_at: i.due_at, status: i.social_status ?? 'idea', published_url: i.published_url, published_at: i.published_at, why: i.brief, is_winner: !!i.is_winner, win_note: i.win_note, review_log: i.review_log ?? [], cs: i.client_status ?? null, cnote: i.client_note ?? null }))} />;
 }

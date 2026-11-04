@@ -6,7 +6,7 @@ const ERR: Record<string, string> = { not_reviewable: 'הפוסט הזה כבר 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ t: string }> }) {
   const { t } = await params; const p = await resolvePortal(t); if (!p) return NextResponse.json({ error: 'הקישור אינו בתוקף' }, { status: 400 });
   const b = await req.json().catch(() => ({} as any)); const op = String(b.op ?? '');
-  if (!['approve', 'changes', 'message', 'nps'].includes(op)) return NextResponse.json({ error: 'פעולה לא מוכרת' }, { status: 400 });
+  if (!['approve', 'changes', 'message', 'nps', 'approve_all', 'month_note'].includes(op)) return NextResponse.json({ error: 'פעולה לא מוכרת' }, { status: 400 });
   try {
     const note = op === 'nps' ? `${Number(b.score)}|${String(b.note ?? '').slice(0, 2000)}` : String(b.note ?? '').slice(0, 3000);
     const r: any = await w('office_worker_portal_act', { p_client: p.client, p_rev: p.rev, p_op: op, p_item: b.id ?? null, p_note: note });

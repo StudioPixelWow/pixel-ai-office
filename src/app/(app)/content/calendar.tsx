@@ -5,7 +5,7 @@ import { callAction } from '@/components/client';
 import { heError } from '@/lib/errors';
 
 type Item = { id: string; version: number; topic: string; idea?: string; post_text?: string; hook?: string; cta?: string; pillar?: string; hashtags: string[]; format?: string; platforms: string[];
-  creative_prompt?: string; creative?: string | null; slot_kind?: string; marker?: string | null; due_at: string; status: string; published_url?: string | null; is_winner?: boolean; win_note?: string | null; published_at?: string | null; why?: string | null; review_log?: { at: string; note: string; result?: string }[] };
+  creative_prompt?: string; creative?: string | null; slot_kind?: string; marker?: string | null; due_at: string; status: string; published_url?: string | null; is_winner?: boolean; win_note?: string | null; published_at?: string | null; why?: string | null; review_log?: { at: string; note: string; result?: string }[]; cs?: string | null; cnote?: string | null };
 type Marker = { date: string; title: string; kind: string; no_marketing: boolean };
 
 export const STATUS: Record<string, { he: string; cls: string }> = {
@@ -15,6 +15,7 @@ export const STATUS: Record<string, { he: string; cls: string }> = {
 const FLOW = ['idea', 'writing', 'design', 'pending_approval', 'approved', 'scheduled', 'published'];
 const NET: Record<string, string> = { facebook: 'f', instagram: 'IG', tiktok: 'TT', linkedin: 'in', youtube: 'YT' };
 const DAYS_HE: Record<number, string> = { 1: 'ב׳', 2: 'ב׳ וה׳', 3: 'ב׳, ג׳ וה׳', 4: 'א׳, ב׳, ג׳ וה׳' };
+const CS: Record<string, string> = { sent: '👤 אצל הלקוח', approved: '👤 הלקוח אישר ✓', changes: '👤 הלקוח ביקש שינוי' };
 const DOW = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 const ilDate = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date(iso));
 const ilTime = (iso: string) => new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
@@ -27,9 +28,9 @@ function toIso(day: string, from: string) {
 }
 
 export function ContentCalendar({ month, clients, client, markers, items, canEdit }: { month: string; clients: { id: string; name: string; retainer: boolean }[];
-  client: { id: string; name: string; logo: string | null; hasDossier: boolean; ppw?: number; brief?: string | null } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
+  client: { id: string; name: string; logo: string | null; hasDossier: boolean; ppw?: number; brief?: string | null; email?: string | null; contact?: string | null } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
   const r = useRouter(); const [sel, setSel] = useState<string | null>(null); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [busy, setBusy] = useState('');
-  const ppw = client?.ppw ?? 2; const [review, setReview] = useState(false); const [prefs, setPrefs] = useState(false);
+  const ppw = client?.ppw ?? 2; const [review, setReview] = useState(false); const [prefs, setPrefs] = useState(false); const [send, setSend] = useState(false);
   const [y, mo] = month.split('-').map(Number);
   const first = new Date(Date.UTC(y, mo - 1, 1)); const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   const cells = useMemo(() => { const lead = first.getUTCDay(); const n = Math.ceil((lead + days) / 7) * 7;
@@ -76,6 +77,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
         <span className="badge" title="חגים ו-RTM יכולים להוסיף יום ספציפי">📅 {ppw} בשבוע · ימי {DAYS_HE[ppw]}</span>
         {client.brief && <span className="badge ok" title={client.brief}>🎯 יש מטרות לגאנט</span>}
         <button className="btn y" disabled={!!busy} onClick={plan}>{busy === 'plan' ? 'מתחיל…' : items.length ? 'בנה מחדש את החודש' : 'צור גאנט לחודש'}</button>
+        {items.length > 0 && <button className="btn" onClick={() => setSend(true)} title="שליחת הפוסטים שאישרת ללקוח לאישור בפורטל">📤 לאישור הלקוח{(() => { const n = items.filter((i) => ['approved', 'scheduled'].includes(i.status) && (!i.cs || i.cs === 'changes') && new Date(i.due_at) > new Date()).length; return n ? ` (${n})` : ''; })()}</button>}
         {items.length > 0 && <button className="btn" onClick={() => setReview(true)}>📝 סקירה והערות ({items.length})</button>}
         {pending.length > 0 && <button className="btn c" disabled={!!busy} onClick={() => run('appr', () => callAction('content_set_status', { ids: pending.map((p) => p.id), status: 'approved' }), `${pending.length} פוסטים אושרו`)}>אשר את כל החודש ({pending.length})</button>}
       </>}
@@ -99,12 +101,13 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
             return <button key={i.id} className={`cg-post ${STATUS[st]?.cls ?? ''} ${sel === i.id ? 'on' : ''}`} draggable={canEdit} onDragStart={() => { drag.current = i.id; }} onClick={() => setSel(i.id)}>
               {i.creative ? <img src={`/api/files/${i.creative}`} alt="" loading="lazy" /> : <span className="cg-noimg">{i.format?.includes('רילס') ? '▶' : '❝'}</span>}
               <span className="cg-pt"><b>{i.topic}</b><small>{i.format ?? 'פוסט'} · {ilTime(i.due_at)}</small>
-                <span className="cg-meta"><i className={`cg-st ${STATUS[st]?.cls}`}>{STATUS[st]?.he}</i>{i.platforms.map((p) => <em key={p}>{NET[p] ?? p}</em>)}</span></span>
+                <span className="cg-meta"><i className={`cg-st ${STATUS[st]?.cls}`}>{STATUS[st]?.he}</i>{i.cs && <i className={`cg-cs ${i.cs}`} title={i.cnote ?? ''}>{CS[i.cs]}</i>}{i.platforms.map((p) => <em key={p}>{NET[p] ?? p}</em>)}</span></span>
             </button>; })}
         </div>; })}
     </div>
 
     {prefs && client && <GanttPrefs client={client} month={month} hasItems={items.some((i) => ['idea', 'writing', 'pending_approval'].includes(i.status))} onClose={() => { setPrefs(false); r.refresh(); }} />}
+    {send && client && <ClientSend client={client} month={month} monthHe={monthHe} items={items} onClose={() => { setSend(false); r.refresh(); }} />}
     {review && client && <ReviewBoard items={[...items].sort((a, b) => a.due_at.localeCompare(b.due_at))} clientName={client.name} onClose={() => { setReview(false); r.refresh(); }} />}
     {cur && <PostDrawer key={cur.id} item={cur} client={client!} canEdit={canEdit} onClose={() => setSel(null)} run={run} busy={busy} />}
   </div>;
@@ -248,5 +251,46 @@ function GanttPrefs({ client, month, hasItems, onClose }: { client: { id: string
       </div>
       <div className="rv-foot">{msg && <span className={`badge ${msg.ok ? 'ok' : 'bad'}`} role="status">{msg.t}</span>}<span className="sp" />
         <button className="btn y" disabled={busy || (!changed && !briefChanged && !applyNow)} onClick={save}>{busy ? 'שומר ומעדכן…' : 'שמירה ועדכון הגאנט'}</button></div>
+    </div></div>;
+}
+
+// Send the month to the client: only posts Tal approved go to the portal; the client approves or comments there.
+function ClientSend({ client, month, monthHe, items, onClose }: { client: { id: string; name: string; email?: string | null; contact?: string | null }; month: string; monthHe: string; items: Item[]; onClose: () => void }) {
+  const future = items.filter((i) => new Date(i.due_at) > new Date());
+  const ready = future.filter((i) => ['approved', 'scheduled'].includes(i.status) && (!i.cs || i.cs === 'changes'));
+  const notYet = future.filter((i) => ['idea', 'writing', 'design', 'pending_approval'].includes(i.status));
+  const atClient = items.filter((i) => i.cs === 'sent').length, okd = items.filter((i) => i.cs === 'approved').length, chg = items.filter((i) => i.cs === 'changes').length;
+  const [busy, setBusy] = useState(''); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [link, setLink] = useState<string | null>(null); const [copied, setCopied] = useState(false);
+  const [to, setTo] = useState(client.email ?? ''); const [subject, setSubject] = useState(`גאנט התוכן ל${monthHe} מחכה לאישורך`);
+  const [body, setBody] = useState('');
+  const go = async () => { setBusy('send'); setMsg(null);
+    try { const x = await callAction('content_send_client', { client_id: client.id, month }); setLink(x.link);
+      setBody(`היי${client.contact ? ' ' + client.contact : ''},\n\nגאנט התוכן ל${monthHe} מוכן ומחכה לאישורך.\nבקישור תראו את כל הפוסטים של החודש לפי תאריכים, ותוכלו לאשר הכל בלחיצה אחת או להשאיר הערה על פוסט מסוים, ואנחנו נתקן:\n${x.link}\n\nתודה!`);
+      setMsg({ ok: true, t: x.sent ? `${x.sent} פוסטים נשלחו לפורטל של הלקוח` : 'הפוסטים כבר אצל הלקוח' }); }
+    catch (e) { setMsg({ ok: false, t: heError(e) }); } finally { setBusy(''); } };
+  const mail = async () => { setBusy('mail'); setMsg(null);
+    try { const res = await fetch(`/api/clients/${client.id}/email`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ to, subject, body }) });
+      const j = await res.json(); if (!res.ok) throw new Error(j.error); setMsg({ ok: true, t: `המייל נשלח ל-${to} ✓` }); }
+    catch (e) { setMsg({ ok: false, t: heError(e) }); } finally { setBusy(''); } };
+  return <div className="rv-back" role="dialog" aria-modal="true" aria-label="שליחה לאישור הלקוח">
+    <div className="rv gp">
+      <div className="rv-h"><div className="sp"><small>שליחת גאנט לאישור הלקוח</small><h2>{client.name} · {monthHe}</h2></div><button className="btn sm ghost" onClick={onClose} disabled={!!busy}>סגירה</button></div>
+      <div className="gp-body">
+        <div className="cs-stats"><div><b>{ready.length}</b><span>מוכנים לשליחה</span></div><div><b>{atClient}</b><span>אצל הלקוח</span></div><div><b>{okd}</b><span>הלקוח אישר</span></div><div><b>{chg}</b><span>ביקש שינוי</span></div></div>
+        <p className="small muted">נשלחים רק פוסטים שאתה אישרת. טיוטות לא מגיעות ללקוח. בפורטל הלקוח רואה את החודש לפי תאריכים, מאשר הכל או פוסט-פוסט, ויכול להשאיר הערה. הערה של הלקוח עוברת ישר לסוכנת התיקונים, והפוסט המתוקן חוזר קודם אליך.</p>
+        {notYet.length > 0 && <p className="small gp-warn">{notYet.length} פוסטים בחודש עוד לא אושרו על ידך, ולכן לא יישלחו. אפשר לאשר אותם ב״סקירה והערות״ ולשלוח שוב.</p>}
+        {!link ? <button className="btn y" disabled={!!busy || (!ready.length && !atClient)} onClick={go}>{busy === 'send' ? 'שולח…' : ready.length ? `📤 שליחת ${ready.length} פוסטים לאישור הלקוח` : 'הצגת הקישור לפורטל'}</button>
+        : <>
+          <section><h3>הקישור ללקוח</h3><div className="cs-link"><span dir="ltr">{link.replace(/^https?:\/\//, '')}</span>
+            <button className="btn sm" onClick={() => { navigator.clipboard?.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 1500); }}>{copied ? 'הועתק ✓' : 'העתקה'}</button>
+            <a className="btn sm ghost" href={link} target="_blank" rel="noreferrer">תצוגה ↗</a></div></section>
+          <section><h3>שליחה במייל</h3>
+            <label className="cs-f">אל<input dir="ltr" value={to} onChange={(e) => setTo(e.target.value)} placeholder="client@example.com" /></label>
+            <label className="cs-f">נושא<input value={subject} onChange={(e) => setSubject(e.target.value)} /></label>
+            <label className="cs-f">תוכן<textarea rows={7} value={body} onChange={(e) => setBody(e.target.value)} /></label>
+            <button className="btn y" disabled={!!busy || !to.trim()} onClick={mail}>{busy === 'mail' ? 'שולח…' : '✉ שליחת המייל ללקוח'}</button>
+            <p className="small muted">המייל יוצא מ-office@ בעיצוב ועם החתימה, רק בלחיצה שלך.</p></section></>}
+      </div>
+      <div className="rv-foot">{msg && <span className={`badge ${msg.ok ? 'ok' : 'bad'}`} role="status">{msg.t}</span>}<span className="sp" /></div>
     </div></div>;
 }

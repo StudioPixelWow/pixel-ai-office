@@ -17,7 +17,7 @@ export function Portal({ t, d }: { t: string; d: any }) {
   const [busy, setBusy] = useState<string | null>(null); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
   const [score, setScore] = useState<number | null>(null); const [npsNote, setNpsNote] = useState(''); const [npsDone, setNpsDone] = useState<{ review: string | null } | null>(null);
   const [signing, setSigning] = useState<string | null>(null); const [sig, setSig] = useState<{ name: string; png: string | null; agree: boolean }>({ name: '', png: null, agree: false });
-  const [changes, setChanges] = useState<string | null>(null); const [note, setNote] = useState(''); const [contact, setContact] = useState(''); const [done, setDone] = useState<Record<string, string>>({});
+  const [changes, setChanges] = useState<string | null>(null); const [note, setNote] = useState(''); const [contact, setContact] = useState(''); const [monthNote, setMonthNote] = useState<string | null>(null); const [done, setDone] = useState<Record<string, string>>({});
   const act = async (op: string, id: string | null, text = '', extra: any = {}) => {
     setBusy(op + (id ?? '')); setMsg(null);
     const res = await fetch(`/api/public/portal/${t}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ op, id, note: text, ...extra }) }).then((x) => x.json()).catch(() => ({ error: 'אין חיבור — נסו שוב' }));
@@ -25,7 +25,7 @@ export function Portal({ t, d }: { t: string; d: any }) {
     setBusy(null);
     if (res.error) { setMsg({ ok: false, t: res.error }); return false; }
     if (id) setDone((x) => ({ ...x, [id]: op }));
-    setMsg({ ok: true, t: op === 'approve' ? 'תודה! הפוסט אושר ✓' : op === 'changes' ? 'קיבלנו — נעדכן את הפוסט ונחזור אליכם' : 'ההודעה נשלחה לצוות ✓' });
+    setMsg({ ok: true, t: op === 'approve' ? 'תודה! הפוסט אושר ✓' : op === 'approve_all' ? 'תודה! כל החודש אושר ✓' : op === 'changes' ? 'קיבלנו — נעדכן את הפוסט ונחזור אליכם' : op === 'month_note' ? 'ההערה על החודש התקבלה ✓' : 'ההודעה נשלחה לצוות ✓' });
     setTimeout(() => r.refresh(), 1200); return true;
   };
 
@@ -40,6 +40,10 @@ export function Portal({ t, d }: { t: string; d: any }) {
   const doneN = ms.filter((x) => x.status === 'done').length; const pct = ms.length ? Math.round((doneN / ms.length) * 100) : 0;
   const next = ms.find((x) => x.status !== 'done');
   const approve: any[] = (d.approve ?? []).filter((x: any) => !done[x.id]);
+  const review: any[] = d.review ?? [];
+  const stOf = (x: any) => done[x.id] === 'approve' ? 'approved' : done[x.id] === 'changes' ? 'changes' : x.cs;
+  const dkey = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso)); const mkey = (iso: string) => dkey(iso).slice(0, 7);
+  const months2 = [...new Set(review.map((x) => mkey(x.due)))].sort();
   const open = (d.payments ?? []).filter((x: any) => x.url); const paid = (d.payments ?? []).filter((x: any) => x.status === 'paid');
   const img = (id: string) => `/api/public/portal/${t}/img/${id}`;
   const months = [...new Set(monthly.map((x) => x.month))].sort().reverse().slice(0, 2);
@@ -61,18 +65,33 @@ export function Portal({ t, d }: { t: string; d: any }) {
     <PortalOnboarding t={t} />
 
     <section id="approve" className="pt-sec">
-      <h2>מחכה לאישור שלכם</h2>
-      {approve.length ? <div className="pt-posts">{approve.map((x) => <article key={x.id} className="pt-post">
-        {x.img ? <img src={img(x.img)} alt="" loading="lazy" /> : <div className="pt-noimg">❝</div>}
-        <div className="pt-post-b">
-          <small>{fd(x.due, { weekday: 'long', day: 'numeric', month: 'numeric' })}{(x.platforms ?? []).length ? ` · ${(x.platforms ?? []).join(' · ')}` : ''}</small>
-          <b>{x.topic}</b>
-          {x.text && <p>{x.text}</p>}{x.hashtags && <em>{Array.isArray(x.hashtags) ? x.hashtags.join(' ') : x.hashtags}</em>}
-          {changes === x.id ? <div className="pt-ch"><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="מה תרצו לשנות? (טקסט, תמונה, תאריך…)" rows={3} autoFocus />
-            <div className="pt-btns"><button className="pt-btn y" disabled={!!busy || !note.trim()} onClick={async () => { if (await act('changes', x.id, note)) { setChanges(null); setNote(''); } }}>{busy ? 'שולח…' : 'שליחת הבקשה'}</button><button className="pt-btn ghost" onClick={() => setChanges(null)}>ביטול</button></div></div>
-            : <div className="pt-btns"><button className="pt-btn y" disabled={!!busy} onClick={() => act('approve', x.id)}>{busy === 'approve' + x.id ? '…' : 'מאשר/ת ✓'}</button><button className="pt-btn ghost" onClick={() => { setChanges(x.id); setNote(''); }}>בקשת שינוי</button></div>}
-        </div></article>)}</div>
-        : <div className="pt-empty">אין כרגע משהו שמחכה לכם ✓</div>}
+      <h2>גאנט התוכן לאישורכם</h2>
+      {months2.length ? months2.map((mo) => { const its = review.filter((x) => mkey(x.due) === mo); const waiting = its.filter((x) => stOf(x) === 'sent');
+        const [yy, mm] = mo.split('-').map(Number); const first = new Date(Date.UTC(yy, mm - 1, 1)); const nd = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+        const cells = Array.from({ length: Math.ceil((first.getUTCDay() + nd) / 7) * 7 }, (_, k) => { const dd = k - first.getUTCDay() + 1; return dd >= 1 && dd <= nd ? `${mo}-${String(dd).padStart(2, '0')}` : null; });
+        return <div key={mo} className="pt-gantt">
+          <div className="pt-gh"><div><b>{fd(`${mo}-01`, { month: 'long', year: 'numeric' })}</b><small>{its.length} פוסטים · {its.filter((x) => stOf(x) === 'approved').length} אושרו{waiting.length ? ` · ${waiting.length} מחכים לכם` : ''}</small></div>
+            {waiting.length > 0 && <button className="pt-btn y" disabled={!!busy} onClick={async () => { if (await act('approve_all', null)) setDone((x) => ({ ...x, ...Object.fromEntries(waiting.map((w) => [w.id, 'approve'])) })); }}>{busy === 'approve_all' ? '…' : `✓ אישור כל החודש (${waiting.length})`}</button>}</div>
+          <div className="pt-cal" role="grid">{['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'].map((x) => <div key={x} className="pt-dow">{x}</div>)}
+            {cells.map((day, k) => { const dp = day ? its.filter((x) => dkey(x.due) === day) : [];
+              return <div key={k} className={`pt-cell ${day ? '' : 'off'}`}>{day && <small>{Number(day.slice(8))}</small>}
+                {dp.map((x) => <a key={x.id} href={`#post-${x.id}`} className={`pt-chip ${stOf(x)}`}>{x.marker ? '✡ ' : ''}{x.topic}</a>)}</div>; })}</div>
+          <div className="pt-posts">{its.map((x) => { const st = stOf(x); return <article key={x.id} id={`post-${x.id}`} className={`pt-post ${st}`}>
+            {x.img ? <img src={img(x.img)} alt="" loading="lazy" /> : <div className="pt-noimg">❝</div>}
+            <div className="pt-post-b">
+              <small>{fd(x.due, { weekday: 'long', day: 'numeric', month: 'numeric' })}{(x.platforms ?? []).length ? ` · ${(x.platforms ?? []).join(' · ')}` : ''}{x.format ? ` · ${x.format}` : ''}</small>
+              <b>{x.topic}</b>
+              {x.text && <p>{x.text}</p>}{x.hashtags && <em>{Array.isArray(x.hashtags) ? x.hashtags.join(' ') : x.hashtags}</em>}
+              {st === 'approved' ? <span className="pt-st ok">אישרתם ✓</span> : st === 'changes' ? <span className="pt-st ch">קיבלנו את ההערה — מעדכנים</span>
+              : changes === x.id ? <div className="pt-ch"><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="מה תרצו לשנות? (טקסט, תמונה, תאריך…)" rows={3} autoFocus />
+                <div className="pt-btns"><button className="pt-btn y" disabled={!!busy || !note.trim()} onClick={async () => { if (await act('changes', x.id, note)) { setChanges(null); setNote(''); } }}>{busy ? 'שולח…' : 'שליחת הבקשה'}</button><button className="pt-btn ghost" onClick={() => setChanges(null)}>ביטול</button></div></div>
+              : <div className="pt-btns"><button className="pt-btn y" disabled={!!busy} onClick={() => act('approve', x.id)}>{busy === 'approve' + x.id ? '…' : 'מאשר/ת ✓'}</button><button className="pt-btn ghost" onClick={() => { setChanges(x.id); setNote(''); }}>הערה לתיקון</button></div>}
+            </div></article>; })}</div>
+          {monthNote === mo ? <div className="pt-ch"><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="הערה כללית על החודש: מסרים, מבצעים, דברים שחשוב לכם…" rows={3} autoFocus />
+            <div className="pt-btns"><button className="pt-btn y" disabled={!!busy || !note.trim()} onClick={async () => { if (await act('month_note', null, note)) { setMonthNote(null); setNote(''); } }}>{busy ? 'שולח…' : 'שליחת ההערה'}</button><button className="pt-btn ghost" onClick={() => setMonthNote(null)}>ביטול</button></div></div>
+          : <button className="pt-btn ghost pt-mnote" onClick={() => { setMonthNote(mo); setNote(''); }}>💬 הערה כללית על החודש</button>}
+        </div>; })
+        : <div className="pt-empty">אין כרגע גאנט שמחכה לכם ✓</div>}
     </section>
 
     <section id="progress" className="pt-sec">
