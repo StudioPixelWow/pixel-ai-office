@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { get, list } from '@/lib/api';
+import { launchBrowser } from '@/engine/pdf';
 export const runtime = 'nodejs';
 export const maxDuration = 60;
 // Real PDF download of the approved proposal: headless Chromium renders the protected print view with the caller's own session (scope checks stay in the DB).
@@ -9,8 +10,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!p) return NextResponse.json({ error: 'ההצעה לא נמצאה' }, { status: 404 });
   const v = (await list('proposal_versions', { proposal_id: id }).catch(() => [])).find((x: any) => x.version_no === p.current_version);
   if (v?.review_status !== 'approved') return NextResponse.json({ error: 'אפשר להוריד PDF רק אחרי שההצעה אושרה' }, { status: 400 });
-  const chromium = (await import('@sparticuz/chromium')).default; const puppeteer = (await import('puppeteer-core')).default;
-  const browser = await puppeteer.launch({ args: chromium.args, executablePath: process.env.CHROME_PATH || await chromium.executablePath(), headless: true, defaultViewport: { width: 1240, height: 1754 } });
+  const browser = await launchBrowser();
   try {
     const origin = req.nextUrl.origin; const host = new URL(origin).hostname;
     await browser.setCookie(...req.cookies.getAll().map((c) => ({ name: c.name, value: c.value, domain: host, path: '/', secure: origin.startsWith('https'), httpOnly: true })));
