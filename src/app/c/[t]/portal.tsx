@@ -4,8 +4,11 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SignPad } from './sign-pad';
 import { PortalOnboarding } from './onboarding';
+import { PortalGantt } from './portal-gantt';
 
 const TZ = 'Asia/Jerusalem';
+// Tal (04.11.2026): for now the portal shows only the content gantt — progress, payments, documents etc. stay hidden
+const GANTT_ONLY = true;
 const fd = (d: string | null | undefined, o: Intl.DateTimeFormatOptions) => d ? new Intl.DateTimeFormat('he-IL', { timeZone: TZ, ...o }).format(new Date(d.length === 10 ? `${d}T12:00:00Z` : d)) : '';
 const money = (n: any) => `${Number(n ?? 0).toLocaleString('he-IL', { maximumFractionDigits: 0 })} ₪`;
 const MS: Record<string, [string, string]> = { todo: ['מתוכנן', 'todo'], in_progress: ['בעבודה', 'prog'], waiting_client: ['מחכה לכם', 'wait'], done: ['הושלם', 'done'] };
@@ -40,10 +43,7 @@ export function Portal({ t, d }: { t: string; d: any }) {
   const doneN = ms.filter((x) => x.status === 'done').length; const pct = ms.length ? Math.round((doneN / ms.length) * 100) : 0;
   const next = ms.find((x) => x.status !== 'done');
   const approve: any[] = (d.approve ?? []).filter((x: any) => !done[x.id]);
-  const review: any[] = d.review ?? [];
-  const stOf = (x: any) => done[x.id] === 'approve' ? 'approved' : done[x.id] === 'changes' ? 'changes' : x.cs;
-  const dkey = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ }).format(new Date(iso)); const mkey = (iso: string) => dkey(iso).slice(0, 7);
-  const months2 = [...new Set(review.map((x) => mkey(x.due)))].sort();
+
   const open = (d.payments ?? []).filter((x: any) => x.url); const paid = (d.payments ?? []).filter((x: any) => x.status === 'paid');
   const img = (id: string) => `/api/public/portal/${t}/img/${id}`;
   const months = [...new Set(monthly.map((x) => x.month))].sort().reverse().slice(0, 2);
@@ -52,48 +52,28 @@ export function Portal({ t, d }: { t: string; d: any }) {
     <header className="pt-hero">
       <div className="pt-top"><img src="https://s-pixel.co.il/wp-content/uploads/2026/08/pixel-logo-white-500.webp" alt="Pixel Digital" className="pt-logo" /><span>הפורטל של {d.client.name}</span></div>
       <h1>שלום, {d.client.name} 👋</h1>
-      <p>כל מה שקורה אצלנו בשבילכם — במקום אחד, מתעדכן בזמן אמת.</p>
-      <div className="pt-stats">
+      <p>{GANTT_ONLY ? 'כל התוכן שאנחנו מתכננים לכם, במקום אחד. אפשר לאשר ולהשאיר הערות על כל פוסט.' : 'כל מה שקורה אצלנו בשבילכם — במקום אחד, מתעדכן בזמן אמת.'}</p>
+      {!GANTT_ONLY && <div className="pt-stats">
         <a href="#approve" className={approve.length ? 'hot' : ''}><b>{approve.length}</b><span>לאישורכם</span></a>
         <a href="#progress"><b>{pct}%</b><span>התקדמות</span></a>
         <a href="#content"><b>{(d.upcoming ?? []).length}</b><span>פוסטים קרובים</span></a>
         <a href={toSign.length ? '#docs' : '#pay'} className={open.length || toSign.length ? 'warn' : ''}><b>{open.length + toSign.length}</b><span>{toSign.length ? 'לתשלום/חתימה' : 'לתשלום'}</span></a>
-      </div>
+      </div>}
     </header>
 
     {msg && <div className={`pt-toast ${msg.ok ? 'ok' : 'bad'}`} role="status">{msg.t}</div>}
-    <PortalOnboarding t={t} />
+    {!GANTT_ONLY && <PortalOnboarding t={t} />}
 
     <section id="approve" className="pt-sec">
-      <h2>גאנט התוכן לאישורכם</h2>
-      {months2.length ? months2.map((mo) => { const its = review.filter((x) => mkey(x.due) === mo); const waiting = its.filter((x) => stOf(x) === 'sent');
-        const [yy, mm] = mo.split('-').map(Number); const first = new Date(Date.UTC(yy, mm - 1, 1)); const nd = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
-        const cells = Array.from({ length: Math.ceil((first.getUTCDay() + nd) / 7) * 7 }, (_, k) => { const dd = k - first.getUTCDay() + 1; return dd >= 1 && dd <= nd ? `${mo}-${String(dd).padStart(2, '0')}` : null; });
-        return <div key={mo} className="pt-gantt">
-          <div className="pt-gh"><div><b>{fd(`${mo}-01`, { month: 'long', year: 'numeric' })}</b><small>{its.length} פוסטים · {its.filter((x) => stOf(x) === 'approved').length} אושרו{waiting.length ? ` · ${waiting.length} מחכים לכם` : ''}</small></div>
-            {waiting.length > 0 && <button className="pt-btn y" disabled={!!busy} onClick={async () => { if (await act('approve_all', null)) setDone((x) => ({ ...x, ...Object.fromEntries(waiting.map((w) => [w.id, 'approve'])) })); }}>{busy === 'approve_all' ? '…' : `✓ אישור כל החודש (${waiting.length})`}</button>}</div>
-          <div className="pt-cal" role="grid">{['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'].map((x) => <div key={x} className="pt-dow">{x}</div>)}
-            {cells.map((day, k) => { const dp = day ? its.filter((x) => dkey(x.due) === day) : [];
-              return <div key={k} className={`pt-cell ${day ? '' : 'off'}`}>{day && <small>{Number(day.slice(8))}</small>}
-                {dp.map((x) => <a key={x.id} href={`#post-${x.id}`} className={`pt-chip ${stOf(x)}`}>{x.marker ? '✡ ' : ''}{x.topic}</a>)}</div>; })}</div>
-          <div className="pt-posts">{its.map((x) => { const st = stOf(x); return <article key={x.id} id={`post-${x.id}`} className={`pt-post ${st}`}>
-            {x.img ? <img src={img(x.img)} alt="" loading="lazy" /> : <div className="pt-noimg">❝</div>}
-            <div className="pt-post-b">
-              <small>{fd(x.due, { weekday: 'long', day: 'numeric', month: 'numeric' })}{(x.platforms ?? []).length ? ` · ${(x.platforms ?? []).join(' · ')}` : ''}{x.format ? ` · ${x.format}` : ''}</small>
-              <b>{x.topic}</b>
-              {x.text && <p>{x.text}</p>}{x.hashtags && <em>{Array.isArray(x.hashtags) ? x.hashtags.join(' ') : x.hashtags}</em>}
-              {st === 'approved' ? <span className="pt-st ok">אישרתם ✓</span> : st === 'changes' ? <span className="pt-st ch">קיבלנו את ההערה — מעדכנים</span>
-              : changes === x.id ? <div className="pt-ch"><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="מה תרצו לשנות? (טקסט, תמונה, תאריך…)" rows={3} autoFocus />
-                <div className="pt-btns"><button className="pt-btn y" disabled={!!busy || !note.trim()} onClick={async () => { if (await act('changes', x.id, note)) { setChanges(null); setNote(''); } }}>{busy ? 'שולח…' : 'שליחת הבקשה'}</button><button className="pt-btn ghost" onClick={() => setChanges(null)}>ביטול</button></div></div>
-              : <div className="pt-btns"><button className="pt-btn y" disabled={!!busy} onClick={() => act('approve', x.id)}>{busy === 'approve' + x.id ? '…' : 'מאשר/ת ✓'}</button><button className="pt-btn ghost" onClick={() => { setChanges(x.id); setNote(''); }}>הערה לתיקון</button></div>}
-            </div></article>; })}</div>
-          {monthNote === mo ? <div className="pt-ch"><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="הערה כללית על החודש: מסרים, מבצעים, דברים שחשוב לכם…" rows={3} autoFocus />
-            <div className="pt-btns"><button className="pt-btn y" disabled={!!busy || !note.trim()} onClick={async () => { if (await act('month_note', null, note)) { setMonthNote(null); setNote(''); } }}>{busy ? 'שולח…' : 'שליחת ההערה'}</button><button className="pt-btn ghost" onClick={() => setMonthNote(null)}>ביטול</button></div></div>
-          : <button className="pt-btn ghost pt-mnote" onClick={() => { setMonthNote(mo); setNote(''); }}>💬 הערה כללית על החודש</button>}
-        </div>; })
-        : <div className="pt-empty">אין כרגע גאנט שמחכה לכם ✓</div>}
+      <h2>גאנט התוכן שלכם</h2>
+      <p className="pt-sub">כל התוכן שאנחנו מתכננים לכם השנה. לחיצה על פוסט פותחת אותו: אפשר לאשר או לכתוב לנו הערה, ואנחנו מעדכנים.</p>
+      <PortalGantt plan={d.plan ?? []} img={img} busy={busy} act={(op, id, text) => act(op, id, text ?? '')} />
+      {monthNote ? <div className="pt-ch"><textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="הערה כללית על התוכן: מסרים, מבצעים, אירועים, דברים שחשוב לכם…" rows={3} autoFocus />
+        <div className="pt-btns"><button className="pt-btn y" disabled={!!busy || !note.trim()} onClick={async () => { if (await act('month_note', null, note)) { setMonthNote(null); setNote(''); } }}>{busy ? 'שולח…' : 'שליחת ההערה'}</button><button className="pt-btn ghost" onClick={() => setMonthNote(null)}>ביטול</button></div></div>
+      : <button className="pt-btn ghost pt-mnote" onClick={() => { setMonthNote('all'); setNote(''); }}>💬 הערה כללית על התוכן</button>}
     </section>
 
+    {!GANTT_ONLY && <>
     <section id="progress" className="pt-sec">
       <h2>ההתקדמות שלנו</h2>
       {ms.length ? <>
@@ -166,6 +146,7 @@ export function Portal({ t, d }: { t: string; d: any }) {
       <textarea value={contact} onChange={(e) => setContact(e.target.value)} rows={3} placeholder="כתבו לנו כאן — ההודעה מגיעה ישר לצוות" />
       <button className="pt-btn y" disabled={!!busy || !contact.trim()} onClick={async () => { if (await act('message', null, contact)) setContact(''); }}>{busy === 'message' ? 'שולח…' : 'שליחה לצוות'}</button>
     </section>
+    </>}
     <footer className="pt-foot">Pixel Digital · כיכר בן גוריון 2, קרית טבעון</footer>
   </main>;
 }
