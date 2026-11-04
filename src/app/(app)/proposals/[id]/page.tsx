@@ -11,6 +11,7 @@ import { ProposalDoc } from '@/components/proposal-doc';
 import { ShareBox } from './share-box';
 import { gmailConfigured } from '@/engine/adapters/gmail';
 import { JourneyBar } from '@/components/journey';
+import { PdfButton } from '@/components/pdf-button';
 export default async function Proposal({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; const p = await get<any>('proposals', id); if (!p) notFound(); const m = await me();
   const [versions, terms, reqs] = await Promise.all([list('proposal_versions', { proposal_id: id }), safeList('terms_templates'), safeList('requests', {}, 50)]);
@@ -22,7 +23,8 @@ export default async function Proposal({ params }: { params: Promise<{ id: strin
   return <>
     <div className="hero"><div className="row"><div className="sp"><h1>{p.title}</h1><p>גרסה נוכחית: {p.current_version || '—'}</p>
       {views?.count > 0 ? <p className="prop-views">👁 נצפתה {views.count} פעמים · לאחרונה {ago(views.last)} · זמן קריאה כולל {Math.round(views.seconds / 60)} דק׳</p> : p.share_token_hash ? <p className="prop-views muted">👁 הלקוח עוד לא פתח את ההצעה</p> : null}</div><Badge s={p.status} />
-      {cur && <Link className="btn" href={`/proposals/${id}/print`}>תצוגת הדפסה / PDF</Link>}</div></div>
+      {cur?.review_status === 'approved' && <PdfButton id={id} />}
+      {cur && <Link className="btn" href={`/proposals/${id}/print`}>תצוגת הדפסה</Link>}</div></div>
     <JourneyBar j={journey} />
     {!['accepted', 'declined', 'archived'].includes(p.status) && <Critique id={p.id} initial={p.critique ?? null} />}
     {branded && <div className="grid g2" style={{ marginBottom: 16 }}>
@@ -37,7 +39,7 @@ export default async function Proposal({ params }: { params: Promise<{ id: strin
         : <p className="small muted">רק ה-Owner שולח הצעות ללקוחות.</p>}</div>
       <div className="card"><h2>פרטים</h2><dl className="kv"><dt>מס׳ הצעה</dt><dd>{p.number ?? '—'}</dd><dt>לקוח</dt><dd>{cl.company} {cl.contact_name ? `· ${cl.contact_name}` : ''}</dd>
         <dt>טלפון</dt><dd dir="ltr">{cl.phone ?? '—'}</dd><dt>דוא״ל</dt><dd dir="ltr">{cl.email ?? '—'}</dd><dt>תוקף הקישור</dt><dd>{p.share_expires_at ? fmtDateTime(p.share_expires_at) : '—'}</dd></dl>
-        <Link className="btn" href={`/proposals/${id}/print`}>הדפסה / PDF</Link></div></div>}
+        <div className="row">{cur?.review_status === 'approved' ? <PdfButton id={id} /> : <span className="small muted">הורדת PDF תיפתח אחרי אישור ההצעה</span>}<Link className="btn" href={`/proposals/${id}/print`}>תצוגת הדפסה</Link></div></div></div>}
     {branded && cur && <div style={{ marginBottom: 20 }}><ProposalDoc data={{ title: p.title, number: p.number, created_at: cur.created_at, content: cur.content, price: cur.price_snapshot ?? {}, totals: cur.totals ?? {},
       items: items.filter((i: any) => i.unit_price !== null).map((i: any) => ({ title: i.title, description: i.description, price: Number(i.unit_price) })) }} /></div>}
     <details open={!branded}><summary><b>ניהול מתקדם: מחיר, גרסאות והתקשרות</b></summary>

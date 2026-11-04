@@ -11,6 +11,7 @@
     "runner": "node local-runner/runner.mjs"
   },
   "dependencies": {
+    "@sparticuz/chromium": "^138.0.2",
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.118.0",
     "imapflow": "^2.10.0",
@@ -19,6 +20,7 @@
     "mailparser": "^3.14.1",
     "next": "^16.4.3",
     "nodemailer": "^7.0.13",
+    "puppeteer-core": "^24.43.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "server-only": "^0.0.1",
