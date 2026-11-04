@@ -1,4 +1,4 @@
-import { safeList, me } from '@/lib/api';
+import { safeList, me, rpc } from '@/lib/api';
 import { syncIsraelCalendar } from '@/lib/israel-calendar';
 import { ContentCalendar } from './calendar';
 import { logoOf } from '@/lib/logo';
@@ -14,12 +14,12 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
   const client = sorted.find((c) => c.id === sp.client) ?? sorted.find((c) => retainer.has(c.id)) ?? sorted[0];
   let markers = await safeList<any>('calendar_markers', {}, 1000);
   if (!markers.some((x) => String(x.date).startsWith(`${y}-`) && x.source === 'hebcal.com')) { try { await syncIsraelCalendar(y); markers = await safeList<any>('calendar_markers', {}, 1000); } catch { /* show what we have */ } }
-  const [items, contacts] = client ? await Promise.all([safeList<any>('content_items', { client_id: client.id }, 1000), safeList<any>('contacts', { client_id: client.id }, 50)]) : [[], []];
+  const [items, contacts, portal] = client ? await Promise.all([safeList<any>('content_items', { client_id: client.id }, 1000), safeList<any>('contacts', { client_id: client.id }, 50), rpc<string>('office_portal_link', { p_client: client.id }).catch(() => '')]) : [[], [], ''];
   const inMonth = items.filter((i) => !i.archived_at && i.due_at && new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit' }).format(new Date(i.due_at)).slice(0, 7) === month);
   const logo = logoOf(client?.profile).src;
   return <ContentCalendar month={month} canEdit={['owner', 'admin', 'account_manager'].includes(m.role)}
     clients={sorted.map((c) => ({ id: c.id, name: c.name, retainer: retainer.has(c.id) }))}
-    client={client ? { id: client.id, name: client.name, logo, hasDossier: !!client.profile?.dossier, ppw: Number(client.profile?.content_ppw ?? 2), brief: client.profile?.content_brief ?? null, email: contacts.find((x: any) => x.email)?.email ?? client.profile?.email ?? null, contact: contacts.find((x: any) => x.email)?.name ?? null } : null}
+    client={client ? { id: client.id, name: client.name, logo, hasDossier: !!client.profile?.dossier, ppw: Number(client.profile?.content_ppw ?? 2), brief: client.profile?.content_brief ?? null, email: contacts.find((x: any) => x.email)?.email ?? client.profile?.email ?? null, contact: contacts.find((x: any) => x.email)?.name ?? null, portal: (portal as string) || null } : null}
     markers={markers.filter((x) => String(x.date).slice(0, 7) === month).map((x) => ({ date: String(x.date).slice(0, 10), title: x.title, kind: x.kind, no_marketing: !!x.no_marketing }))}
     items={inMonth.map((i) => ({ id: i.id, version: i.version, topic: i.topic, idea: i.idea, post_text: i.post_text, hook: i.hook, cta: i.cta, pillar: i.pillar, hashtags: i.hashtags ?? [], format: i.format,
       platforms: i.platforms?.length ? i.platforms : i.channel ? [i.channel] : [], creative_prompt: i.creative_prompt, creative: i.creative_blob_id, slot_kind: i.slot_kind, marker: i.marker_title,

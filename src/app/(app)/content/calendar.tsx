@@ -28,9 +28,9 @@ function toIso(day: string, from: string) {
 }
 
 export function ContentCalendar({ month, clients, client, markers, items, canEdit }: { month: string; clients: { id: string; name: string; retainer: boolean }[];
-  client: { id: string; name: string; logo: string | null; hasDossier: boolean; ppw?: number; brief?: string | null; email?: string | null; contact?: string | null } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
+  client: { id: string; name: string; logo: string | null; hasDossier: boolean; ppw?: number; brief?: string | null; email?: string | null; contact?: string | null; portal?: string | null } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
   const r = useRouter(); const [sel, setSel] = useState<string | null>(null); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [busy, setBusy] = useState('');
-  const ppw = client?.ppw ?? 2; const [review, setReview] = useState(false); const [prefs, setPrefs] = useState(false); const [send, setSend] = useState(false); const [nav2, startNav] = useTransition();
+  const ppw = client?.ppw ?? 2; const [review, setReview] = useState(false); const [prefs, setPrefs] = useState(false); const [send, setSend] = useState(false); const [nav2, startNav] = useTransition(); const [copied, setCopied] = useState(false);
   const [y, mo] = month.split('-').map(Number);
   const first = new Date(Date.UTC(y, mo - 1, 1)); const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   const cells = useMemo(() => { const lead = first.getUTCDay(); const n = Math.ceil((lead + days) / 7) * 7;
@@ -81,6 +81,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
             {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} בשבוע · ימי {DAYS_HE[n]}</option>)}</select></label>
         {client.brief && <span className="badge ok" title={client.brief}>🎯 יש מטרות לגאנט</span>}
         <button className="btn y" disabled={!!busy} onClick={plan}>{busy === 'plan' ? 'מתחיל…' : items.length ? 'בנה מחדש את החודש' : 'צור גאנט לחודש'}</button>
+        {client.portal && <button className="btn" title={`הקישור האישי של ${client.name}: גאנט לאישור, התקדמות ותשלומים`} onClick={() => { navigator.clipboard?.writeText(client.portal!); setCopied(true); setTimeout(() => setCopied(false), 1800); }}>{copied ? '✓ הקישור הועתק' : '🔗 העתקת קישור ללקוח'}</button>}
         {items.length > 0 && <button className="btn" onClick={() => setSend(true)} title="שליחת הפוסטים שאישרת ללקוח לאישור בפורטל">📤 לאישור הלקוח{(() => { const n = items.filter((i) => ['approved', 'scheduled'].includes(i.status) && (!i.cs || i.cs === 'changes') && new Date(i.due_at) > new Date()).length; return n ? ` (${n})` : ''; })()}</button>}
         {items.length > 0 && <button className="btn" onClick={() => setReview(true)}>📝 סקירה והערות ({items.length})</button>}
         {pending.length > 0 && <button className="btn c" disabled={!!busy} onClick={() => run('appr', () => callAction('content_set_status', { ids: pending.map((p) => p.id), status: 'approved' }), `${pending.length} פוסטים אושרו`)}>אשר את כל החודש ({pending.length})</button>}
