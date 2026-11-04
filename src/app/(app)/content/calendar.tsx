@@ -14,6 +14,7 @@ export const STATUS: Record<string, { he: string; cls: string }> = {
 };
 const FLOW = ['idea', 'writing', 'design', 'pending_approval', 'approved', 'scheduled', 'published'];
 const NET: Record<string, string> = { facebook: 'f', instagram: 'IG', tiktok: 'TT', linkedin: 'in', youtube: 'YT' };
+const DAYS_HE: Record<number, string> = { 1: 'ב׳', 2: 'ב׳ וה׳', 3: 'ב׳, ג׳ וה׳', 4: 'א׳, ב׳, ג׳ וה׳' };
 const DOW = ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'];
 const ilDate = (iso: string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem' }).format(new Date(iso));
 const ilTime = (iso: string) => new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', hour: '2-digit', minute: '2-digit' }).format(new Date(iso));
@@ -26,9 +27,9 @@ function toIso(day: string, from: string) {
 }
 
 export function ContentCalendar({ month, clients, client, markers, items, canEdit }: { month: string; clients: { id: string; name: string; retainer: boolean }[];
-  client: { id: string; name: string; logo: string | null; hasDossier: boolean } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
+  client: { id: string; name: string; logo: string | null; hasDossier: boolean; ppw?: number; brief?: string | null } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
   const r = useRouter(); const [sel, setSel] = useState<string | null>(null); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [busy, setBusy] = useState('');
-  const ppw = 2; const [review, setReview] = useState(false);
+  const ppw = client?.ppw ?? 2; const [review, setReview] = useState(false); const [prefs, setPrefs] = useState(false);
   const [y, mo] = month.split('-').map(Number);
   const first = new Date(Date.UTC(y, mo - 1, 1)); const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   const cells = useMemo(() => { const lead = first.getUTCDay(); const n = Math.ceil((lead + days) / 7) * 7;
@@ -48,7 +49,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
     try { const d = await f(); if (ok || d?.note) setMsg({ ok: true, t: ok ?? d.note }); r.refresh(); return d; } catch (e) { setMsg({ ok: false, t: heError(e) }); } finally { setBusy(''); }
   }
   const plan = () => run('plan', async () => {
-    const res = await fetch('/api/content/plan', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ client_id: client!.id, month, posts_per_week: ppw }) });
+    const res = await fetch('/api/content/plan', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ client_id: client!.id, month }) });
     const j = await res.json(); if (!res.ok) throw new Error(j.error); if (j.request_id) r.push(`/room/${j.request_id}`); return j;
   });
   const move = (id: string, day: string) => { const it = items.find((x) => x.id === id); if (!it || ilDate(it.due_at) === day) return;
@@ -71,7 +72,9 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
         {clients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.retainer ? ' · ריטיינר' : ''}</option>)}</select>
         : <div className="cg-empty"><b>עוד אין לקוחות במערכת</b><span>גאנט תוכן נבנה ללקוח — לקוח נפתח אוטומטית כשליד חותם על הצעה, או ידנית.</span><a className="btn y sm" href="/clients?new=1">＋ לקוח חדש</a><a className="btn sm ghost" href="/leads?new=1">＋ ליד חדש</a></div>}
       {canEdit && client && <>
-        <span className="badge" title="כלל המשרד: פרסום בימי שני וחמישי. חגים ו-RTM יכולים להוסיף יום ספציפי.">📅 פרסום בימי ב׳ וה׳</span>
+        <button className="btn" onClick={() => setPrefs(true)} title="תדירות פרסום, מטרות, יעדים והערות שהגאנט נבנה לפיהם">🎯 מטרות והגדרות גאנט</button>
+        <span className="badge" title="חגים ו-RTM יכולים להוסיף יום ספציפי">📅 {ppw} בשבוע · ימי {DAYS_HE[ppw]}</span>
+        {client.brief && <span className="badge ok" title={client.brief}>🎯 יש מטרות לגאנט</span>}
         <button className="btn y" disabled={!!busy} onClick={plan}>{busy === 'plan' ? 'מתחיל…' : items.length ? 'בנה מחדש את החודש' : 'צור גאנט לחודש'}</button>
         {items.length > 0 && <button className="btn" onClick={() => setReview(true)}>📝 סקירה והערות ({items.length})</button>}
         {pending.length > 0 && <button className="btn c" disabled={!!busy} onClick={() => run('appr', () => callAction('content_set_status', { ids: pending.map((p) => p.id), status: 'approved' }), `${pending.length} פוסטים אושרו`)}>אשר את כל החודש ({pending.length})</button>}
@@ -101,6 +104,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
         </div>; })}
     </div>
 
+    {prefs && client && <GanttPrefs client={client} month={month} hasItems={items.some((i) => ['idea', 'writing', 'pending_approval'].includes(i.status))} onClose={() => { setPrefs(false); r.refresh(); }} />}
     {review && client && <ReviewBoard items={[...items].sort((a, b) => a.due_at.localeCompare(b.due_at))} clientName={client.name} onClose={() => { setReview(false); r.refresh(); }} />}
     {cur && <PostDrawer key={cur.id} item={cur} client={client!} canEdit={canEdit} onClose={() => setSel(null)} run={run} busy={busy} />}
   </div>;
@@ -205,5 +209,44 @@ function ReviewBoard({ items, clientName, onClose }: { items: Item[]; clientName
       <div className="rv-foot">{msg && <span className={`badge ${msg.ok ? 'ok' : 'bad'}`}>{msg.t}</span>}<span className="sp" />
         <span className="small muted">{okIds.length} לאישור · {noteList.length} עם הערות</span>
         <button className="btn y" disabled={busy || (!okIds.length && !noteList.length)} onClick={submit}>{busy ? 'שולח…' : `שליחה${noteList.length ? ' ותיקון' : ''}`}</button></div>
+    </div></div>;
+}
+
+// Per-client gantt settings: 1–4 posts a week (Monday & Thursday first) + goals/targets/notes the planner and writers must follow.
+function GanttPrefs({ client, month, hasItems, onClose }: { client: { id: string; name: string; ppw?: number; brief?: string | null }; month: string; hasItems: boolean; onClose: () => void }) {
+  const [ppw, setPpw] = useState(client.ppw ?? 2); const [brief, setBrief] = useState(client.brief ?? ''); const [applyNow, setApplyNow] = useState(false);
+  const [busy, setBusy] = useState(false); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null);
+  const changed = ppw !== (client.ppw ?? 2); const briefChanged = brief.trim() !== (client.brief ?? '').trim();
+  const save = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const x = await callAction('set_content_prefs', { client_id: client.id, posts_per_week: ppw, brief, apply_existing: applyNow, month });
+      const rs = x?.reslot ?? {}; const parts: string[] = ['נשמר'];
+      if (x?.changed) parts.push(`${rs.moved ?? 0} פוסטים הוזזו לימי ${DAYS_HE[ppw]}`);
+      if (rs.banked) parts.push(`${rs.banked} עודפים הועברו לבנק הפוסטים`);
+      if (rs.restored) parts.push(`${rs.restored} הוחזרו מהבנק`);
+      if (x?.filling) parts.push(`הסוכנים כותבים ${x.filling} פוסטים חדשים למשבצות שנוספו`);
+      if (x?.revised) parts.push(`${x.revised} פוסטים שעוד לא אושרו נכתבים מחדש לפי המטרות`);
+      setMsg({ ok: true, t: parts.join(' · ') });
+    } catch (e) { setMsg({ ok: false, t: heError(e) }); } finally { setBusy(false); }
+  };
+  return <div className="rv-back" role="dialog" aria-modal="true" aria-label="מטרות והגדרות גאנט">
+    <div className="rv gp">
+      <div className="rv-h"><div className="sp"><small>מטרות והגדרות גאנט</small><h2>{client.name}</h2></div><button className="btn sm ghost" onClick={onClose} disabled={busy}>סגירה</button></div>
+      <div className="gp-body">
+        <section><h3>כמה פוסטים בשבוע?</h3>
+          <div className="gp-seg" role="radiogroup">{[1, 2, 3, 4].map((n) => <button key={n} type="button" role="radio" aria-checked={ppw === n} className={ppw === n ? 'on' : ''} onClick={() => setPpw(n)}><b>{n}</b><small>ימי {DAYS_HE[n]}</small></button>)}</div>
+          <p className="small muted">העדיפות היא ימי שני וחמישי. פוסטים של חג, יום מיוחד או RTM מקבלים את היום שלהם בנוסף. אף פעם לא שני פוסטים באותו יום.</p>
+          {changed && <p className="small gp-warn">בשמירה: כל הפוסטים העתידיים שעוד לא עלו יעברו לימים החדשים. אם יש עודף, הוא עובר לבנק הפוסטים (לא נמחק). אם חסר, קודם יחזרו פוסטים מהבנק, ואז הסוכנים יכתבו פוסטים חדשים למשבצות הריקות.</p>}
+        </section>
+        <section><h3>מטרות, יעדים והערות לגאנט</h3>
+          <textarea rows={7} value={brief} onChange={(e) => setBrief(e.target.value)} placeholder={'למשל:\n• יעד החודש: 30 פניות לליסינג\n• לדחוף את המבצע של נובמבר עד ה-20\n• פחות פוסטים כלליים, יותר תוצאות ולקוחות אמיתיים\n• לא להזכיר מחירים'} />
+          <p className="small muted">כל גאנט שנבנה ללקוח הזה, ידני או אוטומטי, וכל פוסט שנכתב מחדש, יתחשבו במה שכתוב כאן.</p>
+          {hasItems && brief.trim() && <label className="gp-check"><input type="checkbox" checked={applyNow} onChange={(e) => setApplyNow(e.target.checked)} />
+            <span>להחיל גם על הפוסטים שכבר בגאנט החודש ועוד לא אושרו. הסוכנת תכתוב אותם מחדש באותו תאריך, והם יחזרו לאישורך.</span></label>}
+        </section>
+      </div>
+      <div className="rv-foot">{msg && <span className={`badge ${msg.ok ? 'ok' : 'bad'}`} role="status">{msg.t}</span>}<span className="sp" />
+        <button className="btn y" disabled={busy || (!changed && !briefChanged && !applyNow)} onClick={save}>{busy ? 'שומר ומעדכן…' : 'שמירה ועדכון הגאנט'}</button></div>
     </div></div>;
 }

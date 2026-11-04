@@ -19,7 +19,7 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
   const logo = logoOf(client?.profile).src;
   return <ContentCalendar month={month} canEdit={['owner', 'admin', 'account_manager'].includes(m.role)}
     clients={sorted.map((c) => ({ id: c.id, name: c.name, retainer: retainer.has(c.id) }))}
-    client={client ? { id: client.id, name: client.name, logo, hasDossier: !!client.profile?.dossier } : null}
+    client={client ? { id: client.id, name: client.name, logo, hasDossier: !!client.profile?.dossier, ppw: Number(client.profile?.content_ppw ?? 2), brief: client.profile?.content_brief ?? null } : null}
     markers={markers.filter((x) => String(x.date).slice(0, 7) === month).map((x) => ({ date: String(x.date).slice(0, 10), title: x.title, kind: x.kind, no_marketing: !!x.no_marketing }))}
     items={inMonth.map((i) => ({ id: i.id, version: i.version, topic: i.topic, idea: i.idea, post_text: i.post_text, hook: i.hook, cta: i.cta, pillar: i.pillar, hashtags: i.hashtags ?? [], format: i.format,
       platforms: i.platforms?.length ? i.platforms : i.channel ? [i.channel] : [], creative_prompt: i.creative_prompt, creative: i.creative_blob_id, slot_kind: i.slot_kind, marker: i.marker_title,
