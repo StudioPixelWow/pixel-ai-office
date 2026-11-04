@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { callAction } from '@/components/client';
 import { heError } from '@/lib/errors';
@@ -30,7 +30,7 @@ function toIso(day: string, from: string) {
 export function ContentCalendar({ month, clients, client, markers, items, canEdit }: { month: string; clients: { id: string; name: string; retainer: boolean }[];
   client: { id: string; name: string; logo: string | null; hasDossier: boolean; ppw?: number; brief?: string | null; email?: string | null; contact?: string | null } | null; markers: Marker[]; items: Item[]; canEdit: boolean }) {
   const r = useRouter(); const [sel, setSel] = useState<string | null>(null); const [msg, setMsg] = useState<{ ok: boolean; t: string } | null>(null); const [busy, setBusy] = useState('');
-  const ppw = client?.ppw ?? 2; const [review, setReview] = useState(false); const [prefs, setPrefs] = useState(false); const [send, setSend] = useState(false);
+  const ppw = client?.ppw ?? 2; const [review, setReview] = useState(false); const [prefs, setPrefs] = useState(false); const [send, setSend] = useState(false); const [nav2, startNav] = useTransition();
   const [y, mo] = month.split('-').map(Number);
   const first = new Date(Date.UTC(y, mo - 1, 1)); const days = new Date(Date.UTC(y, mo, 0)).getUTCDate();
   const cells = useMemo(() => { const lead = first.getUTCDay(); const n = Math.ceil((lead + days) / 7) * 7;
@@ -68,19 +68,24 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
     </div>
 
     <div className="cg-bar">
-      {clients.length ? <select value={client?.id ?? ''} onChange={(e) => r.push(`?m=${month}&client=${e.target.value}`)} aria-label="לקוח">
+      {clients.length ? <select value={client?.id ?? ''} onChange={(e) => { const v = e.target.value; startNav(() => r.push(`?m=${month}&client=${v}`)); }} aria-label="לקוח" disabled={nav2}>
         {!client && <option value="">בחר לקוח…</option>}
         {clients.map((c) => <option key={c.id} value={c.id}>{c.name}{c.retainer ? ' · ריטיינר' : ''}</option>)}</select>
         : <div className="cg-empty"><b>עוד אין לקוחות במערכת</b><span>גאנט תוכן נבנה ללקוח — לקוח נפתח אוטומטית כשליד חותם על הצעה, או ידנית.</span><a className="btn y sm" href="/clients?new=1">＋ לקוח חדש</a><a className="btn sm ghost" href="/leads?new=1">＋ ליד חדש</a></div>}
       {canEdit && client && <>
         <button className="btn" onClick={() => setPrefs(true)} title="תדירות פרסום, מטרות, יעדים והערות שהגאנט נבנה לפיהם">🎯 מטרות והגדרות גאנט</button>
-        <span className="badge" title="חגים ו-RTM יכולים להוסיף יום ספציפי">📅 {ppw} בשבוע · ימי {DAYS_HE[ppw]}</span>
+        <label className="cg-ppw" title="כמה פוסטים בשבוע ללקוח הזה. חגים ו-RTM מקבלים את היום שלהם בנוסף">📅
+          <select value={ppw} disabled={!!busy || nav2} onChange={(e) => { const n = Number(e.target.value);
+            run('ppw', async () => { const x = await callAction('set_content_prefs', { client_id: client.id, posts_per_week: n }); const rs = x?.reslot ?? {};
+              return { note: [`עודכן ל-${n} בשבוע (ימי ${DAYS_HE[n]})`, rs.moved ? `${rs.moved} פוסטים הוזזו` : '', rs.banked ? `${rs.banked} עודפים לבנק` : '', rs.restored ? `${rs.restored} הוחזרו מהבנק` : '', x?.filling ? `נכתבים ${x.filling} פוסטים חדשים` : ''].filter(Boolean).join(' · ') }; }); }}>
+            {[1, 2, 3, 4].map((n) => <option key={n} value={n}>{n} בשבוע · ימי {DAYS_HE[n]}</option>)}</select></label>
         {client.brief && <span className="badge ok" title={client.brief}>🎯 יש מטרות לגאנט</span>}
         <button className="btn y" disabled={!!busy} onClick={plan}>{busy === 'plan' ? 'מתחיל…' : items.length ? 'בנה מחדש את החודש' : 'צור גאנט לחודש'}</button>
         {items.length > 0 && <button className="btn" onClick={() => setSend(true)} title="שליחת הפוסטים שאישרת ללקוח לאישור בפורטל">📤 לאישור הלקוח{(() => { const n = items.filter((i) => ['approved', 'scheduled'].includes(i.status) && (!i.cs || i.cs === 'changes') && new Date(i.due_at) > new Date()).length; return n ? ` (${n})` : ''; })()}</button>}
         {items.length > 0 && <button className="btn" onClick={() => setReview(true)}>📝 סקירה והערות ({items.length})</button>}
         {pending.length > 0 && <button className="btn c" disabled={!!busy} onClick={() => run('appr', () => callAction('content_set_status', { ids: pending.map((p) => p.id), status: 'approved' }), `${pending.length} פוסטים אושרו`)}>אשר את כל החודש ({pending.length})</button>}
       </>}
+      {nav2 && <span className="badge" role="status">טוען את הלקוח…</span>}
       {client && !client.hasDossier && <span className="badge warn">אין עדיין תיק מותג — הפוסטים ייכתבו בלי כיול שפה. מומלץ להריץ מחקר לקוח קודם.</span>}
       {msg && <span className={`badge ${msg.ok ? 'ok' : 'bad'}`} role="status">{msg.t}</span>}
     </div>
@@ -88,7 +93,7 @@ export function ContentCalendar({ month, clients, client, markers, items, canEdi
     <div className="cg-legend">{['pending_approval', 'approved', 'scheduled', 'published', 'not_published'].map((k) => <span key={k} className={`cg-dot ${STATUS[k].cls}`}>{STATUS[k].he}</span>)}
       <span className="cg-dot mk">חג / יום מיוחד</span><span className="cg-dot nomkt">ללא שיווק</span></div>
 
-    <div className="cg-grid" role="grid" aria-label={`לוח תוכן ${monthHe}`}>
+    <div className={`cg-grid${nav2 ? ' cg-loading' : ''}`} role="grid" aria-label={`לוח תוכן ${monthHe}`}>
       {DOW.map((d) => <div key={d} className="cg-dow">{d}</div>)}
       {cells.map((day, k) => {
         if (!day) return <div key={k} className="cg-cell off" />;

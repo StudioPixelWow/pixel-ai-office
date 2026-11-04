@@ -14,10 +14,9 @@ export default async function ContentPage({ searchParams }: { searchParams: Prom
   const client = sorted.find((c) => c.id === sp.client) ?? sorted.find((c) => retainer.has(c.id)) ?? sorted[0];
   let markers = await safeList<any>('calendar_markers', {}, 1000);
   if (!markers.some((x) => String(x.date).startsWith(`${y}-`) && x.source === 'hebcal.com')) { try { await syncIsraelCalendar(y); markers = await safeList<any>('calendar_markers', {}, 1000); } catch { /* show what we have */ } }
-  const items = client ? await safeList<any>('content_items', { client_id: client.id }, 1000) : [];
+  const [items, contacts] = client ? await Promise.all([safeList<any>('content_items', { client_id: client.id }, 1000), safeList<any>('contacts', { client_id: client.id }, 50)]) : [[], []];
   const inMonth = items.filter((i) => !i.archived_at && i.due_at && new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit' }).format(new Date(i.due_at)).slice(0, 7) === month);
   const logo = logoOf(client?.profile).src;
-  const contacts = client ? await safeList<any>('contacts', { client_id: client.id }, 50) : [];
   return <ContentCalendar month={month} canEdit={['owner', 'admin', 'account_manager'].includes(m.role)}
     clients={sorted.map((c) => ({ id: c.id, name: c.name, retainer: retainer.has(c.id) }))}
     client={client ? { id: client.id, name: client.name, logo, hasDossier: !!client.profile?.dossier, ppw: Number(client.profile?.content_ppw ?? 2), brief: client.profile?.content_brief ?? null, email: contacts.find((x: any) => x.email)?.email ?? client.profile?.email ?? null, contact: contacts.find((x: any) => x.email)?.name ?? null } : null}
