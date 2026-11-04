@@ -11,8 +11,9 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   if (!p) return NextResponse.json({ error: 'ההצעה לא נמצאה' }, { status: 404 });
   const v = (await list('proposal_versions', { proposal_id: id }).catch(() => [])).find((x: any) => x.version_no === p.current_version);
   if (v?.review_status !== 'approved') return NextResponse.json({ error: 'אפשר להוריד PDF רק אחרי שההצעה אושרה' }, { status: 400 });
-  const browser = await launchBrowser();
+  let browser: any = null;
   try {
+    browser = await launchBrowser();
     const items = await list('proposal_items', { proposal_version_id: v.id }).catch(() => []);
     const html = await proposalHtml({ title: p.title, number: p.number, created_at: v.created_at, content: v.content ?? {}, price: v.price_snapshot ?? {}, totals: v.totals ?? {},
       items: (items as any[]).filter((i) => i.unit_price !== null).map((i) => ({ title: i.title, description: i.description, price: Number(i.unit_price) })) });
@@ -24,5 +25,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   } catch (e: any) {
     console.error('[proposal-pdf]', id, String(e?.message ?? e).slice(0, 300));
     return NextResponse.json({ error: 'יצירת ה-PDF נכשלה, נסה שוב' }, { status: 502 });
-  } finally { await browser.close().catch(() => {}); }
+  } finally { await browser?.close().catch(() => {}); }
 }

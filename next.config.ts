@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 const config: NextConfig = {
   poweredByHeader: false,
   serverExternalPackages: ['@sparticuz/chromium', 'puppeteer-core'],
-  outputFileTracingIncludes: { '/api/proposals/[id]/pdf': ['./node_modules/@sparticuz/chromium/bin/**', './src/app/globals.css'], '/api/worker/tick': ['./node_modules/@sparticuz/chromium/bin/**', './src/app/globals.css'] },
+  outputFileTracingIncludes: { '/api/proposals/**': ['./node_modules/@sparticuz/chromium/bin/**', './src/app/globals.css'], '/api/worker/tick': ['./node_modules/@sparticuz/chromium/bin/**', './src/app/globals.css'] },
   async headers() {
     return [{ source: '/:path*', headers: [
       { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
