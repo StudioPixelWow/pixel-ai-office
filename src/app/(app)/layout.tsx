@@ -4,6 +4,7 @@ import { me, today, rpc } from '@/lib/api';
 import { Nav, MobileBar, LOGO_WHITE } from '@/components/nav';
 import { LiveRefresh } from '@/components/client';
 import { SearchButton } from '@/components/search';
+import { VersionWatch } from '@/components/version-watch';
 
 export const dynamic = 'force-dynamic';
 const ROLE: Record<string, string> = { owner: 'Owner', admin: 'מנהל מערכת', account_manager: 'מנהל לקוח', employee: 'עובד', viewer: 'צופה' };
@@ -22,6 +23,6 @@ export default async function AppLayout({ children, modal }: { children: React.R
         <LiveRefresh />
         <span className="who">{m.email} · {ROLE[m.role]} · <a href="/auth/signout">יציאה</a></span>
       </header>
-      <main className="page" id="main">{children}</main>{modal}<Assistant avatar={st?.pixi_avatar ? `/api/avatar/${st.pixi_avatar}` : '/brand/pixi.svg'} />
+      <main className="page" id="main">{children}</main>{modal}<VersionWatch /><Assistant avatar={st?.pixi_avatar ? `/api/avatar/${st.pixi_avatar}` : '/brand/pixi.svg'} />
     </div></div>;
 }
