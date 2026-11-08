@@ -1,0 +1,2 @@
+-- 0078 (applied via MCP as office_0078_lead_name_he): leads.first_name_he; lead_wa_text prefers the Hebrew first name;
+-- scripts updated (2–3 emojis, no budget question); weekend leads backfilled; office_worker_lead_hook stores p.first_name_he.

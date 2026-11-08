@@ -4,6 +4,7 @@ import { w } from '@/engine/db';
 import { toE164 } from '@/lib/loud';
 import { brandedEmail, gmailConfigured, gmailSend } from '@/engine/adapters/gmail';
 import { waLink } from '@/lib/wa';
+import { anthropicConfigured, claude } from '@/engine/adapters/anthropic';
 export const maxDuration = 30;
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pixel-ai-office-iota.vercel.app';
 const BRAND_HE: Record<string, string> = { loud: 'LOUD', pixel: 'פיקסל דיגיטל' };
@@ -30,6 +31,20 @@ const pick = (o: Record<string, any>, keys: string[]) => { for (const k of Objec
 const NAME = ['name', 'fullname', 'contactname', 'firstname', 'שם', 'שםמלא', 'שםפרטי'], PHONE = ['phone', 'phonenumber', 'mobile', 'tel', 'telephone', 'טלפון', 'נייד', 'מספרטלפון'],
   EMAIL = ['email', 'mail', 'emailaddress', 'מייל', 'אימייל', 'דואל'], BIZ = ['business', 'company', 'businessname', 'companyname', 'עסק', 'שםהעסק', 'חברה'],
   MSG = ['message', 'notes', 'note', 'comments', 'הודעה', 'הערות', 'פרטים'], SRC = ['source', 'campaign', 'campaignname', 'adname', 'form', 'formname', 'מקור', 'קמפיין'], LAST = ['lastname', 'שםמשפחה'];
+// Hebrew first name for the WhatsApp opener (Tal: always address the lead in Hebrew). Latin names → Hebrew transliteration.
+async function hebrewFirstName(name: string): Promise<string> {
+  const first = name.trim().split(/\s+/)[0] ?? '';
+  if (!first || /[\u0590-\u05FF]/.test(first)) return first;
+  if (!anthropicConfigured()) return '';
+  try {
+    const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 6000);
+    const r = await claude({ model: 'claude-haiku-5-5', maxTokens: 20, signal: ctrl.signal,
+      system: 'Return only the person\'s first name written in Hebrew letters, the way Israelis write it (e.g. Guy→גיא, Avi→אבי, Danielle→דניאל, Viktor→ויקטור). One word, no punctuation, no explanation.', user: name });
+    clearTimeout(t);
+    const he = r.text.trim().split(/\s+/)[0] ?? '';
+    return /^[\u0590-\u05FF'"׳״-]{1,30}$/.test(he) ? he : '';
+  } catch { return ''; }
+}
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   if (!/^[a-f0-9]{48}$/.test(token)) return NextResponse.json({ error: 'invalid' }, { status: 404 });
@@ -44,6 +59,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   const extra = Object.entries(body).filter(([k, v]) => !used.has(k) && v != null && String(v).trim() && typeof v !== 'object').slice(0, 30).map(([k, v]) => `${k}: ${String(v).slice(0, 300)}`).join('\n');
   const p = { name: name.slice(0, 120), phone_e164: toE164(rawPhone) ?? (rawPhone ? rawPhone.replace(/[^\d+]/g, '').slice(0, 20) : null), email: email.slice(0, 160), business: business.slice(0, 160),
     message: message.slice(0, 2000), source: source.slice(0, 40), extra: extra.slice(0, 4000), brand };
+  (p as any).first_name_he = name ? await hebrewFirstName(name) : '';
   const hash = createHash('sha256').update(token).digest('hex');
   try { const r: any = await w('office_worker_lead_hook', { p_token_hash: hash, p }); if (!r.duplicate) await notifyLead(r.id, p as any, r.wa_text).catch((e) => console.error('[lead-hook-mail]', e)); return NextResponse.json({ ok: true, id: r.id, duplicate: !!r.duplicate }); }
   catch (e: any) { const m = String(e?.message ?? ''); return NextResponse.json({ error: m.includes('bad_token') ? 'invalid' : m.includes('empty_lead') ? 'missing name/phone/email' : 'error' }, { status: m.includes('bad_token') ? 404 : 400 }); }
