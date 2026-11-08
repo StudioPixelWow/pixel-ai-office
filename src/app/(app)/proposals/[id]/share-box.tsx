@@ -15,7 +15,7 @@ export function ShareBox({ proposalId, company, contactName, phone, email, gmail
     try { const r = await fetch('/api/proposals/send-email', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ proposal_id: proposalId, url, to: email }) });
       const j = await r.json(); if (!r.ok) throw new Error(j.error); setMsg(`נשלח ל-${email}`); setPrev(false); } catch (e) { setMsg(heError(e)); } finally { setBusy(false); }
   }
-  const wa = phone ? `https://wa.me/${phone.replace(/\D/g, '')}?text=${encodeURIComponent(text(url ?? ''))}` : null;
+  const wa = phone ? `https://api.whatsapp.com/send?phone=${phone.replace(/\D/g, '')}&text=${encodeURIComponent(text(url ?? ''))}` : null;
   return <div className="f">
     {!url ? <><button className="btn y" disabled={busy} onClick={make}>{hasLink ? 'צור קישור חדש לחתימה' : 'צור קישור לחתימה ותשלום'}</button>
       {hasLink && <span className="small muted">קישור קודם קיים. קישור חדש מבטל את הקודם.</span>}</>
