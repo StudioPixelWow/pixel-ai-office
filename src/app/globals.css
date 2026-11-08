@@ -1448,3 +1448,27 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .wa-actions{display:flex;gap:8px;flex-wrap:wrap}
 .wa-send{background:#25D366;color:#fff;border-color:#25D366}
 @media (max-width:600px){.wa-actions{flex-direction:column}.wa-actions .btn{width:100%}}
+
+/* LOUD leads panel */
+.ll{margin-bottom:14px}
+.ll-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0}
+.ll-kpis div{background:var(--soft,#F7F8FA);border-radius:14px;padding:12px;text-align:center}
+.ll-kpis b{display:block;font-size:24px}.ll-kpis span{font-size:12px;color:var(--muted,#5B6B80)}
+@media (max-width:700px){.ll-kpis{grid-template-columns:1fr 1fr}}
+.ll-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.ll-tabs button{border:1px solid var(--line,#E6EDF5);background:#fff;border-radius:999px;padding:6px 12px;font:inherit;font-size:13px;white-space:nowrap;cursor:pointer}
+.ll-tabs button.on{background:#100F0D;color:#fff;border-color:#100F0D}
+.ll-tabs i{font-style:normal;opacity:.7;margin-inline-start:4px}
+.ll-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px}
+.ll-card{border:1px solid var(--line,#E6EDF5);border-radius:16px;padding:12px;display:grid;gap:10px;background:#fff}
+.ll-card.lost{opacity:.55}
+.ll-top{display:flex;gap:10px;align-items:center}
+.ll-top .av{width:36px;height:36px;border-radius:50%;background:#100F0D;color:#F5B800;display:grid;place-items:center;font-weight:bold;flex:none}
+.ll-steps{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.ll-steps span{font-size:11px;color:var(--muted,#8A96A8);display:grid;gap:4px;text-align:center}
+.ll-steps i{height:5px;border-radius:5px;background:#E6EDF5}
+.ll-steps .done{color:#100F0D;font-weight:bold}.ll-steps .done i{background:#F5B800}
+.ll-need{all:unset;cursor:pointer;font-size:13px;line-height:1.6;white-space:pre-wrap;background:var(--soft,#F7F8FA);border-radius:10px;padding:8px 10px}
+.ll-actions{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.ll-actions .btn{padding-inline:6px;font-size:12.5px;text-align:center;white-space:nowrap}
+@media (max-width:600px){.ll-list{grid-template-columns:1fr}.ll-actions{grid-auto-flow:row}.ll-actions .btn{width:100%;font-size:14px}}

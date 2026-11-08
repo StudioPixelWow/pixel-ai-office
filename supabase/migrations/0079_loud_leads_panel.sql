@@ -1,0 +1,1 @@
+-- 0079 (applied via MCP as office_0079_loud_leads_panel): office_loud_leads() — LOUD form leads + journey (WhatsApp opened, stage, matched studio booking).
