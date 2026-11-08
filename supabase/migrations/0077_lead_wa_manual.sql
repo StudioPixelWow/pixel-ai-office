@@ -1,0 +1,3 @@
+-- 0077 Manual WhatsApp opener (applied via MCP as office_0077_lead_wa_manual): lead_flows.manual_text, leads.wa_opened_at,
+-- office.lead_wa_text(lead), office_lead_wa / office_lead_wa_opened / office_lead_wa_texts / office_lead_wa_text_save;
+-- office_worker_lead_hook now returns wa_text for the new-lead email's WhatsApp button.

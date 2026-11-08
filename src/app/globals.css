@@ -1440,3 +1440,11 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .lf-sessions{display:grid;gap:6px}
 .lf-s{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line,#E6EDF5);border-radius:12px;text-decoration:none;color:inherit}
 @media (max-width:600px){.lf-s{grid-template-columns:1fr auto}}
+
+/* WhatsApp box on lead */
+.wa-box{margin-bottom:12px}
+.wa-chat{background:#ECE5DD;border-radius:16px;padding:14px;margin:10px 0}
+.wa-bubble{display:block;width:100%;max-width:520px;margin-inline-start:auto;background:#DCF8C6;border:0;border-radius:14px 14px 4px 14px;padding:10px 12px;font:inherit;font-size:15px;line-height:1.6;resize:vertical;box-shadow:0 1px 1px rgba(0,0,0,.08)}
+.wa-actions{display:flex;gap:8px;flex-wrap:wrap}
+.wa-send{background:#25D366;color:#fff;border-color:#25D366}
+@media (max-width:600px){.wa-actions{flex-direction:column}.wa-actions .btn{width:100%}}

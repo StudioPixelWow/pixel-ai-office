@@ -3,17 +3,24 @@ import { createHash } from 'crypto';
 import { w } from '@/engine/db';
 import { toE164 } from '@/lib/loud';
 import { brandedEmail, gmailConfigured, gmailSend } from '@/engine/adapters/gmail';
+import { waLink } from '@/lib/wa';
 export const maxDuration = 30;
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pixel-ai-office-iota.vercel.app';
 const BRAND_HE: Record<string, string> = { loud: 'LOUD', pixel: 'פיקסל דיגיטל' };
 // Tal asked (05.11.2026) for an email on every new inbound lead (Pixel + LOUD). Internal only, to Tal.
-async function notifyLead(id: string, p: Record<string, string | null>) {
+async function notifyLead(id: string, p: Record<string, string | null>, waText?: string | null) {
   if (!gmailConfigured()) return;
   const b = BRAND_HE[String(p.brand)] ?? 'ליד נכנס'; const who = p.name || p.business || p.phone_e164 || p.email || 'ליד';
   const lines = [`ליד חדש ל${b} נכנס למערכת.`, '', p.name && `שם: ${p.name}`, p.phone_e164 && `טלפון: ${p.phone_e164}`, p.email && `מייל: ${p.email}`, p.business && `עסק: ${p.business}`,
     p.message && `הודעה: ${p.message}`, p.source && `מקור: ${p.source}`, p.extra && `\nפרטים נוספים:\n${p.extra}`, '', `לפתיחת הליד: ${SITE}/leads/${id}`].filter((x): x is string => typeof x === "string");
   const text = lines.join('\n');
-  const r = await gmailSend({ to: 'tal.pixeld@gmail.com', subject: `🎯 ליד חדש · ${b} · ${who}`.slice(0, 200), html: brandedEmail(text), text });
+  const wa = waText ? waLink(p.phone_e164, waText) : null;
+  const esc = (x: string) => x.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' } as any)[c]);
+  const btn = wa ? `<div style="margin:22px 0 6px"><a href="${wa}" style="display:inline-block;background:#25D366;color:#fff;font-weight:bold;text-decoration:none;padding:13px 22px;border-radius:12px;font-size:16px">💬 פתיחת שיחה בוואטסאפ</a></div>`
+    + `<div style="font-size:13px;color:#5B6B80;margin-bottom:6px">ההודעה שתיפתח מוכנה לשליחה (אפשר לערוך לפני ששולחים):</div>`
+    + `<div style="white-space:pre-wrap;background:#F2FBF5;border:1px solid #CDEFD9;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.7">${esc(waText!)}</div>` : '';
+  const html = brandedEmail(text).replace('<!--sig-->', `${btn}<!--sig-->`);
+  const r = await gmailSend({ to: 'tal.pixeld@gmail.com', subject: `🎯 ליד חדש · ${b} · ${who}`.slice(0, 200), html, text: wa ? `${text}\n\nפתיחת שיחה בוואטסאפ: ${wa}` : text });
   if (!r.ok) console.error('[lead-hook-mail]', r.error);
 }
 export const dynamic = 'force-dynamic';
@@ -38,6 +45,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ tok
   const p = { name: name.slice(0, 120), phone_e164: toE164(rawPhone) ?? (rawPhone ? rawPhone.replace(/[^\d+]/g, '').slice(0, 20) : null), email: email.slice(0, 160), business: business.slice(0, 160),
     message: message.slice(0, 2000), source: source.slice(0, 40), extra: extra.slice(0, 4000), brand };
   const hash = createHash('sha256').update(token).digest('hex');
-  try { const r: any = await w('office_worker_lead_hook', { p_token_hash: hash, p }); if (!r.duplicate) await notifyLead(r.id, p as any).catch((e) => console.error('[lead-hook-mail]', e)); return NextResponse.json({ ok: true, id: r.id, duplicate: !!r.duplicate }); }
+  try { const r: any = await w('office_worker_lead_hook', { p_token_hash: hash, p }); if (!r.duplicate) await notifyLead(r.id, p as any, r.wa_text).catch((e) => console.error('[lead-hook-mail]', e)); return NextResponse.json({ ok: true, id: r.id, duplicate: !!r.duplicate }); }
   catch (e: any) { const m = String(e?.message ?? ''); return NextResponse.json({ error: m.includes('bad_token') ? 'invalid' : m.includes('empty_lead') ? 'missing name/phone/email' : 'error' }, { status: m.includes('bad_token') ? 404 : 400 }); }
 }

@@ -5,6 +5,7 @@ import { ActionButton, ActionForm } from '@/components/client';
 import { CheckNow } from './check-now';
 import { LeadHook } from './lead-hook';
 import { LeadFlows } from './lead-flows';
+import { WaTexts } from './wa-texts';
 const CATALOG: [string, string, string, string][] = [
   ['wordpress', 'WordPress (REST + Application Password)', 'app_password', 'create_wp_draft'], ['meta_ads', 'Meta Ads', 'oauth', 'read_campaign_metrics'], ['google_ads', 'Google Ads', 'oauth', 'read_campaign_metrics'],
   ['google_calendar', 'Google Calendar', 'oauth', 'read_calendar'], ['outlook', 'Outlook Calendar', 'oauth', 'read_calendar'], ['ga4', 'GA4', 'oauth', 'read_analytics'], ['gsc', 'Search Console', 'oauth', 'read_gsc'],
@@ -16,13 +17,15 @@ export default async function Connections() {
   const boxes: any[] = await rpc<any[]>('office_mailboxes').catch(() => []);
   const hook = ['owner', 'admin'].includes(m.role) ? await rpc<any>('office_lead_hook_status').catch(() => null) : null;
   const flows = m.role === 'owner' ? await rpc<any>('office_lead_flows_get').catch(() => null) : null;
+  const waTexts = m.role === 'owner' ? await rpc<any>('office_lead_wa_texts').catch(() => null) : null;
   const latest = checks.filter((c: any, i: number) => checks.findIndex((x: any) => x.connection_id === c.connection_id && x.capability === c.capability) === i);
   const cn = Object.fromEntries(clients.map((c: any) => [c.id, c.name]));
   return <>
     <Hero title={<>חיבורים, <span className="mark">הרשאות ותקינות</span></>} sub="חיבור מסומן פעיל רק אחרי בדיקה אמיתית. שמירת כתובת או מפתח אינה הוכחת יכולת. ChatGPT בדפדפן ו-OpenAI API הם חיבורים נפרדים.">{['owner', 'admin'].includes(m.role) && <CheckNow />}</Hero>
     <DataConnections />
     {m.role === 'owner' && <LeadHook status={hook} />}
-    {m.role === 'owner' && <LeadFlows data={flows} />}
+    {m.role === 'owner' && <WaTexts texts={waTexts} />}
+    {m.role === 'owner' && flows && <details className="card" style={{ marginBottom: 12 }}><summary className="small">בוט וואטסאפ אוטומטי (כבוי, דורש חיבור WhatsApp Business API)</summary><div style={{ marginTop: 10 }}><LeadFlows data={flows} /></div></details>}
     <div className="card" style={{ marginBottom: 12 }}><div className="row"><h2 className="sp">תיבות דואר (איריס)</h2><a className="btn sm ghost" href="/inbox">לדואר הנכנס</a></div>
       <p className="small muted">קריאה כל 5 דקות (כולל מיילים שאורכבו), שליחה רק בלחיצה. סיסמאות האפליקציה שמורות ב-Vercel בלבד.</p>
       <Table head={['תיבה', 'פעילה מ-', 'נבדקה לאחרונה', 'נכנסו (7 ימים)', 'נשלחו מהמערכת (7 ימים)']} rows={boxes.map((b: any) => [<span key="m" dir="ltr">{b.mailbox}</span>, <When key="s" d={b.started_at} />, <When key="c" d={b.checked_at} />, b.in_7d, b.sent_7d])} empty="אין תיבות מחוברות" /></div>

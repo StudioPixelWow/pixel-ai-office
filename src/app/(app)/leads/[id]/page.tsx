@@ -8,12 +8,14 @@ import { QuickProposal } from './quick-proposal';
 import { serviceLabel } from '@/lib/services';
 import { rpc } from '@/lib/api';
 import { JourneyBar } from '@/components/journey';
+import { WaBox } from './wa-box';
 export default async function Lead({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params; const l = await get<any>('leads', id); if (!l) notFound(); const m = await me();
-  const [journey, briefs, proposals, terms, packages] = await Promise.all([rpc<any>('office_journey', { p_lead: id }).catch(() => null), safeList('briefs', { lead_id: id }), safeList('proposals', { lead_id: id }), safeList('terms_templates'), rpc<any[]>('office_packages').catch(() => [])]);
+  const [journey, briefs, proposals, terms, packages, wa] = await Promise.all([rpc<any>('office_journey', { p_lead: id }).catch(() => null), safeList('briefs', { lead_id: id }), safeList('proposals', { lead_id: id }), safeList('terms_templates'), rpc<any[]>('office_packages').catch(() => []), rpc<any>('office_lead_wa', { p_lead: id }).catch(() => null)]);
   return <>
     <div className="hero"><div className="row"><div className="sp"><h1>{l.company}</h1><p>{l.need ?? ''}</p></div><Badge s={l.stage} /></div></div>
     <JourneyBar j={journey} />
+    {wa && <WaBox leadId={id} phone={wa.phone} text={wa.text} openedAt={wa.opened_at} />}
     <div className="grid g2">
       <div className="card"><h2>פרטי הליד</h2><dl className="kv"><dt>איש קשר</dt><dd>{l.contact_name ?? '—'}</dd><dt>עיסוק</dt><dd>{l.industry ?? '—'}</dd><dt>טלפון</dt><dd dir="ltr">{l.contact_phone_e164 ?? '—'}</dd><dt>דוא״ל</dt><dd dir="ltr">{l.contact_email ?? '—'}</dd><dt>מקור</dt><dd>{l.source}</dd><dt>מטרות</dt><dd>{l.goals ?? '—'}</dd>
         <dt>שירותים מבוקשים</dt><dd>{(l.requested_services ?? []).map(serviceLabel).join(', ') || '—'}</dd><dt>קיים → נדרש</dt><dd>{l.current_state ?? '—'} → {l.required_state ?? '—'}</dd>
