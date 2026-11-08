@@ -1429,3 +1429,14 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
   .pgx-modal{grid-template-columns:1fr;border-radius:24px} .pgx-phone{border-inline-end:0;border-bottom:1px solid #E3EAF2} .pgx-side{padding:20px}
   .pgx-sticky{flex-direction:column;align-items:stretch;text-align:center} .pgx-sticky button{width:100%}
 }
+
+/* WhatsApp lead warm-up */
+.lf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:860px){.lf-grid{grid-template-columns:1fr}}
+.lf-card{border:1px solid var(--line,#E6EDF5);border-radius:16px;padding:14px;display:grid;gap:10px;background:#fff}
+.lf-f{display:grid;gap:4px;font-size:13px}
+.lf-f input,.lf-f textarea{width:100%;border:1px solid var(--line,#E6EDF5);border-radius:10px;padding:8px 10px;font:inherit;resize:vertical}
+.lf-actions{display:flex;gap:8px;flex-wrap:wrap}
+.lf-sessions{display:grid;gap:6px}
+.lf-s{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;align-items:center;padding:8px 10px;border:1px solid var(--line,#E6EDF5);border-radius:12px;text-decoration:none;color:inherit}
+@media (max-width:600px){.lf-s{grid-template-columns:1fr auto}}

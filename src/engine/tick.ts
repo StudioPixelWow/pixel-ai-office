@@ -16,7 +16,7 @@ import { klingConfigured, checkAuth } from './adapters/kling';
 import { waConfigured, waCheck, waSendText } from './adapters/whatsapp';
 import { growCheck, growIsSandbox, growConfigured } from './adapters/grow';
 import { greenInvoiceConfigured, giCheck } from './adapters/greeninvoice';
-import { gmailConfigured, gmailCheck, gmailSend } from './adapters/gmail';
+import { gmailConfigured, gmailCheck, gmailSend, brandedEmail } from './adapters/gmail';
 import { metaConfigured, metaCheck } from './adapters/meta';
 import { marketingToken, adsConfigured } from './adapters/gmarketing';
 
@@ -99,6 +99,20 @@ async function alsoEmail(dispatchId: string) {
   const subject = loud ? ({ loud_kit: 'קובץ השאלות לראיון שלך מוכן 🎙️', loud_reminder: 'תזכורת: מחר מקליטים באולפן LOUD', loud_thanks: 'איזה כיף היה באולפן 🎧', loud_materials: 'החומרים מהפרק שלך מוכנים 🎙️', loud_pay: 'עוד צעד אחד לפרק שלך', loud_slot: 'בוחרים מועד להקלטה' } as any)[e.kind] ?? 'הודעה מאולפן LOUD' : (({ care_lead_ack: 'קיבלנו את הפנייה שלך 🙌', care_proposal_fu: 'לגבי ההצעה שלנו', care_payment: 'תזכורת תשלום — Pixel Digital', care_welcome: 'ברוכים הבאים ל-Pixel Digital 🎉', care_milestone: 'עדכון התקדמות בפרויקט ✅', care_content: 'תוכן מחכה לאישורך 📅', care_monthly: 'הסיכום החודשי שלך 📊', care_holiday: 'חג שמח מ-Pixel Digital 🌟', care_anniversary: 'שנה שאנחנו עובדים יחד 🎂', care_nps: 'שאלה קצרה אחת 🙏', care_meeting_fu: 'תודה על הפגישה' } as any)[e.kind] ?? 'הודעה מ-Pixel Digital');
   return gmailSend({ to: e.email, subject, text: e.body, html: `<div dir="rtl" style="font-family:Arial,sans-serif;background:${loud ? '#1C1A17' : '#F7FBFF'};padding:24px"><div style="max-width:560px;margin:auto;background:#fff;border-radius:20px;overflow:hidden">${head}<div style="padding:22px 24px;color:#100F0D;font-size:15px;line-height:1.7">${body}<!--sig--></div></div></div>` });
 }
+// WhatsApp warm-up finished or handed off → email Tal with the answers (internal, to Tal only).
+async function leadFlowMail() {
+  const rows: any[] = await w('office_worker_lead_flow_mail', {});
+  if (!rows.length || !gmailConfigured()) return rows.length;
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pixel-ai-office-iota.vercel.app';
+  for (const r of rows) {
+    const brand = r.brand === 'loud' ? 'LOUD' : 'פיקסל דיגיטל'; const done = r.status === 'done';
+    const qa = (r.answers ?? []).map((a: any) => `${a.q}\n← ${a.a}`).join('\n\n');
+    const text = `${done ? 'הליד ענה על כל השאלות בוואטסאפ.' : 'הליד ביקש לדבר איתך או שאל שאלה, והבוט עצר.'}\n\nשם: ${r.name ?? ''}\nטלפון: ${r.phone ?? ''}\nמותג: ${brand}\n\n${qa}\n\nלפתיחת הליד: ${site}/leads/${r.lead_id}`;
+    const res = await gmailSend({ to: 'tal.pixeld@gmail.com', subject: `${done ? '🔥 ליד חם' : '🙋 ליד מבקש שיחה'} · ${brand} · ${r.name ?? ''}`.slice(0, 200), html: brandedEmail(text), text });
+    if (!res.ok) console.error('[lead-flow-mail]', res.error);
+  }
+  return rows.length;
+}
 async function dispatchOutbox() {
   const items: any[] = await w('office_worker_outbox_claim', { p_max: 5 });
   for (const it of items) {
@@ -124,6 +138,7 @@ export async function tick(opts: { budgetMs?: number; checks?: boolean } = {}) {
   try { report.milestones = await w('office_worker_roll_milestones', {}); } catch (e: any) { report.errors.push(e.message); }
   try { report.calendar = await gcalSync(); } catch (e: any) { report.errors.push(e.message); }
   try { report.reminders = await meetingReminders(); } catch (e: any) { report.errors.push(e.message); }
+  try { report.leadFlowMail = await leadFlowMail(); } catch (e: any) { report.errors.push(e.message); }
   if (new Date().getUTCMinutes() % 5 === 1) { try { report.care = await w('office_worker_care_tick', {}); } catch (e: any) { report.errors.push(e.message); }
     try { report.referrals = await w('office_worker_referrals', {}); } catch (e: any) { report.errors.push(e.message); } }
   const mi = new Date().getUTCMinutes();
