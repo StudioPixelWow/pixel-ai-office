@@ -8,7 +8,7 @@ import { waLink } from '@/lib/wa';
 // LOUD form leads and the journey of each: in → WhatsApp → in talks → booking → recorded.
 type L = { id: string; created_at: string; stage: string; version: number; contact_name: string | null; first_name_he: string | null; company: string | null; phone: string | null; need: string | null;
   wa_opened_at: string | null; wa_text: string; booking_id: string | null; booking_status: string | null; starts_at: string | null; recorded_at: string | null };
-const STEPS = ['נכנס', 'וואטסאפ', 'בשיחה', 'הזמנה', 'הוקלט'];
+const STEPS = ['נכנס', 'וואטסאפ', 'בירור צרכים', 'הזמנה', 'הוקלט'];
 const step = (l: L) => l.recorded_at || ['recorded', 'delivered'].includes(l.booking_status ?? '') ? 4 : l.booking_id ? 3 : ['scoping', 'negotiation', 'engaged'].includes(l.stage) ? 2 : l.wa_opened_at ? 1 : 0;
 const ago = (d: string) => { const h = (Date.now() - +new Date(d)) / 36e5; return h < 1 ? 'עכשיו' : h < 24 ? `לפני ${Math.round(h)} שע׳` : `לפני ${Math.round(h / 24)} ימים`; };
 const FILTERS: [string, string, (l: L) => boolean][] = [['all', 'הכול', () => true], ['new', 'לא פנית', (l) => step(l) === 0 && l.stage !== 'lost'],

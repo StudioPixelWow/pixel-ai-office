@@ -9,7 +9,10 @@ const COLS: [string, string, string[]][] = [['חדש', 'לחזור ללקוח', 
   ['מוכן לשליחה', 'לשלוח ללקוח', ['ready_to_send']], ['אצל הלקוח', 'נשלחה / מו״מ', ['sent', 'negotiation']], ['נסגר 🎉', 'עסקה נפתחה', ['engaged']]];
 const ago = (d: string) => { const h = (Date.now() - +new Date(d)) / 36e5; return h < 1 ? 'עכשיו' : h < 24 ? `לפני ${Math.round(h)} שע׳` : `לפני ${Math.round(h / 24)} ימים`; };
 export default async function Leads({ searchParams }: { searchParams: Promise<{ lost?: string; new?: string }> }) {
-  const sp = await searchParams; const leads = await safeList<any>('leads', { _active: true }, 500);
+  const sp = await searchParams;
+  // LOUD leads live only in the LOUD screen; this board is Pixel Digital's pipeline.
+  const isLoud = (l: any) => l.source === 'loud_intake' || String(l.source ?? '').startsWith('hook:loud');
+  const leads = (await safeList<any>('leads', { _active: true }, 500)).filter((l) => !isLoud(l));
   const open = leads.filter((l) => !['lost', 'archived'].includes(l.stage)); const lost = leads.filter((l) => l.stage === 'lost');
   const won = leads.filter((l) => l.stage === 'engaged').length; const rate = leads.length ? Math.round((won / Math.max(1, won + lost.length)) * 100) : 0;
   const stale = open.filter((l) => l.stage === 'new' && Date.now() - +new Date(l.updated_at ?? l.created_at) > 2 * 864e5).length;

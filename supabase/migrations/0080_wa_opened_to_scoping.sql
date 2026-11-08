@@ -1,0 +1,1 @@
+-- 0080 (applied via MCP): office_lead_wa_opened moves lead new→scoping; backfilled 10 leads already opened.
