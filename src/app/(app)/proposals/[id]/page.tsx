@@ -9,6 +9,7 @@ import { rpc } from '@/lib/api';
 import { ago } from '@/lib/format';
 import { ProposalDoc } from '@/components/proposal-doc';
 import { ShareBox } from './share-box';
+import { RepriceBox } from './reprice-box';
 import { gmailConfigured } from '@/engine/adapters/gmail';
 import { JourneyBar } from '@/components/journey';
 import { PdfButton } from '@/components/pdf-button';
@@ -35,7 +36,8 @@ export default async function Proposal({ params }: { params: Promise<{ id: strin
           {p.payment_link_url && <p className="small">הלקוח פתח קישור תשלום: <a href={p.payment_link_url} target="_blank" rel="noreferrer" dir="ltr">Grow</a></p>}</>
         : cur?.review_status !== 'approved' ? <><p>בדוק את ההצעה למטה. אחרי אישור תוכל ליצור קישור לחתימה.</p>
             {m.role === 'owner' && <ActionButton className="btn y" action="approve_proposal" payload={{ version_id: cur.id }}>אשר את ההצעה</ActionButton>}</>
-        : m.role === 'owner' ? <ShareBox proposalId={id} company={cl.company ?? p.title} contactName={cl.contact_name} phone={cl.phone} email={cl.email} gmail={gmailConfigured()} hasLink={!!p.share_token_hash} />
+        : m.role === 'owner' ? <><ShareBox proposalId={id} company={cl.company ?? p.title} contactName={cl.contact_name} phone={cl.phone} email={cl.email} gmail={gmailConfigured()} hasLink={!!p.share_token_hash} />
+          {!['accepted', 'declined', 'archived'].includes(p.status) && <RepriceBox proposalId={id} setup={p.locked_setup === null ? null : Number(p.locked_setup)} monthly={p.locked_monthly === null ? null : Number(p.locked_monthly)} media={p.locked_media_budget === null ? null : Number(p.locked_media_budget)} />}</>
         : <p className="small muted">רק ה-Owner שולח הצעות ללקוחות.</p>}</div>
       <div className="card"><h2>פרטים</h2><dl className="kv"><dt>מס׳ הצעה</dt><dd>{p.number ?? '—'}</dd><dt>לקוח</dt><dd>{cl.company} {cl.contact_name ? `· ${cl.contact_name}` : ''}</dd>
         <dt>טלפון</dt><dd dir="ltr">{cl.phone ?? '—'}</dd><dt>דוא״ל</dt><dd dir="ltr">{cl.email ?? '—'}</dd><dt>תוקף הקישור</dt><dd>{p.share_expires_at ? fmtDateTime(p.share_expires_at) : '—'}</dd></dl>

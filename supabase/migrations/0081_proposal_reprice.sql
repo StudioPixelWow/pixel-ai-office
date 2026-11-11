@@ -1,0 +1,1 @@
+-- 0081 (applied via MCP as office_0081_proposal_reprice): office_proposal_reprice — owner updates only the price of an issued unsigned proposal; new approved version, same content/items, history kept.
