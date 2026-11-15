@@ -1,10 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { supabaseAnon } from '@/lib/supabase/anon';
-import { growConfigured } from '@/engine/adapters/grow';
+import { growConfigured, growIsSandbox } from '@/engine/adapters/grow';
 import { payUrl } from '@/lib/paytoken';
 // Signed client → one Grow payment link for the first charge (setup or first month), final amount only. Reused if it exists.
 export async function POST(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params; const sb = supabaseAnon();
+  // Online payment for clients only once Grow is live; a sandbox link would look paid without charging anyone.
+  if (!growConfigured() || growIsSandbox()) return NextResponse.json({ error: 'התשלום המקוון אינו זמין כרגע — ניצור איתך קשר להסדרת התשלום' }, { status: 400 });
   const { data: c, error } = await sb.rpc('office_public_payment_context', { p_token: token });
   if (error || !c) return NextResponse.json({ error: error?.message === 'sign_first' ? 'יש לחתום לפני התשלום' : 'הקישור אינו בתוקף' }, { status: 400 });
   const ctx: any = c; if (ctx.existing_link) return NextResponse.json({ url: ctx.existing_link });

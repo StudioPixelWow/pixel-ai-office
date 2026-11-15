@@ -27,9 +27,12 @@ export function SignPanel({ token, signed, signerName, signedAt, canPay, payment
     try { const x = await fetch(`/api/public/proposals/${token}/pay`, { method: 'POST' }); const j = await x.json(); if (!x.ok) throw new Error(j.error); window.location.href = j.url; }
     catch (e: any) { setMsg(String(e.message) || 'לא ניתן ליצור תשלום כרגע'); setBusy(false); }
   }
-  if (signed || ok) return <div className="pub-card"><h2>✓ ההצעה נחתמה{signerName ? ` על ידי ${signerName}` : ''}</h2>
-    <p>תודה! עותק ההצעה החתומה נשמר אצלנו{signedAt ? ` (${new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' }).format(new Date(signedAt))})` : ''}. ניצור קשר לתיאום פגישת ההתנעה.</p>
-    {(canPay || paymentUrl) && <><p>אפשר לשלם עכשיו בצורה מאובטחת באשראי או ב-Bit:</p><button className="btn y" disabled={busy} onClick={pay}>{busy ? 'מעביר לתשלום…' : 'לתשלום מאובטח'}</button></>}
+  if (signed || ok) return <div className="pub-card pub-thanks">
+    <div className="pub-thanks-ic" aria-hidden>✓</div>
+    <h2>תודה{signerName ? `, ${signerName.split(' ')[0]}` : ''}! ההצעה נחתמה בהצלחה</h2>
+    <p>שמחים להתחיל לעבוד יחד 🙌 עותק של ההצעה החתומה נשמר אצלנו{signedAt ? ` (${new Intl.DateTimeFormat('he-IL', { timeZone: 'Asia/Jerusalem', dateStyle: 'short', timeStyle: 'short' }).format(new Date(signedAt))})` : ''}.</p>
+    <ol className="pub-next"><li>ניצור איתך קשר בימים הקרובים לתיאום פגישת התנעה</li><li>נסגור יחד את פרטי התשלום</li><li>ונצא לדרך</li></ol>
+    {(canPay || paymentUrl) && <><p>אפשר גם לשלם עכשיו בצורה מאובטחת באשראי או ב-Bit:</p><button className="btn y" disabled={busy} onClick={pay}>{busy ? 'מעביר לתשלום…' : 'לתשלום מאובטח'}</button></>}
     <button className="btn ghost" onClick={() => window.print()}>הדפסה / שמירה כ-PDF</button>{msg && <p className="small" style={{ color: 'var(--bad)' }}>{msg}</p>}</div>;
   return <form className="pub-card f" onSubmit={(e) => { e.preventDefault(); sign(new FormData(e.currentTarget)); }}>
     <h2>אישור וחתימה דיגיטלית</h2>

@@ -1482,3 +1482,9 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .login-modes{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin-top:12px}
 .login-modes .btn{padding-inline:6px;white-space:nowrap}
 @media (max-width:480px){.login-modes{grid-auto-flow:row}}
+/* public proposal: thank-you after signing */
+.pub-thanks{text-align:center}
+.pub-thanks-ic{width:64px;height:64px;margin:0 auto 10px;border-radius:50%;display:grid;place-items:center;font-size:30px;font-weight:800;color:#fff;background:linear-gradient(135deg,#1fb36b,#12945a)}
+.pub-next{list-style:none;padding:0;margin:14px auto;max-width:420px;display:grid;gap:8px;text-align:right;counter-reset:n}
+.pub-next li{counter-increment:n;display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line,#e3eaf2);border-radius:12px}
+.pub-next li::before{content:counter(n);flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--ink,#0B1320);color:#fff}
