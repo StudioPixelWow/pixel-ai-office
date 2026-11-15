@@ -1,0 +1,1 @@
+-- 0082 (applied via MCP): LOUD WhatsApp text signed by מאיה instead of טל; loud_intake leads use the LOUD text.
