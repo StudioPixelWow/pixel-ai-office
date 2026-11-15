@@ -4,13 +4,14 @@ import { supabaseBrowser } from '@/lib/supabase/browser';
 import { heError } from '@/lib/errors';
 
 export default function Login() {
-  const [mode, setMode] = useState<'in' | 'up' | 'magic'>('in'); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState<'in' | 'up' | 'magic' | 'reset'>('in'); const [msg, setMsg] = useState(''); const [busy, setBusy] = useState(false);
   async function go(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault(); const fd = new FormData(e.currentTarget); const email = String(fd.get('email')); const password = String(fd.get('password') ?? '');
     const sb = supabaseBrowser(); setBusy(true); setMsg('');
     try {
       const redirect = `${location.origin}/auth/callback`;
-      if (mode === 'magic') { const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect, shouldCreateUser: true } }); if (error) throw error; setMsg('נשלח קישור כניסה למייל.'); }
+      if (mode === 'reset') { const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: `${redirect}?next=${encodeURIComponent('/settings#password')}` }); if (error) throw error; setMsg('אם המייל רשום במערכת, נשלח אליו קישור לבחירת סיסמה חדשה.'); }
+      else if (mode === 'magic') { const { error } = await sb.auth.signInWithOtp({ email, options: { emailRedirectTo: redirect, shouldCreateUser: true } }); if (error) throw error; setMsg('נשלח קישור כניסה למייל.'); }
       else if (mode === 'up') { const { data, error } = await sb.auth.signUp({ email, password, options: { emailRedirectTo: redirect } }); if (error) throw error;
         if (data.session) location.href = '/'; else setMsg('נשלח מייל אימות. אחרי האימות אפשר להיכנס.'); }
       else { const { error } = await sb.auth.signInWithPassword({ email, password }); if (error) throw error; location.href = '/'; }
@@ -25,13 +26,14 @@ export default function Login() {
       {e && <div className="note bad">{heError(e)}</div>}
       <form className="f" onSubmit={go} style={{ marginTop: 12 }}>
         <label>אימייל<input name="email" type="email" required dir="ltr" autoComplete="email" /></label>
-        {mode !== 'magic' && <label>סיסמה<input name="password" type="password" required minLength={10} autoComplete={mode === 'up' ? 'new-password' : 'current-password'} dir="ltr" /></label>}
-        <button className="btn y" disabled={busy}>{mode === 'in' ? 'כניסה' : mode === 'up' ? 'יצירת חשבון' : 'שלח קישור כניסה'}</button>
+        {!['magic', 'reset'].includes(mode) && <label>סיסמה<input name="password" type="password" required minLength={10} autoComplete={mode === 'up' ? 'new-password' : 'current-password'} dir="ltr" /></label>}
+        <button className="btn y" disabled={busy}>{mode === 'in' ? 'כניסה' : mode === 'up' ? 'יצירת חשבון' : mode === 'reset' ? 'שלח קישור לאיפוס סיסמה' : 'שלח קישור כניסה'}</button>
       </form>
-      <div className="row small" style={{ marginTop: 12 }}>
+      <div className="login-modes small">
         <button className="btn ghost sm" onClick={() => setMode('in')}>כניסה</button>
         <button className="btn ghost sm" onClick={() => setMode('up')}>הרשמה ראשונה (Owner)</button>
         <button className="btn ghost sm" onClick={() => setMode('magic')}>קישור למייל</button>
+        <button className="btn ghost sm" onClick={() => setMode('reset')}>שכחתי סיסמה</button>
       </div>
       {msg && <p className="small" role="status">{msg}</p>}
     </div></div>;

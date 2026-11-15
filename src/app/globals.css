@@ -1478,3 +1478,7 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .reprice .f{margin-top:10px}
 .reprice-g{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
 @media (max-width:600px){.reprice-g{grid-template-columns:1fr}}
+/* login: mode buttons — one row, or all stacked on narrow screens (never 2+1) */
+.login-modes{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px;margin-top:12px}
+.login-modes .btn{padding-inline:6px;white-space:nowrap}
+@media (max-width:480px){.login-modes{grid-auto-flow:row}}

@@ -1,3 +1,4 @@
+import { SendReset, ChangePassword } from './password';
 import { safeList, me, rpc } from '@/lib/api';
 import { Packages } from './packages';
 import { PixiUpload } from './pixi-upload';
@@ -19,8 +20,9 @@ export default async function Settings() {
     {m.role === 'owner' && <div className="card" style={{ marginTop: 16 }}><h2>בקשת המלצה</h2>
       <p className="small muted">לקוח שמדרג 9–10 מקבל (אחרי אישור שלך) גם בקשה להמליץ על חבר, עם קישור אישי להשארת פרטים. כל המלצה נכנסת ללידים עם שם הלקוח הממליץ. אפשר להוסיף הטבה שתופיע בהודעה.</p>
       <ActionForm action="setting_set" extra={{ key: 'referral_offer' }} submit="שמירה" fields={[{ name: 'value', label: 'הטבה (לא חובה)', defaultValue: (st as any)?.referral_offer ?? '', hint: 'למשל: על כל המלצה שהופכת ללקוח — חודש ניהול סושיאל במתנה' }]} /></div>}
+    <div style={{ marginTop: 16 }}><ChangePassword /></div>
     <div className="grid g2" style={{ marginTop: 16 }}>
-      <div className="card"><h2>משתמשים והרשאות</h2><Table head={['אימייל', 'תפקיד', 'פעיל']} rows={members.map((x: any) => [<span key="e" dir="ltr">{x.email}</span>, x.role, x.active ? 'כן' : 'לא'])} />
+      <div className="card"><h2>משתמשים והרשאות</h2><Table head={m.role === 'owner' ? ['אימייל', 'תפקיד', 'פעיל', 'סיסמה'] : ['אימייל', 'תפקיד', 'פעיל']} rows={members.map((x: any) => [<span key="e" dir="ltr">{x.email}</span>, x.role, x.active ? 'כן' : 'לא', ...(m.role === 'owner' && x.email ? [<SendReset key="r" email={x.email} />] : m.role === 'owner' ? ['—'] : [])])} />
         {m.role === 'owner' && <ActionForm action="invite_member" submit="הוסף משתמש מורשה" fields={[{ name: 'email', label: 'אימייל', type: 'email', ltr: true, required: true },
           { name: 'role', label: 'תפקיד', type: 'select', required: true, options: [['admin', 'מנהל מערכת'], ['account_manager', 'מנהל לקוח'], ['employee', 'עובד'], ['viewer', 'צופה']] }]} />}
         <p className="small muted">מנהל מערכת ומנהל לקוח אינם מקבלים זכות אישור הודעות. אישור WhatsApp — Owner בלבד.</p></div>
