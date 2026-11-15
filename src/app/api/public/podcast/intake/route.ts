@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
   const socials_text = s('socials', 1500);
   const payload = { name, business, phone_e164: phone, email, website, socials_text, socials: parseSocials(socials_text), what_matters: s('what_matters'),
     done_before: b.done_before === 'yes' ? 'yes' : 'no', done_before_details: s('done_before_details', 800), key_points, role: s('role', 120), preferred_times: s('preferred_times', 300),
-    whatsapp_ok: b.whatsapp_ok !== false, submitted_at: new Date().toISOString(), ua: (req.headers.get('user-agent') ?? '').slice(0, 200) };
+    whatsapp_ok: b.whatsapp_ok !== false, submitted_at: new Date().toISOString(), ua: (req.headers.get('user-agent') ?? '').slice(0, 200),
+    lead_ref: /^[0-9a-f-]{36}$/i.test(String(b.lead_ref ?? '')) ? String(b.lead_ref) : '' };
   try {
     const r: any = await w('office_worker_studio_intake', { p: payload });
     const url = guestUrl(req.nextUrl.origin, r.id);

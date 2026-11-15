@@ -1488,3 +1488,8 @@ pre.out{background:var(--bg-2);border:1px solid var(--line);border-radius:16px;p
 .pub-next{list-style:none;padding:0;margin:14px auto;max-width:420px;display:grid;gap:8px;text-align:right;counter-reset:n}
 .pub-next li{counter-increment:n;display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line,#e3eaf2);border-radius:12px}
 .pub-next li::before{content:counter(n);flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;background:var(--ink,#0B1320);color:#fff}
+/* LOUD leads: agreed recording date + intake message — one row, stacked on mobile */
+.ll-book{display:flex;gap:8px;align-items:center;flex-wrap:nowrap;margin:8px 0;padding:8px 10px;border:1px dashed var(--line,#e3eaf2);border-radius:12px}
+.ll-book input[type=datetime-local]{flex:1;min-width:0}
+.ll-book .ll-date{flex:1;font-size:13px}
+@media (max-width:600px){.ll-book{flex-direction:column;align-items:stretch}.ll-book .btn{width:100%}}

@@ -9,7 +9,7 @@ export function IntakeForm() {
   const valid = [() => f.name.trim() && /\d{9,}/.test(f.phone.replace(/\D/g, '')), () => f.what_matters.trim().length > 3, () => f.key_points.some((x: string) => x.trim())];
   async function submit() {
     setBusy(true); setErr('');
-    const r = await fetch('/api/public/podcast/intake', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(f) });
+    const r = await fetch('/api/public/podcast/intake', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...f, lead_ref: new URLSearchParams(location.search).get('l') ?? '' }) });
     const j = await r.json().catch(() => ({})); setBusy(false);
     if (!r.ok) return setErr(j.error ?? 'משהו השתבש'); setDone(j.url ?? '');
   }
