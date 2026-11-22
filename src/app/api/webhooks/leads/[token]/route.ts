@@ -8,7 +8,7 @@ import { anthropicConfigured, claude } from '@/engine/adapters/anthropic';
 export const maxDuration = 30;
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://pixel-ai-office-iota.vercel.app';
 const BRAND_HE: Record<string, string> = { loud: 'LOUD', pixel: 'פיקסל דיגיטל' };
-// Tal asked (05.11.2026) for an email on every new inbound lead (Pixel + LOUD). Internal only, to Tal.
+// Tal asked (05.11.2026) for an email on every new inbound lead (Pixel + LOUD). Internal only, to Tal; LOUD leads also to Maya (asked 22.11.2026).
 async function notifyLead(id: string, p: Record<string, string | null>, waText?: string | null) {
   if (!gmailConfigured()) return;
   const b = BRAND_HE[String(p.brand)] ?? 'ליד נכנס'; const who = p.name || p.business || p.phone_e164 || p.email || 'ליד';
@@ -21,7 +21,8 @@ async function notifyLead(id: string, p: Record<string, string | null>, waText?:
     + `<div style="font-size:13px;color:#5B6B80;margin-bottom:6px">ההודעה שתיפתח מוכנה לשליחה (אפשר לערוך לפני ששולחים):</div>`
     + `<div style="white-space:pre-wrap;background:#F2FBF5;border:1px solid #CDEFD9;border-radius:12px;padding:12px 14px;font-size:14px;line-height:1.7">${esc(waText!)}</div>` : '';
   const html = brandedEmail(text).replace('<!--sig-->', `${btn}<!--sig-->`);
-  const r = await gmailSend({ to: 'tal.pixeld@gmail.com', subject: `🎯 ליד חדש · ${b} · ${who}`.slice(0, 200), html, text: wa ? `${text}\n\nפתיחת שיחה בוואטסאפ: ${wa}` : text });
+  const to = p.brand === 'loud' ? 'tal.pixeld@gmail.com, maya.pixeld@gmail.com' : 'tal.pixeld@gmail.com';
+  const r = await gmailSend({ to, subject: `🎯 ליד חדש · ${b} · ${who}`.slice(0, 200), html, text: wa ? `${text}\n\nפתיחת שיחה בוואטסאפ: ${wa}` : text });
   if (!r.ok) console.error('[lead-hook-mail]', r.error);
 }
 export const dynamic = 'force-dynamic';
