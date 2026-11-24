@@ -1,0 +1,4 @@
+-- 0084 client intake file ("תיק אפיון") — applied via MCP as office_0084_client_intake.
+-- office.client_intake (client_id pk, token, services, data, files, summary, opened/submitted/summarized_at)
+-- storage bucket 'client-intake' (private, 50MB/file); anon INSERT only under <valid token>/..., office members SELECT.
+-- RPCs: office_worker_intake_get/save/file/submit/summary (public link via worker), office_intake_get/open/rotate (office).

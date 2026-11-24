@@ -21,6 +21,7 @@ import { Opportunities } from '@/components/opportunities';
 import { AdsTable } from '@/components/ads-table';
 import { ProjectsPanel } from './projects-panel';
 import { ClientLinks } from './client-links';
+import { IntakePanel } from './intake-panel';
 
 
 const ONB_Q: Record<string, string> = { unique: 'מה מייחד', audience: 'קהל', competitors: 'מתחרים', goals: 'מטרות ל-3 חודשים', tone: 'טון', avoid: 'להימנע', dates: 'תאריכים חשובים' };
@@ -36,6 +37,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const [portal, opps, site] = await Promise.all([rpc<string>('office_portal_link', { p_client: id }).catch(() => ''), tab === 'overview' ? rpc<any[]>('office_opportunities', { p_client: id }).catch(() => []) : Promise.resolve([] as any[]), tab === 'overview' ? rpc<any>('office_site_check', { p_client: id }).catch(() => null) : Promise.resolve(null)]);
   const [steps, onb, ads] = await Promise.all([rpc<Record<string, any>>('office_next_steps').catch(() => ({} as any)), tab === 'overview' ? rpc<any>('office_client_onboarding', { p_client: id }).catch(() => null) : Promise.resolve(null), tab === 'overview' ? rpc<any>('office_ads_overview', { p_month: null }).catch(() => null) : Promise.resolve(null)]);
   const adRow = (ads?.rows ?? []).find((x: any) => x.id === id);
+  const intake = tab === 'overview' || tab === 'intake' ? await rpc<any>('office_intake_get', { p_client: id }).catch(() => null) : null;
   const pj = tab === 'projects' ? await rpc<any>('office_client_projects', { p_client: id }).catch(() => null) : null;
   const ns = steps?.[id];
   const base = `/clients/${id}?tab=`; const fin = ['owner', 'admin'].includes(m.role);
@@ -45,7 +47,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       <ClientLinks clientId={id} clientName={c.name} profile={c.profile} contacts={contacts} /></div><Badge s={c.status} /></div></div>
     {ns && <div className={`next-step big ${ns.tone}`}><i>➜</i><span className="sp"><small>הצעד הבא</small>{ns.text}</span>{ns.link && <Link className="btn sm" href={ns.link}>לטיפול</Link>}</div>}
     <JourneyBar j={journey} />
-    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'milestones', 'אבני דרך'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'docs', 'מסמכים וחוזים'], [base + 'reports', 'דוחות'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
+    <Tabs on={base + tab} items={[[base + 'overview', 'סקירה'], [base + 'intake', 'תיק אפיון'], [base + 'milestones', 'אבני דרך'], ...(fin ? [[base + 'billing', 'תשלומים'] as [string, string]] : []), [base + 'services', 'שירותים ומכסות'], [base + 'projects', 'מותגים ופרויקטים'], [base + 'contacts', 'אנשי קשר'], [base + 'docs', 'מסמכים וחוזים'], [base + 'reports', 'דוחות'], [base + 'knowledge', 'תיק מותג ומחקר'], [base + 'assets', 'בנק נכסים'], [base + 'work', 'משימות ותוצרים']]} />
     {tab === 'overview' && <div className="grid g2 ov">
       <ProfileForm c={c} />
       <div className="grid" style={{ alignContent: 'start' }}>
@@ -57,6 +59,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
         {projects.filter((p: any) => !p.archived_at && p.stage !== 'done').length > 0 && <div className="card ov-pj"><div className="row"><h2 className="sp">פרויקטים פתוחים</h2><Link className="btn sm ghost" href={`${base}projects`}>לכל הפרויקטים</Link></div>
           <ul>{projects.filter((p: any) => !p.archived_at && p.stage !== 'done').slice(0, 5).map((p: any) => <li key={p.id}><Link href={`${base}projects`}><b>{p.name}</b><span className={`pj-st ${({ planning: 'st-plan', active: 'st-act', waiting_client: 'st-wait', review: 'st-rev', on_hold: 'st-hold' } as any)[p.stage] ?? 'st-plan'}`}>{({ planning: 'בתכנון', active: 'בעבודה', waiting_client: 'ממתין ללקוח', review: 'בבדיקה', on_hold: 'מוקפא' } as any)[p.stage] ?? p.stage}</span>{p.due_date ? <small>יעד {fmtDate(p.due_date)}</small> : null}</Link></li>)}</ul></div>}
         {adRow && <div className="card ad-one"><div className="row"><h2 className="sp">ביצועי פרסום החודש</h2><Link className="btn sm ghost" href="/ads">כל הלקוחות</Link></div><AdsTable rows={[adRow]} single /></div>}
+        {intake && <IntakePanel clientId={id} d={intake} />}
         {portal && <PortalCard clientId={id} url={portal} onb={!!onb?.started} />}
         {site && <div className="card sc"><h2>{site.ok ? '✅' : '🔧'} בריאות האתר</h2><p className="small muted">בדיקה אחרונה {fmtDateTime(site.at)} · {site.result?.ms ? `${Math.round(site.result.ms / 100) / 10} שנ׳` : ''}{site.result?.https ? ' · HTTPS ✓' : ''}{site.result?.form ? ' · טופס ✓' : ''}</p>
           {(site.result?.pixels ?? []).length > 0 && <p className="small">מדידה: {site.result.pixels.join(' · ')}</p>}
@@ -97,6 +100,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       <div className="card"><h2>מכסות התקופה {periods[0] ? `(${periods[0].period_start})` : ''}</h2>
         <Table head={['שירות', 'התחייבות', 'מוקצה', 'בתהליך', 'נמסר', 'יתרה']} rows={quota.map((q: any) => [q.title, q.committed, q.allocated, q.in_progress, q.delivered, <b key="a">{q.available}</b>])} empty="אין תקופה פתוחה" />
         <p className="small muted">{quota[0]?.rule}</p></div></div>}
+    {tab === 'intake' && (intake ? <IntakePanel clientId={id} d={intake} full /> : <Empty>לא ניתן לטעון את תיק האפיון</Empty>)}
     {tab === 'projects' && <ProjectsPanel clientId={id} data={pj} />}
     {tab === 'contacts' && <div className="grid g2"><Table head={['שם', 'תפקיד', 'טלפון', 'אומת', '']} rows={contacts.map((x: any) => [x.name, x.role_title ?? '—', <span key="p" dir="ltr">{x.phone_e164 ?? '—'}</span>, x.phone_verified ? '✓' : '—',
       !x.phone_verified && x.phone_e164 && ['owner', 'admin'].includes(m.role) ? <ActionButton key="v" className="btn sm" action="verify_contact_phone" payload={{ id: x.id }} confirm="אימתת שזה המספר הנכון של איש הקשר?">סמן כמאומת</ActionButton> : null])} empty="אין אנשי קשר" />
